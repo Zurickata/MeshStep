@@ -1,0 +1,3 @@
+[submodule "core/quadtree"]
+	path = core/quadtree
+	url = https://github.com/clobosmesher/MixedQuadTree.git
