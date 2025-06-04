@@ -15,6 +15,10 @@
     ```bash
    ./setup.sh
 
+En caso de que no se pueda correr por permisos, ejecutar:
+    ```bash
+    chmod +x setup.sh && ./setup.sh
+    
 3. Ahora puedes ejecutar la aplicación:
     ```bash
    python -m app.main
