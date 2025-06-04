@@ -2,7 +2,8 @@
 
 ## PreRequisito
 - Ejecutar en Terminal Linux
-- Tener instalado Cmake
+- Tener instalado Python 3.1 <
+- Tener instalado Cmake 3.22.1
 
 ## Instalación
 
@@ -14,11 +15,11 @@
 2. Ejecutar el script de configuración:
     ```bash
    ./setup.sh
-
-En caso de que no se pueda correr por permisos, ejecutar:
+    
+- En caso de que no se pueda correr por permisos, ejecutar:
     ```bash
     chmod +x setup.sh && ./setup.sh
     
-3. Ahora puedes ejecutar la aplicación:
+4. Ahora puedes ejecutar la aplicación:
     ```bash
    python -m app.main
