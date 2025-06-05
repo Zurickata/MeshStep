@@ -12,8 +12,8 @@ class MainWindow(QWidget):
         self.setLayout(layout)
         
         # Ejemplo de uso
-        # self.mesher = QuadtreeWrapper()
-        # self.mesher.generate_mesh("core/quadtree/data/a.poly")
+        self.mesher = QuadtreeWrapper()
+        self.mesher.generate_mesh("core/quadtree/data/a.poly")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
