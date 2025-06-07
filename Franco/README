@@ -2,7 +2,7 @@ FeriaOGL.py
 Visualizador implementado en OpenGL.
 Más personalizable en cuanto a estilo y comportamiento gráfico.
 
-feriaVTK.py
+feriaVTK.py           <-----------------------------   utilizar este 
 Visualizador basado en la librería VTK. 
 ya permite visualizar ángulos extremos de los datos.
 
