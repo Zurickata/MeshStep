@@ -8,8 +8,10 @@ import vtk
 # - Tecla 'r': Resetear la cámara a la posición inicial
 # - Tecla 'q' o 'e': Salir de la visualización
 # - Tecla 'n': cambiar modelo
-# - Tecla 'm': agregar modelo extra
+# - Tecla 'm': agregar modelo extra # deprecated
 # - Tecla 'w': wireframe
+# - Tecla 's': desactivar wireframe
+# - Tecla 'a': Activar/Desactivar Angulos criticos
 
 import math
 
@@ -36,6 +38,7 @@ class ModelSwitcher:
         self.interactor = renderWindowInteractor
         self.file_list = file_list
         self.current_index = 0
+        self.toggle_load = False
 
         # Actor y mapper del modelo actual (solo para 'n')
         self.reader = vtk.vtkUnstructuredGridReader()
@@ -61,10 +64,10 @@ class ModelSwitcher:
         self.actor.SetMapper(self.mapper)
         self.renderer.ResetCamera()
         self.renderer.GetRenderWindow().Render()
-        self.marcar_angulos_extremos()
+
 #-------------------------------------------Calculo de angulos-----------------------------------------------------
 
-    def marcar_angulos_extremos(self):
+    def marcar_angulos_extremos(self): # Marca los angulos extremos de un Modelo ¯\_(ツ)_/¯, la puedes llamar.
         grid = self.reader.GetOutput()
         if grid.GetNumberOfCells() == 0:
             return
@@ -84,6 +87,7 @@ class ModelSwitcher:
         min_ang, min_pt = min(angulos, key=lambda x: x[0])
         max_ang, max_pt = max(angulos, key=lambda x: x[0])
 
+        #Personalizar la detecion de los angulos
         for angulo, punto, color in [(min_ang, min_pt, (1, 0, 0)), (max_ang, max_pt, (0, 1, 0))]:
             self._agregar_esfera(punto, color)
 
@@ -121,7 +125,7 @@ class ModelSwitcher:
         self.renderer.ResetCamera() 
         self.renderer.GetRenderWindow().Render()
 
-    # Borra todos los modelos extras (incluye las esferas), se mantiene el principal.
+    # Borra todos los modelos extras (incluye las ESFERAS), se mantiene el principal.
     def clear_extra_models(self):
         print("Borrando todos los modelos extra añadidos")
         for actor in self.extra_actors:
@@ -130,18 +134,87 @@ class ModelSwitcher:
         self.renderer.ResetCamera()
         self.renderer.GetRenderWindow().Render()
 
-#-------------------------------------------------------- Llamado de funciones ---------------------------------------------
+#-------------------------------------------------------- Llamado de funciones/ intereacion ---------------------------------------------
     def keypress_callback(self, obj, event):
         key = self.interactor.GetKeySym()
         if key == 'n':  # Cambiar modelo (reemplazar)
             self.current_index = (self.current_index + 1) % len(self.file_list)
             self.load_model(self.file_list[self.current_index])
-        elif key == 'm':  # Añadir modelo al escenario (sin borrar)
-            self.current_index = (self.current_index + 1) % len(self.file_list)
-            self.add_model(self.file_list[self.current_index])
+            self.clear_extra_models() # borra los puntos criticos pasados
+            self.toggle_load = False # reiniciar los puntos criticos
+        # elif key == 'm':  # Añadir modelo al escenario (sin borrar)                     # Deprecated
+        #     self.current_index = (self.current_index + 1) % len(self.file_list)
+        #     self.add_model(self.file_list[self.current_index])
         elif key == 'b':  # Borrar todos los modelos extra
             self.clear_extra_models()
 
+        elif key == 'a':  # Toggle para Puntos Criticos
+            self.toggle_load = not self.toggle_load
+            if self.toggle_load:
+                print("Cargando puntos criticos...")
+                self.marcar_angulos_extremos()
+                self.renderer.GetRenderWindow().Render()  # <--- FORZAR RENDER
+            else:
+                print("Toggle desactivado puntos criticos.")
+                self.clear_extra_models()
+                self.renderer.GetRenderWindow().Render()  # <--- FORZAR RENDER
+        elif key == 'r':
+            print("🔁 Reseteando cámara y modelo")
+            self.actor.SetOrientation(0, 0, 0)
+            self.actor.SetPosition(0, 0, 0)
+            self.actor.SetScale(1, 1, 1)
+            self.renderer.ResetCamera()
+            
+            # Reinicia también la rotación de cámara:
+            if isinstance(self.interactor.GetInteractorStyle(), CustomInteractorStyle):
+                self.interactor.GetInteractorStyle().reset_camera_and_rotation()
+
+            self.renderer.GetRenderWindow().Render()
+
+
+
+# ---------------------------------------------------------------------------Cambio en el estilo para el control de la camara!
+class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera): #chatgpt
+    def __init__(self, renderer, parent=None):
+        self.AddObserver("MouseMoveEvent", self.mouse_move_event)
+        self.AddObserver("LeftButtonPressEvent", self.left_button_press_event)
+        self.AddObserver("LeftButtonReleaseEvent", self.left_button_release_event)
+        self.renderer = renderer
+        self.left_mouse_down = False
+        self.last_pos = (0, 0)
+
+    def left_button_press_event(self, obj, event):
+        self.left_mouse_down = True
+        self.last_pos = self.GetInteractor().GetEventPosition()
+        self.OnLeftButtonDown()
+
+    def left_button_release_event(self, obj, event):
+        self.left_mouse_down = False
+        self.OnLeftButtonUp()
+
+    def mouse_move_event(self, obj, event):
+        if self.left_mouse_down:
+            x, y = self.GetInteractor().GetEventPosition()
+            dx = x - self.last_pos[0]
+            dy = y - self.last_pos[1]
+
+            camera = self.renderer.GetActiveCamera()
+            camera.Azimuth(-dx * 0.5)     # Rotación horizontal
+            camera.Elevation(dy * 0.5)    # Rotación vertical
+            camera.OrthogonalizeViewUp()
+
+            self.renderer.ResetCameraClippingRange()
+            self.GetInteractor().GetRenderWindow().Render()
+
+            self.last_pos = (x, y)
+        self.OnMouseMove()
+
+    def reset_camera_and_rotation(self): #Funcion para reiniciar la rotacion
+        self.renderer.GetActiveCamera().SetViewUp(0, 1, 0)
+        self.renderer.GetActiveCamera().SetPosition(0, 0, 1)
+        self.renderer.GetActiveCamera().SetFocalPoint(0, 0, 0)
+        self.renderer.ResetCamera()
+        self.GetInteractor().GetRenderWindow().Render()
 
 #------------------------------------------ Main ---------------------------------------------------------------------------
 
@@ -155,6 +228,8 @@ def visualizar_vtk_unstructured_con_cambio_y_anadir(filenames):
 
     interactor = vtk.vtkRenderWindowInteractor()
     interactor.SetRenderWindow(renderWindow)
+    custom_style = CustomInteractorStyle(renderer) #Estilo camara
+    interactor.SetInteractorStyle(custom_style)
 
     switcher = ModelSwitcher(renderer, interactor, filenames)
 
