@@ -12,8 +12,8 @@ import vtk
 # - Tecla 'w': wireframe
 # - Tecla 's': desactivar wireframe
 # - Tecla 'a': Activar/Desactivar Angulos criticos
-
 import math
+import numpy as np
 
 def calcular_angulo(p1, p2, p3):
     # Calcula el ángulo en p2 formado por p1-p2-p3 (en radianes)
@@ -72,17 +72,21 @@ class ModelSwitcher:
         if grid.GetNumberOfCells() == 0:
             return
 
-        cell = grid.GetCell(0)
-        puntos = [cell.GetPoints().GetPoint(i) for i in range(cell.GetNumberOfPoints())]
-
-        if len(puntos) < 3:
-            return
-
         angulos = []
-        n = len(puntos)
-        for i in range(n):
-            ang = calcular_angulo(puntos[i - 1], puntos[i], puntos[(i + 1) % n])
-            angulos.append((ang, puntos[i]))
+        print(grid.GetNumberOfCells())
+
+        cell = grid.GetCell(0)
+        for i in range(grid.GetNumberOfCells()):
+            cell = grid.GetCell(i)
+            puntos = [cell.GetPoints().GetPoint(j) for j in range(cell.GetNumberOfPoints())]
+
+            if len(puntos) < 3:
+                continue  # Saltar celdas inválidas
+
+            n = len(puntos)
+            for j in range(n):
+                ang = calcular_angulo(puntos[j - 1], puntos[j], puntos[(j + 1) % n])
+            angulos.append((ang, puntos[j]))
 
         min_ang, min_pt = min(angulos, key=lambda x: x[0])
         max_ang, max_pt = max(angulos, key=lambda x: x[0])
@@ -90,6 +94,7 @@ class ModelSwitcher:
         #Personalizar la detecion de los angulos
         for angulo, punto, color in [(min_ang, min_pt, (1, 0, 0)), (max_ang, max_pt, (0, 1, 0))]:
             self._agregar_esfera(punto, color)
+            self._agregar_texto_angulo(punto, f"{np.degrees(angulo):.1f}°", color)
 
     # Generador de las esferas para marcar agulos extremos
     def _agregar_esfera(self, centro, color):
@@ -105,6 +110,19 @@ class ModelSwitcher:
 
         self.renderer.AddActor(actor)
         self.extra_actors.append(actor)
+
+    # Generador de texto para mostrar el angulo
+    def _agregar_texto_angulo(self, posicion, texto, color):
+        text_actor = vtk.vtkBillboardTextActor3D()
+        text_actor.SetPosition(*posicion)
+        text_actor.SetInput(texto)
+        text_actor.GetTextProperty().SetColor(*color)
+        text_actor.GetTextProperty().SetFontSize(16)
+        text_actor.GetTextProperty().SetBackgroundColor(0, 0, 0)  
+        text_actor.GetTextProperty().SetBackgroundOpacity(0.6)
+        
+        self.renderer.AddActor(text_actor)
+        self.extra_actors.append(text_actor)
 #---------------------------------------------- Anadir modelos ----------------------------------------------------------
 
     # Anade un modelo, la diferencia a cargar/leer es que AQUI se MANTIENE el objeto principal.
