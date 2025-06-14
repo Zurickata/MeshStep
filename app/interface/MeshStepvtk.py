@@ -174,6 +174,8 @@ class CargarArchivoDialog(QDialog):
                 f"Se generaron {max_refinement} mallas en {total_time:.2f} segundos\n"
                 f"({avg_time:.2f} segundos por nivel en promedio)"
             )
+
+            self.accept()
             
         except Exception as e:
             elapsed_time = time.time() - start_time
@@ -275,6 +277,8 @@ class AppPrincipal(QWidget):
         self.setAcceptDrops(True)
 
     # Métodos para cada acción
+
+    # Siguiente modelo
     def accion_n(self):
         if self.switcher:
             self.switcher.current_index = (self.switcher.current_index + 1) % len(self.switcher.file_list)
@@ -282,6 +286,7 @@ class AppPrincipal(QWidget):
             self.switcher.clear_extra_models()
             self.switcher.toggle_load = False
 
+    # Puntos críticos
     def accion_a(self):
         if self.switcher:
             self.switcher.toggle_load = not self.switcher.toggle_load
@@ -294,10 +299,12 @@ class AppPrincipal(QWidget):
                 self.switcher.clear_extra_models()
                 self.renderer.GetRenderWindow().Render()
 
+    # Eliminar extras
     def accion_b(self):
         if self.switcher:
             self.switcher.clear_extra_models()
 
+    # Resetear cámara
     def accion_r(self):
         if self.switcher:
             print("🔁 Reseteando cámara y modelo")
@@ -309,11 +316,13 @@ class AppPrincipal(QWidget):
                 self.interactor.GetInteractorStyle().reset_camera_and_rotation()
             self.renderer.GetRenderWindow().Render()
 
+    # Wireframe
     def accion_w(self):
         if self.switcher:
             self.switcher.actor.GetProperty().SetRepresentationToWireframe()
             self.renderer.GetRenderWindow().Render()
 
+    # Sólido
     def accion_s(self):
         if self.switcher:
             self.switcher.actor.GetProperty().SetRepresentationToSurface()
@@ -322,23 +331,39 @@ class AppPrincipal(QWidget):
     def abrir_dialogo_carga(self):
         dialogo = CargarArchivoDialog(self)
         if dialogo.exec_() == QDialog.Accepted:
-            if not self.switcher:
-                self.switcher = ModelSwitcher(self.renderer, self.interactor, dialogo.archivos_seleccionados)
-            else:
-                for ruta in dialogo.archivos_seleccionados:
-                    self.switcher.add_model(ruta)
+            archivos_vtk = []
+            for archivo_poly in dialogo.archivos_seleccionados:
+                # nombre_base = os.path.splitext(os.path.basename(archivo_poly))[0]
+                for level in range(1, dialogo.nivel_refinamiento + 1):
+                    ruta_vtk = f"core/quadtree/build/output_{level}.vtk"
+                    if os.path.exists(ruta_vtk):
+                        archivos_vtk.append(ruta_vtk)
+            
+            if archivos_vtk:
+                if not self.switcher:
+                    self.switcher = ModelSwitcher(self.renderer, self.interactor, archivos_vtk)
+                else:
+                    for ruta in dialogo.archivos_seleccionados:
+                        self.switcher.add_model(ruta)
 
-            for ruta in dialogo.archivos_seleccionados:
-                nombre = os.path.basename(ruta)
-                if nombre not in self.rutas_archivos:
-                    self.rutas_archivos[nombre] = ruta
-                    self.lista_archivos.addItem(nombre)
+                for ruta in archivos_vtk:
+                    nombre = os.path.basename(ruta)
+                    if nombre not in self.rutas_archivos:
+                        self.rutas_archivos[nombre] = ruta
+                        self.lista_archivos.addItem(nombre)
+            
+                # Que muestre automáticamente el primero
+                self.switcher.load_model(archivos_vtk[0])
 
     def mostrar_contenido(self, item):
         nombre = item.text()
         ruta = self.rutas_archivos.get(nombre)
         if ruta and self.switcher:
             self.switcher.load_model(ruta)
+            
+            # Actualización de posición si se cambia de archivo
+            if ruta in self.switcher.file_list:
+                self.switcher.current_index = self.switcher.file_list.index(ruta)
 
     def mostrar_menu_contextual(self, posicion):
         item = self.lista_archivos.itemAt(posicion)
