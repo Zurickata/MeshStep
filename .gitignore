@@ -3,6 +3,8 @@ core/quadtree/build/
 core/quadtree/**/*.so
 core/quadtree/**/*.o
 
+outputs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

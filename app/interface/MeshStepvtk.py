@@ -1,16 +1,15 @@
 import sys
 import time
+import vtk
 import os
+from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
+from core.wrapper import QuadtreeWrapper
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QFileDialog, QDialog, QSpinBox, QMessageBox, QListWidget, QSplitter, QListWidgetItem, QMenu, QFrame
 )
-from PyQt5.QtCore import Qt
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-import vtk
-from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
-from core.wrapper import QuadtreeWrapper
-
 
 class CargarArchivoDialog(QDialog):
     def __init__(self, parent=None):
@@ -18,11 +17,13 @@ class CargarArchivoDialog(QDialog):
         self.setWindowTitle("Cargar archivos")
         self.resize(400, 300)
 
+        # variables para refinacion rutas labels y cosas
         self.archivos_seleccionados = []
         self.nivel_refinamiento = 1
 
         self.ruta_archivos = QLabel("Ningún archivo seleccionado")
 
+        # Definir y conectar el boton pa abrir el exporador
         self.boton_seleccionar = QPushButton("Seleccionar archivos")
         self.boton_seleccionar.clicked.connect(self.abrir_explorador)
 
@@ -51,6 +52,8 @@ class CargarArchivoDialog(QDialog):
         layout.addSpacing(20)
         layout.addWidget(self.status_label)
         layout.addWidget(self.time_label)
+        layout.addWidget(QLabel("Archivos generados:"))
+        layout.addWidget(self.file_list)
         self.setLayout(layout)
 
         # Inicializar el mesher
@@ -97,7 +100,8 @@ class CargarArchivoDialog(QDialog):
             QMessageBox.critical(self, "Error", "Debes seleccionar al menos un archivo .poly antes de confirmar.")
             return
 
-        self.nivel_refinamiento = self.spin_refinamiento.value()
+        max_refinement = self.refinement_spinbox.value()
+        input_file = self.archivos_seleccionados
 
         QMessageBox.information(
             self,
@@ -105,14 +109,14 @@ class CargarArchivoDialog(QDialog):
             f"Se cargaron {len(self.archivos_seleccionados)} archivo(s) con nivel de refinamiento: {self.nivel_refinamiento}"
         )
 
-        # Ejecución del Algoritmo
-        max_refinement = self.spin_refinamiento.value()
-        # input_file = "core/quadtree/data/a.poly"
-        input_file = self.archivos_seleccionados[0]
-        print(input_file[0])
         # Iniciar cronómetro
         start_time = time.time()
         level_times = []
+        self.generated_files = []
+
+        # # input_file = "core/quadtree/data/a.poly"
+        # input_file = self.archivos_seleccionados[0]
+        # print(input_file[0])
         
         self.status_label.setText(f"Generando mallas desde nivel 1 hasta {max_refinement}...")
         self.time_label.setText("Tiempo de ejecución: calculando...")
@@ -136,6 +140,7 @@ class CargarArchivoDialog(QDialog):
                 
                 level_time = time.time() - level_start
                 level_times.append(level_time)
+                self.generated_files.append(result_file)
                 
                 print(f"Nivel {level} completado en {level_time:.2f} segundos")
                 self.status_label.setText(
@@ -168,6 +173,10 @@ class CargarArchivoDialog(QDialog):
                 f"{time_report}"
             )
             
+            # Actualizar lista y visualizador
+            self.update_file_list()
+            self.initialize_switcher()
+
             QMessageBox.information(
                 self, 
                 "Proceso completado", 
@@ -191,6 +200,20 @@ class CargarArchivoDialog(QDialog):
                 "Error",
                 error_msg
             )
+    
+    def update_file_list(self):
+        self.file_list.clear()
+        for file_path in self.generated_files:
+            file_name = os.path.basename(file_path)
+            self.file_list.addItem(file_name)
+    
+    def load_vtk_file(self, item):
+        """Carga el archivo seleccionado en el visualizador"""
+        if self.switcher:
+            file_name = item.text()
+            file_path = next((f for f in self.generated_files if os.path.basename(f) == file_name), None)
+            if file_path:
+                self.switcher.load_model(file_path)
 
 class AppPrincipal(QWidget):
     def __init__(self):
