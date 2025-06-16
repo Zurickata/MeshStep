@@ -8,6 +8,7 @@ class MeshGeneratorController(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.mesher = QuadtreeWrapper()
+        self.generated_files = []
         self.setup_ui()
 
     def setup_ui(self):
@@ -22,7 +23,8 @@ class MeshGeneratorController(QDialog):
         self.refinement_spinbox = QSpinBox()
         self.refinement_spinbox.setRange(1, 17)
         self.refinement_spinbox.setValue(3)
-        
+        self.refinement_spinbox.valueChanged.connect(self.verificar_refinamiento)
+
         self.input_file_button = QPushButton("Seleccionar archivo .poly")
         self.input_file_button.clicked.connect(self.select_input_file)
 
@@ -67,7 +69,7 @@ class MeshGeneratorController(QDialog):
 
     def run_mesh_generation(self):
         if not self.archivos_seleccionados:
-            QMessageBox.critical(self, "Error", "Debes seleccionar al menos un archivo .vtk antes de confirmar.")
+            QMessageBox.critical(self, "Error", "Debes seleccionar al menos un archivo .poly antes de confirmar.")
             return
         
         max_refinement = self.refinement_spinbox.value()
