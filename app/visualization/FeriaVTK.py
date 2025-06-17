@@ -33,10 +33,11 @@ def calcular_angulo(p1, p2, p3):
 
 class ModelSwitcher:
 # ----------------------------- INIT -----------------------------
-    def __init__(self, renderer, renderWindowInteractor, file_list):
+    def __init__(self, renderer, renderWindowInteractor, file_dict):
         self.renderer = renderer
         self.interactor = renderWindowInteractor
-        self.file_list = file_list
+        self.file_dict = file_dict
+        self.current_poly = list(file_dict.keys())[0]
         self.current_index = 0
         self.toggle_load = False
 
@@ -49,11 +50,15 @@ class ModelSwitcher:
         self.renderer.AddActor(self.actor)
         # Lista para guardar actores añadidos con 'm' y las esferas que muestran los angulos extremos
         self.extra_actors = []
-        self.load_model(self.file_list[self.current_index])
-
+        self._load_current()
 
         # Escuchar eventos de tecla
         self.interactor.AddObserver("KeyPressEvent", self.keypress_callback)
+
+    def _load_current(self):
+        archivos = self.file_dict.get(self.current_poly, [])
+        if 0 <= self.current_index < len(archivos):
+            self.load_model(archivos[self.current_index])
 
 #------------------------------------------Cargar/Leer modelo-----------------------------------------------------
     def load_model(self, filename):
@@ -151,10 +156,32 @@ class ModelSwitcher:
         self.extra_actors.clear()
         self.renderer.ResetCamera()
         self.renderer.GetRenderWindow().Render()
+    
+    def siguiente_modelo(self):
+        archivos = self.file_dict.get(self.current_poly, [])
+        if not archivos:
+            return
+
+        if self.current_index + 1 < len(archivos):
+            self.current_index += 1
+            self.load_model(archivos[self.current_index])
+        else:
+            print("Estás en el último modelo.")
+
+    def anterior_modelo(self):
+        archivos = self.file_dict.get(self.current_poly, [])
+        if not archivos:
+            return
+        if self.current_index > 0:
+            self.current_index -= 1
+            self.load_model(archivos[self.current_index])
+        elif self.current_index == 0:
+            print("Estás en el primer modelo.")
 
 #-------------------------------------------------------- Llamado de funciones/ intereacion ---------------------------------------------
     def keypress_callback(self, obj, event):
         key = self.interactor.GetKeySym()
+        archivos = self.file_dict.get(self.current_poly, [])
         if key == 'n':  # Cambiar modelo (reemplazar)
             self.current_index = (self.current_index + 1) % len(self.file_list)
             self.load_model(self.file_list[self.current_index])
