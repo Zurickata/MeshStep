@@ -29,7 +29,7 @@ class QuadtreeWrapper:
         try:
             # Convertimos a rutas absolutas
             abs_input = str((self.quadtree_dir / "data" / Path(input_file).name).resolve())
-            abs_output = str((self.quadtree_dir / output_file).resolve())
+            abs_output = str((self.outputs_dir / output_file).resolve())
             
             # Creamos el comando base
             command = [
