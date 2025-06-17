@@ -6,7 +6,11 @@ class QuadtreeWrapper:
     def __init__(self):
         self.quadtree_dir = Path(__file__).parent / "quadtree"
         self.binary_path = self.quadtree_dir / "build" / "mesher_roi"
-        
+        self.outputs_dir = Path(__file__).parent.parent / "outputs"
+
+        # Crear directorio outputs si no existe
+        self.outputs_dir.mkdir(parents=True, exist_ok=True)
+
         if not self.binary_path.exists():
             raise FileNotFoundError(
                 "Ejecutable no encontrado. Ejecuta './setup.sh' primero."
@@ -25,7 +29,7 @@ class QuadtreeWrapper:
         try:
             # Convertimos a rutas absolutas
             abs_input = str((self.quadtree_dir / "data" / Path(input_file).name).resolve())
-            abs_output = str((self.quadtree_dir / "build" / output_file).resolve())
+            abs_output = str((self.quadtree_dir / output_file).resolve())
             
             # Creamos el comando base
             command = [
