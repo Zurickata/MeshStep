@@ -202,12 +202,42 @@ class MainWindow(QWidget):
             self.label_derecho.setText(f"<b>Error al leer el archivo:</b><br>{e}")
 
     # Métodos para cada acción
+
+    # Moverse entre los poly
     def accion_n(self):
-        if self.switcher:
-            self.switcher.current_index = (self.switcher.current_index + 1) % len(self.switcher.file_list)
-            self.switcher.load_model(self.switcher.file_list[self.switcher.current_index])
-            self.switcher.clear_extra_models()
+        if not self.switcher:
+            return
+        polys_cargados = list(self.switcher.file_dict.keys())
+        if not polys_cargados:
+            return
+        
+        try:
+            i = polys_cargados.index(self.switcher.current_poly)
+            next_index = (i + 1) % len(polys_cargados)
+            next_poly = polys_cargados[next_index]
+        except ValueError:
+            next_poly = polys_cargados[0]
+        
+        archivos = self.switcher.file_dict.get(next_poly, [])
+        if archivos:
+            self.switcher.current_poly = next_poly
+            self.switcher.current_index = 0
+            self.switcher._load_current()
+            self.actualizar_panel_derecho(archivos[0])
+
+            items = self.lista_archivos.findItems(next_poly, Qt.MatchExactly)
+            if items:
+                self.lista_archivos.setCurrentItem(items[0])
+            
+            # Eliminar los puntos críticos si están
             self.switcher.toggle_load = False
+            self.switcher.clear_extra_models()
+
+        # if self.switcher:
+        #     self.switcher.current_index = (self.switcher.current_index + 1) % len(self.switcher.file_list)
+        #     self.switcher.load_model(self.switcher.file_list[self.switcher.current_index])
+        #     self.switcher.clear_extra_models()
+        #     self.switcher.toggle_load = False
 
     #Toggle puntos críticos
     def accion_a(self):
@@ -365,6 +395,8 @@ class MainWindow(QWidget):
         if self.switcher.current_index > 0:
             self.switcher.anterior_modelo()
             self.actualizar_panel_derecho(archivos[self.switcher.current_index])
+            self.switcher.toggle_load = False
+            self.switcher.clear_extra_models()
         else:
             QMessageBox.information(self, "Inicio", "Ya estás en el primer modelo.")
 
@@ -427,6 +459,8 @@ class MainWindow(QWidget):
         if self.switcher.current_index + 1 < len(archivos):
             self.switcher.siguiente_modelo()
             self.actualizar_panel_derecho(archivos[self.switcher.current_index])
+            self.switcher.toggle_load = False
+            self.switcher.clear_extra_models()
         else:
             QMessageBox.information(self, "Fin", "Ya estás en el último modelo.")
 
