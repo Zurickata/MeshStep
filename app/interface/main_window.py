@@ -5,8 +5,8 @@ import glob
 import vtk
 from PyQt5.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout,
                             QPushButton, QMenu, QLabel, QListWidget, QSplitter,
-                            QMessageBox, QSizePolicy)
-from PyQt5.QtCore import Qt
+                            QMessageBox, QSizePolicy, QStyle)
+from PyQt5.QtCore import (Qt, QTimer)
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.logic.mesh_generator import MeshGeneratorController
@@ -54,29 +54,46 @@ class MainWindow(QWidget):
         self.interactor.Initialize()
 
         # Crear botones de navegación
-        self.boton_anterior = QPushButton("◀ Anterior")
-        self.boton_siguiente = QPushButton("Siguiente ▶")
+        
+        self.boton_anterior = QPushButton()
+        self.boton_anterior.setIcon(self.style().standardIcon(QStyle.SP_ArrowLeft))
+        self.boton_anterior.setText("Anterior")
+
+        self.boton_siguiente = QPushButton()
+        self.boton_siguiente.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
+        self.boton_siguiente.setText("Siguiente")
 
         # Conectar botones a funciones
         self.boton_anterior.clicked.connect(self.navegar_anterior)
         self.boton_siguiente.clicked.connect(self.navegar_siguiente)
 
-        # Estilo para los botones de navegación
-        self.boton_anterior.setStyleSheet("""
-            QPushButton {
-                background-color: #4a4a4a;
-                color: white;
-                border: none;
-                padding: 8px;
-                font-size: 14px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #5a5a5a;
-            }
-        """)
+
+
+        # Nuevos botones para control de animación
+        self.boton_play = QPushButton()
+        self.boton_play.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
+        self.boton_play.setText("Play")
+
+        self.boton_pausa = QPushButton()
+        self.boton_pausa.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
+        self.boton_pausa.setText("Pausa")
+
+        self.boton_reinicio = QPushButton()
+        self.boton_reinicio.setIcon(self.style().standardIcon(QStyle.SP_MediaSkipBackward))
+        self.boton_reinicio.setText("Reinicio")
         
-        self.boton_siguiente.setStyleSheet("""
+        # Configurar timer para animación automática
+        self.timer_animacion = QTimer(self)
+        self.timer_animacion.setInterval(1500)  # 1.5 segundos
+        self.timer_animacion.timeout.connect(self.avance_automatico)
+        
+        # Conectar botones
+        self.boton_play.clicked.connect(self.iniciar_animacion)
+        self.boton_pausa.clicked.connect(self.detener_animacion)
+        self.boton_reinicio.clicked.connect(self.reiniciar_secuencia)
+        
+        # Estilo para los nuevos botones
+        estilo_botones = """
             QPushButton {
                 background-color: #4a4a4a;
                 color: white;
@@ -88,12 +105,22 @@ class MainWindow(QWidget):
             QPushButton:hover {
                 background-color: #5a5a5a;
             }
-        """)
+        """
+        # Aplicar a todos los botones
+        for btn in [self.boton_anterior, self.boton_siguiente, 
+                    self.boton_play, self.boton_pausa, self.boton_reinicio]:
+            btn.setStyleSheet(estilo_botones)
+
+        
+        self.boton_pausa.setEnabled(False)
 
         # Crear layout para los botones de navegación
         nav_layout = QHBoxLayout()
         nav_layout.addWidget(self.boton_anterior)
         nav_layout.addWidget(self.boton_siguiente)
+        nav_layout.addWidget(self.boton_play)
+        nav_layout.addWidget(self.boton_pausa)
+        nav_layout.addWidget(self.boton_reinicio)
         nav_layout.setContentsMargins(0, 0, 0, 0)
         nav_layout.setSpacing(5)
         
@@ -463,6 +490,54 @@ class MainWindow(QWidget):
             self.switcher.clear_extra_models()
         else:
             QMessageBox.information(self, "Fin", "Ya estás en el último modelo.")
+
+    def iniciar_animacion(self):
+        """Inicia el avance automático de modelos"""
+        if self.switcher and self.switcher.file_dict:
+            self.boton_play.setEnabled(False)
+            self.boton_pausa.setEnabled(True)
+            self.timer_animacion.start()
+            
+    def detener_animacion(self):
+        """Detiene el avance automático"""
+        self.timer_animacion.stop()
+        self.boton_play.setEnabled(True)
+        self.boton_pausa.setEnabled(False)
+        
+    def avance_automatico(self):
+        """Función que se ejecuta automáticamente cada intervalo de tiempo"""
+        if not self.switcher:
+            self.detener_animacion()
+            return
+            
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if not archivos:
+            self.detener_animacion()
+            return
+            
+        # Si estamos en el último modelo, volver al primero
+        if self.switcher.current_index + 1 >= len(archivos):
+            self.reiniciar_secuencia()
+        else:
+            self.navegar_siguiente()
+            
+    def reiniciar_secuencia(self):
+        """Vuelve al primer modelo de la secuencia actual"""
+        if not self.switcher:
+            return
+            
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if archivos:
+            self.switcher.current_index = 0
+            self.switcher._load_current()
+            self.actualizar_panel_derecho(archivos[0])
+            self.switcher.toggle_load = False
+            self.switcher.clear_extra_models()
+            
+            # Resaltar el elemento correspondiente en la lista
+            items = self.lista_archivos.findItems(self.switcher.current_poly, Qt.MatchExactly)
+            if items:
+                self.lista_archivos.setCurrentItem(items[0])
 
     def _encontrar_serie_completa(self, base_name, extension):
         """Encuentra todos los archivos de la misma serie numérica"""
