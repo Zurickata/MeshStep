@@ -5,8 +5,8 @@ import glob
 import vtk
 from PyQt5.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout,
                             QPushButton, QMenu, QLabel, QListWidget, QSplitter,
-                            QMessageBox, QSizePolicy)
-from PyQt5.QtCore import Qt
+                            QMessageBox, QSizePolicy, QStyle)
+from PyQt5.QtCore import (Qt, QTimer)
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.logic.mesh_generator import MeshGeneratorController
@@ -32,8 +32,8 @@ class MainWindow(QWidget):
         self.boton_a = QPushButton("Toggle puntos críticos (a)", self)
         self.boton_a.clicked.connect(self.accion_a)
 
-        self.boton_b = QPushButton("Borrar extras (b)", self)
-        self.boton_b.clicked.connect(self.accion_b)
+        # self.boton_b = QPushButton("Borrar extras (b)", self)
+        # self.boton_b.clicked.connect(self.accion_b)
 
         self.boton_r = QPushButton("Reset cámara/modelo (r)", self)
         self.boton_r.clicked.connect(self.accion_r)
@@ -54,29 +54,46 @@ class MainWindow(QWidget):
         self.interactor.Initialize()
 
         # Crear botones de navegación
-        self.boton_anterior = QPushButton("◀ Anterior")
-        self.boton_siguiente = QPushButton("Siguiente ▶")
+        
+        self.boton_anterior = QPushButton()
+        self.boton_anterior.setIcon(self.style().standardIcon(QStyle.SP_ArrowLeft))
+        self.boton_anterior.setText("Anterior")
+
+        self.boton_siguiente = QPushButton()
+        self.boton_siguiente.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
+        self.boton_siguiente.setText("Siguiente")
 
         # Conectar botones a funciones
         self.boton_anterior.clicked.connect(self.navegar_anterior)
         self.boton_siguiente.clicked.connect(self.navegar_siguiente)
 
-        # Estilo para los botones de navegación
-        self.boton_anterior.setStyleSheet("""
-            QPushButton {
-                background-color: #4a4a4a;
-                color: white;
-                border: none;
-                padding: 8px;
-                font-size: 14px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #5a5a5a;
-            }
-        """)
+
+
+        # Nuevos botones para control de animación
+        self.boton_play = QPushButton()
+        self.boton_play.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
+        self.boton_play.setText("Play")
+
+        self.boton_pausa = QPushButton()
+        self.boton_pausa.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
+        self.boton_pausa.setText("Pausa")
+
+        self.boton_reinicio = QPushButton()
+        self.boton_reinicio.setIcon(self.style().standardIcon(QStyle.SP_MediaSkipBackward))
+        self.boton_reinicio.setText("Reinicio")
         
-        self.boton_siguiente.setStyleSheet("""
+        # Configurar timer para animación automática
+        self.timer_animacion = QTimer(self)
+        self.timer_animacion.setInterval(1500)  # 1.5 segundos
+        self.timer_animacion.timeout.connect(self.avance_automatico)
+        
+        # Conectar botones
+        self.boton_play.clicked.connect(self.iniciar_animacion)
+        self.boton_pausa.clicked.connect(self.detener_animacion)
+        self.boton_reinicio.clicked.connect(self.reiniciar_secuencia)
+        
+        # Estilo para los nuevos botones
+        estilo_botones = """
             QPushButton {
                 background-color: #4a4a4a;
                 color: white;
@@ -88,12 +105,22 @@ class MainWindow(QWidget):
             QPushButton:hover {
                 background-color: #5a5a5a;
             }
-        """)
+        """
+        # Aplicar a todos los botones
+        for btn in [self.boton_anterior, self.boton_siguiente, 
+                    self.boton_play, self.boton_pausa, self.boton_reinicio]:
+            btn.setStyleSheet(estilo_botones)
+
+        
+        self.boton_pausa.setEnabled(False)
 
         # Crear layout para los botones de navegación
         nav_layout = QHBoxLayout()
         nav_layout.addWidget(self.boton_anterior)
         nav_layout.addWidget(self.boton_siguiente)
+        nav_layout.addWidget(self.boton_play)
+        nav_layout.addWidget(self.boton_pausa)
+        nav_layout.addWidget(self.boton_reinicio)
         nav_layout.setContentsMargins(0, 0, 0, 0)
         nav_layout.setSpacing(5)
         
@@ -134,7 +161,7 @@ class MainWindow(QWidget):
         # AGREGAR LOS NUEVOS BOTONES
         layout_derecho.addWidget(self.boton_n)
         layout_derecho.addWidget(self.boton_a)
-        layout_derecho.addWidget(self.boton_b)
+        # layout_derecho.addWidget(self.boton_b)
         layout_derecho.addWidget(self.boton_r)
         layout_derecho.addWidget(self.boton_w)
         layout_derecho.addWidget(self.boton_s)
@@ -167,6 +194,7 @@ class MainWindow(QWidget):
             # Cambiar extensión del archivo de .vtk a _histo.txt
             base, _ = os.path.splitext(ruta_archivo)
             ruta_modificada = f"{base}_histo.txt"
+            numero = base.split('_')[-1]
 
             # Leer el archivo línea por línea
             with open(ruta_modificada, 'r') as f:
@@ -188,7 +216,8 @@ class MainWindow(QWidget):
                 return f"<b>- {label}:</b><br>{min_ang}<br>{max_ang}<br><br>"
 
             if angulo_triangulo or angulo_cuadrado:
-                contenido_html = "<b>Ángulos Críticos:</b><br><br>"
+                contenido_html = "<b>Nivel de Refinamiento: " + numero + "</b><br><br><br>"
+                contenido_html += "<b>Ángulos Críticos:</b><br><br>"
                 if angulo_triangulo:
                     contenido_html += formatear_angulo("Triángulos", angulo_triangulo)
                 if angulo_cuadrado:
@@ -369,22 +398,6 @@ class MainWindow(QWidget):
     
     def navegar_anterior(self):
         """Función para navegar al modelo anterior numéricamente"""
-        # if not self.switcher or not self.switcher.file_list:
-        #     return
-            
-        # current_file = self.switcher.file_list[self.switcher.current_index]
-        # base_name, number, extension = self._descomponer_nombre_archivo(current_file)
-        
-        # if number is not None:
-        #     # Buscar el archivo con número anterior
-        #     prev_number = number - 1
-        #     prev_file = self._encontrar_archivo_numerado(base_name, prev_number, extension)
-            
-        #     if prev_file:
-        #         self._cargar_archivo_numerado(prev_file)
-        #     else:
-        #         QMessageBox.information(self, "Información", "No se encontró el archivo anterior en la secuencia.")
-
         if not self.switcher:
             return
 
@@ -402,53 +415,6 @@ class MainWindow(QWidget):
 
     def navegar_siguiente(self):
         """Función para navegar al siguiente modelo numéricamente"""
-        # print("\n=== INICIANDO NAVEGACIÓN SIGUIENTE ===")
-        
-        # if not self.switcher or not self.switcher.file_list:
-        #     print("DEBUG: No hay switcher o lista de archivos vacía")
-        #     QMessageBox.warning(self, "Advertencia", "No hay archivos cargados.")
-        #     return
-            
-        # current_file = self.switcher.file_list[self.switcher.current_index]
-        # print(f"DEBUG: Archivo actual: {current_file}")
-        # print(f"DEBUG: Índice actual: {self.switcher.current_index}")
-        # print(f"DEBUG: Lista completa: {self.switcher.file_list}")
-        
-        # # Descomponer el nombre del archivo
-        # base_name, number, extension = self._descomponer_nombre_archivo(current_file)
-        # print(f"DEBUG: Base: '{base_name}', Número: {number}, Ext: '{extension}'")
-        
-        # if number is None:
-        #     print("DEBUG: El archivo no sigue el patrón numerado")
-        #     QMessageBox.warning(self, "Advertencia", "El archivo actual no sigue el patrón de numeración esperado (nombre_1.vtk).")
-        #     return
-        
-        # # Buscar TODOS los archivos numerados en la misma serie
-        # serie_archivos = self._encontrar_serie_completa(base_name, extension)
-        # print(f"DEBUG: Serie completa encontrada: {serie_archivos}")
-        
-        # if not serie_archivos:
-        #     print("DEBUG: No se encontró serie completa")
-        #     QMessageBox.warning(self, "Advertencia", "No se encontraron archivos en esta serie numérica.")
-        #     return
-        
-        # # Encontrar la posición del archivo actual en la serie ordenada
-        # try:
-        #     current_pos = serie_archivos.index(current_file)
-        #     print(f"DEBUG: Posición actual en serie: {current_pos}")
-        # except ValueError:
-        #     print("DEBUG: Archivo actual no está en la serie encontrada")
-        #     QMessageBox.warning(self, "Error", "Inconsistencia en la serie de archivos.")
-        #     return
-        
-        # # Determinar siguiente archivo
-        # if current_pos + 1 < len(serie_archivos):
-        #     next_file = serie_archivos[current_pos + 1]
-        #     print(f"DEBUG: Siguiente archivo en serie: {next_file}")
-        #     self._cargar_archivo_numerado(next_file)
-        # else:
-        #     print("DEBUG: No hay más archivos en esta serie")
-        #     QMessageBox.information(self, "Información", "Has llegado al final de la serie.")
         if not self.switcher:
             return
 
@@ -463,6 +429,54 @@ class MainWindow(QWidget):
             self.switcher.clear_extra_models()
         else:
             QMessageBox.information(self, "Fin", "Ya estás en el último modelo.")
+
+    def iniciar_animacion(self):
+        """Inicia el avance automático de modelos"""
+        if self.switcher and self.switcher.file_dict:
+            self.boton_play.setEnabled(False)
+            self.boton_pausa.setEnabled(True)
+            self.timer_animacion.start()
+            
+    def detener_animacion(self):
+        """Detiene el avance automático"""
+        self.timer_animacion.stop()
+        self.boton_play.setEnabled(True)
+        self.boton_pausa.setEnabled(False)
+        
+    def avance_automatico(self):
+        """Función que se ejecuta automáticamente cada intervalo de tiempo"""
+        if not self.switcher:
+            self.detener_animacion()
+            return
+            
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if not archivos:
+            self.detener_animacion()
+            return
+            
+        # Si estamos en el último modelo, volver al primero
+        if self.switcher.current_index + 1 >= len(archivos):
+            self.reiniciar_secuencia()
+        else:
+            self.navegar_siguiente()
+            
+    def reiniciar_secuencia(self):
+        """Vuelve al primer modelo de la secuencia actual"""
+        if not self.switcher:
+            return
+            
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if archivos:
+            self.switcher.current_index = 0
+            self.switcher._load_current()
+            self.actualizar_panel_derecho(archivos[0])
+            self.switcher.toggle_load = False
+            self.switcher.clear_extra_models()
+            
+            # Resaltar el elemento correspondiente en la lista
+            items = self.lista_archivos.findItems(self.switcher.current_poly, Qt.MatchExactly)
+            if items:
+                self.lista_archivos.setCurrentItem(items[0])
 
     def _encontrar_serie_completa(self, base_name, extension):
         """Encuentra todos los archivos de la misma serie numérica"""
