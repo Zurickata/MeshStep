@@ -32,8 +32,8 @@ class MainWindow(QWidget):
         self.boton_a = QPushButton("Toggle puntos críticos (a)", self)
         self.boton_a.clicked.connect(self.accion_a)
 
-        self.boton_b = QPushButton("Borrar extras (b)", self)
-        self.boton_b.clicked.connect(self.accion_b)
+        # self.boton_b = QPushButton("Borrar extras (b)", self)
+        # self.boton_b.clicked.connect(self.accion_b)
 
         self.boton_r = QPushButton("Reset cámara/modelo (r)", self)
         self.boton_r.clicked.connect(self.accion_r)
@@ -161,7 +161,7 @@ class MainWindow(QWidget):
         # AGREGAR LOS NUEVOS BOTONES
         layout_derecho.addWidget(self.boton_n)
         layout_derecho.addWidget(self.boton_a)
-        layout_derecho.addWidget(self.boton_b)
+        # layout_derecho.addWidget(self.boton_b)
         layout_derecho.addWidget(self.boton_r)
         layout_derecho.addWidget(self.boton_w)
         layout_derecho.addWidget(self.boton_s)
@@ -194,6 +194,7 @@ class MainWindow(QWidget):
             # Cambiar extensión del archivo de .vtk a _histo.txt
             base, _ = os.path.splitext(ruta_archivo)
             ruta_modificada = f"{base}_histo.txt"
+            numero = base.split('_')[-1]
 
             # Leer el archivo línea por línea
             with open(ruta_modificada, 'r') as f:
@@ -215,7 +216,8 @@ class MainWindow(QWidget):
                 return f"<b>- {label}:</b><br>{min_ang}<br>{max_ang}<br><br>"
 
             if angulo_triangulo or angulo_cuadrado:
-                contenido_html = "<b>Ángulos Críticos:</b><br><br>"
+                contenido_html = "<b>Nivel de Refinamiento: " + numero + "</b><br><br><br>"
+                contenido_html += "<b>Ángulos Críticos:</b><br><br>"
                 if angulo_triangulo:
                     contenido_html += formatear_angulo("Triángulos", angulo_triangulo)
                 if angulo_cuadrado:
@@ -396,22 +398,6 @@ class MainWindow(QWidget):
     
     def navegar_anterior(self):
         """Función para navegar al modelo anterior numéricamente"""
-        # if not self.switcher or not self.switcher.file_list:
-        #     return
-            
-        # current_file = self.switcher.file_list[self.switcher.current_index]
-        # base_name, number, extension = self._descomponer_nombre_archivo(current_file)
-        
-        # if number is not None:
-        #     # Buscar el archivo con número anterior
-        #     prev_number = number - 1
-        #     prev_file = self._encontrar_archivo_numerado(base_name, prev_number, extension)
-            
-        #     if prev_file:
-        #         self._cargar_archivo_numerado(prev_file)
-        #     else:
-        #         QMessageBox.information(self, "Información", "No se encontró el archivo anterior en la secuencia.")
-
         if not self.switcher:
             return
 
@@ -429,53 +415,6 @@ class MainWindow(QWidget):
 
     def navegar_siguiente(self):
         """Función para navegar al siguiente modelo numéricamente"""
-        # print("\n=== INICIANDO NAVEGACIÓN SIGUIENTE ===")
-        
-        # if not self.switcher or not self.switcher.file_list:
-        #     print("DEBUG: No hay switcher o lista de archivos vacía")
-        #     QMessageBox.warning(self, "Advertencia", "No hay archivos cargados.")
-        #     return
-            
-        # current_file = self.switcher.file_list[self.switcher.current_index]
-        # print(f"DEBUG: Archivo actual: {current_file}")
-        # print(f"DEBUG: Índice actual: {self.switcher.current_index}")
-        # print(f"DEBUG: Lista completa: {self.switcher.file_list}")
-        
-        # # Descomponer el nombre del archivo
-        # base_name, number, extension = self._descomponer_nombre_archivo(current_file)
-        # print(f"DEBUG: Base: '{base_name}', Número: {number}, Ext: '{extension}'")
-        
-        # if number is None:
-        #     print("DEBUG: El archivo no sigue el patrón numerado")
-        #     QMessageBox.warning(self, "Advertencia", "El archivo actual no sigue el patrón de numeración esperado (nombre_1.vtk).")
-        #     return
-        
-        # # Buscar TODOS los archivos numerados en la misma serie
-        # serie_archivos = self._encontrar_serie_completa(base_name, extension)
-        # print(f"DEBUG: Serie completa encontrada: {serie_archivos}")
-        
-        # if not serie_archivos:
-        #     print("DEBUG: No se encontró serie completa")
-        #     QMessageBox.warning(self, "Advertencia", "No se encontraron archivos en esta serie numérica.")
-        #     return
-        
-        # # Encontrar la posición del archivo actual en la serie ordenada
-        # try:
-        #     current_pos = serie_archivos.index(current_file)
-        #     print(f"DEBUG: Posición actual en serie: {current_pos}")
-        # except ValueError:
-        #     print("DEBUG: Archivo actual no está en la serie encontrada")
-        #     QMessageBox.warning(self, "Error", "Inconsistencia en la serie de archivos.")
-        #     return
-        
-        # # Determinar siguiente archivo
-        # if current_pos + 1 < len(serie_archivos):
-        #     next_file = serie_archivos[current_pos + 1]
-        #     print(f"DEBUG: Siguiente archivo en serie: {next_file}")
-        #     self._cargar_archivo_numerado(next_file)
-        # else:
-        #     print("DEBUG: No hay más archivos en esta serie")
-        #     QMessageBox.information(self, "Información", "Has llegado al final de la serie.")
         if not self.switcher:
             return
 

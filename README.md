@@ -34,6 +34,10 @@
     rm -rf core/quadtree/build
     ./setup.sh
 
+- Si no puede por caracteres raros dentro del archivo o por un error de "No such file or directory" ejecute (Funciona también para el ./clean_outputs):
+    ```bash
+    sed -i 's/\r$//' setup.sh
+
 3. Volver a levantar el entorno virtual
     ```bash
     source venv/bin/activate
