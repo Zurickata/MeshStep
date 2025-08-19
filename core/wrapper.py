@@ -16,7 +16,8 @@ class QuadtreeWrapper:
                 "Ejecutable no encontrado. Ejecuta './setup.sh' primero."
             )
 
-    def generate_mesh(self, input_file, output_file="output", refinement_level=5, show_quality_metrics=False):
+    def generate_mesh(self, input_file, output_file="output", refinement_level=5, 
+                     refinement_type="-s", show_quality_metrics=False):
         """
         Genera una malla y devuelve la ruta del archivo VTK.
         
@@ -24,6 +25,7 @@ class QuadtreeWrapper:
             input_file: Nombre del archivo de entrada (debe estar en core/quadtree/data)
             output_file: Nombre base del archivo de salida (sin extensión)
             refinement_level: Nivel de refinamiento (1-10)
+            refinement_type: "-s" para refinamiento de borde, "-a" para completo
             show_quality_metrics: Si True, muestra métricas de calidad (-q)
         """
         try:
@@ -35,7 +37,7 @@ class QuadtreeWrapper:
             command = [
                 str(self.binary_path),
                 "-p", abs_input,
-                "-s", str(refinement_level),
+                refinement_type, str(refinement_level),  # Usamos el tipo de refinamiento seleccionado
                 "-v",
                 "-u", abs_output
             ]
