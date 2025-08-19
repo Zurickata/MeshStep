@@ -25,10 +25,21 @@ class MeshGeneratorController(QDialog):
         self.full_refinement = QRadioButton("Refinamiento completo")
         self.edge_refinement.setChecked(True)  # Por defecto refinamiento de borde
         
-        type_layout = QHBoxLayout()
-        type_layout.addWidget(self.edge_refinement)
-        type_layout.addWidget(self.full_refinement)
-        self.refinement_type_group.setLayout(type_layout)
+        refinement_layout = QHBoxLayout()
+        refinement_layout.addWidget(self.edge_refinement)
+        refinement_layout.addWidget(self.full_refinement)
+        self.refinement_type_group.setLayout(refinement_layout)
+
+        # Grupo para selección de algoritmo
+        self.algorithm_type_group = QGroupBox("Algoritmo")
+        self.quadtree = QRadioButton("Quadtree")
+        self.octree = QRadioButton("Octree")
+        self.quadtree.setChecked(True)  # Por defecto quadtree
+        
+        algorithm_layout = QHBoxLayout()
+        algorithm_layout.addWidget(self.quadtree)
+        algorithm_layout.addWidget(self.octree)
+        self.algorithm_type_group.setLayout(algorithm_layout)
 
         # Controles de generación
         self.refinement_label = QLabel("Nivel máximo de refinamiento (1-15):")
@@ -54,6 +65,7 @@ class MeshGeneratorController(QDialog):
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.refinement_type_group)  # Agregamos el grupo de selección
+        layout.addWidget(self.algorithm_type_group)   # <-- Agrega el grupo de algoritmo aquí
         layout.addWidget(self.refinement_label)
         layout.addWidget(self.refinement_spinbox)
         layout.addWidget(self.input_file_button)
@@ -66,11 +78,19 @@ class MeshGeneratorController(QDialog):
         self.setLayout(layout)
 
     def select_input_file(self):
+        # Determinar el filtro según el algoritmo seleccionado
+        if self.quadtree.isChecked():
+            file_filter = "Archivos POLY (*.poly)"
+        elif self.octree.isChecked():
+            file_filter = "Archivos POLY (*.poly);;Archivos MDL (*.mdl)"
+        else:
+            file_filter = "Archivos POLY (*.poly)"  # fallback
+
         archivos, _ = QFileDialog.getOpenFileNames(
             self,
-            "Seleccionar archivo .poly",
+            "Seleccionar archivo",
             "",
-            "Archivos POLY (*.poly)"
+            file_filter
         )
         if archivos:
             self.archivos_seleccionados = archivos

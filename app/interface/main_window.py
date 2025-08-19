@@ -45,6 +45,7 @@ class MainWindow(QWidget):
         self.boton_s.clicked.connect(self.accion_s)
 
         self.rutas_archivos = {}
+        self.rutas_octree = {}
 
         self.vtk_widget = QVTKRenderWindowInteractor(self)
         self.renderer = vtk.vtkRenderer()
@@ -313,8 +314,16 @@ class MainWindow(QWidget):
             ruta_poly = dialogo.archivos_seleccionados[0]
             nombre_poly = os.path.basename(ruta_poly)
 
-            if nombre_poly not in self.rutas_archivos:
-                self.rutas_archivos[nombre_poly] = dialogo.generated_files
+            # Selecciona el diccionario según el algoritmo
+            if dialogo.quadtree.isChecked():
+                diccionario = self.rutas_archivos
+            elif dialogo.octree.isChecked():
+                diccionario = self.rutas_octree
+            else:
+                diccionario = self.rutas_archivos  # fallback
+
+            if nombre_poly not in diccionario:
+                diccionario[nombre_poly] = dialogo.generated_files
                 self.lista_archivos.addItem(nombre_poly)
 
             items = self.lista_archivos.findItems(nombre_poly, Qt.MatchExactly)
@@ -335,6 +344,7 @@ class MainWindow(QWidget):
             return
         
         print("Rutas_Archivo:", self.rutas_archivos)
+        print("Rutas_Octree:", self.rutas_octree)
         print("Lista_Archivos:", self.lista_archivos)
         print("Generated_Files:", dialogo.generated_files)
 
