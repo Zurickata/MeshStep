@@ -12,7 +12,9 @@
         sudo apt install python3.12-venv
 
 - Tener instalado Cmake 3.22.1 
-    - Si no se tiene instalado Cmake ejecutar "sudo apt install cmake # version 3.22.1-1ubuntu1.22.04.2"
+    - Si no se tiene instalado Cmake ejecutar
+      ```bash
+      sudo apt install cmake # version 3.22.1-1ubuntu1.22.04.2
 
 ## Instalación
 

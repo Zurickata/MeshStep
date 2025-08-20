@@ -1,7 +1,8 @@
 import os
 import time
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel, QSpinBox, 
-                            QPushButton, QMessageBox, QFileDialog, QDialog)
+                            QPushButton, QMessageBox, QFileDialog, QDialog, QHBoxLayout,
+                            QGroupBox, QRadioButton)
 from core.wrapper import QuadtreeWrapper
 
 class MeshGeneratorController(QDialog):
@@ -13,10 +14,21 @@ class MeshGeneratorController(QDialog):
 
     def setup_ui(self):
         self.setWindowTitle("Cargar archivos")
-        self.resize(400, 300)
+        self.resize(400, 350)  # Aumentamos un poco el tamaño
         
         self.archivos_seleccionados = []
         self.ruta_archivos = QLabel("Ningún archivo seleccionado")
+
+        # Grupo para selección de tipo de refinamiento
+        self.refinement_type_group = QGroupBox("Tipo de refinamiento")
+        self.edge_refinement = QRadioButton("Refinamiento de borde")
+        self.full_refinement = QRadioButton("Refinamiento completo")
+        self.edge_refinement.setChecked(True)  # Por defecto refinamiento de borde
+        
+        type_layout = QHBoxLayout()
+        type_layout.addWidget(self.edge_refinement)
+        type_layout.addWidget(self.full_refinement)
+        self.refinement_type_group.setLayout(type_layout)
 
         # Controles de generación
         self.refinement_label = QLabel("Nivel máximo de refinamiento (1-15):")
@@ -40,11 +52,8 @@ class MeshGeneratorController(QDialog):
         self.time_label = QLabel("Tiempo de ejecución: -")
         self.time_label.setStyleSheet("font-weight: bold; color: #2E86C1;")
 
-        # Área de estado
-        self.status_label = QLabel("Seleccione un archivo .poly")
-        self.status_label.setWordWrap(True)
-
         layout = QVBoxLayout(self)
+        layout.addWidget(self.refinement_type_group)  # Agregamos el grupo de selección
         layout.addWidget(self.refinement_label)
         layout.addWidget(self.refinement_spinbox)
         layout.addWidget(self.input_file_button)
@@ -74,6 +83,9 @@ class MeshGeneratorController(QDialog):
         
         max_refinement = self.refinement_spinbox.value()
         input_file = self.archivos_seleccionados[0]
+        
+        # Determinar tipo de refinamiento seleccionado
+        refinement_type = "-a" if self.full_refinement.isChecked() else "-s"
 
         start_time = time.time()
         level_times = []
@@ -83,8 +95,6 @@ class MeshGeneratorController(QDialog):
         self.time_label.setText("Tiempo de ejecución: calculando...")
         QApplication.processEvents()
 
-        # Revisar que se hace con los archivos extra
-
         try:
             for level in range(1, max_refinement + 1):
                 level_start = time.time()
@@ -92,11 +102,11 @@ class MeshGeneratorController(QDialog):
                 poly_name = os.path.splitext(os.path.basename(input_file))[0]
                 output_name = f"{poly_name}_output_{level}"
                 
-                # Quedaría revisar el caso si se sube el mismo archivo pero con menos niveles
                 result_file = self.mesher.generate_mesh(
                     input_file=input_file,
                     output_file=output_name,
                     refinement_level=level,
+                    refinement_type=refinement_type,  # Pasamos el tipo de refinamiento
                     show_quality_metrics=True
                 )
                 
