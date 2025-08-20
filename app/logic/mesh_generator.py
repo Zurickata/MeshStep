@@ -6,10 +6,11 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel, QSpinBo
 from core.wrapper import QuadtreeWrapper
 
 class MeshGeneratorController(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, ignorar_limite=False):
         super().__init__(parent)
         self.mesher = QuadtreeWrapper()
         self.generated_files = []
+        self.ignorar_limite = ignorar_limite
         self.setup_ui()
 
     def setup_ui(self):
@@ -42,9 +43,12 @@ class MeshGeneratorController(QDialog):
         self.algorithm_type_group.setLayout(algorithm_layout)
 
         # Controles de generación
-        self.refinement_label = QLabel("Nivel máximo de refinamiento (1-15):")
+        self.refinement_label = QLabel("Nivel máximo de refinamiento (1-6):")
         self.refinement_spinbox = QSpinBox()
-        self.refinement_spinbox.setRange(1, 17)
+        self.refinement_spinbox.setRange(1, 6)
+        if self.ignorar_limite:
+            self.refinement_label = QLabel("Nivel máximo de refinamiento (1-17):")
+            self.refinement_spinbox.setRange(1, 17)
         self.refinement_spinbox.setValue(3)
         self.refinement_spinbox.valueChanged.connect(self.verificar_refinamiento)
 

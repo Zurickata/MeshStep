@@ -4,18 +4,25 @@ import re
 import glob
 import vtk
 from PyQt5.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout,
-                            QPushButton, QMenu, QLabel, QListWidget, QSplitter,
+                            QPushButton, QMenu, QLabel, QListWidget, QListWidgetItem, QSplitter,
                             QMessageBox, QSizePolicy, QStyle)
 from PyQt5.QtCore import (Qt, QTimer)
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.logic.mesh_generator import MeshGeneratorController
+from app.interface.options_dialog import OpcionesDialog
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("MeshStep")
         self.resize(1280, 720)
+
+        self.ignorar_limite_hardware = False  # Nuevo atributo
+
+        self.boton_opciones = QPushButton("Opciones", self)
+        self.boton_opciones.clicked.connect(self.abrir_opciones_dialog)
+
 
         self.boton_cargar = QPushButton("Cargar archivos", self)
         self.boton_cargar.clicked.connect(self.abrir_dialogo_carga)
@@ -136,6 +143,7 @@ class MainWindow(QWidget):
 
         panel_izquierdo = QWidget()
         layout_izquierdo = QVBoxLayout()
+        layout_izquierdo.addWidget(self.boton_opciones)
         layout_izquierdo.addWidget(self.boton_cargar)
         layout_izquierdo.addWidget(self.lista_archivos)
         panel_izquierdo.setLayout(layout_izquierdo)
@@ -308,7 +316,7 @@ class MainWindow(QWidget):
             self.renderer.GetRenderWindow().Render()
 
     def abrir_dialogo_carga(self):
-        dialogo = MeshGeneratorController(self)
+        dialogo = MeshGeneratorController(self, ignorar_limite=self.ignorar_limite_hardware)
 
         if dialogo.exec_() == QDialog.Accepted:
             ruta_poly = dialogo.archivos_seleccionados[0]
@@ -317,18 +325,27 @@ class MainWindow(QWidget):
             # Selecciona el diccionario según el algoritmo
             if dialogo.quadtree.isChecked():
                 diccionario = self.rutas_archivos
+                tipo = "2D"
             elif dialogo.octree.isChecked():
                 diccionario = self.rutas_octree
+                tipo = "3D"
             else:
                 diccionario = self.rutas_archivos  # fallback
+                tipo = "2D"
+
+            item_text = f"{nombre_poly} ({tipo})"
 
             if nombre_poly not in diccionario:
                 diccionario[nombre_poly] = dialogo.generated_files
-                self.lista_archivos.addItem(nombre_poly)
+                item = QListWidgetItem(item_text)
+                item.setData(Qt.UserRole, tipo)
+                self.lista_archivos.addItem(item)
 
-            items = self.lista_archivos.findItems(nombre_poly, Qt.MatchExactly)
-            if items:
-                self.lista_archivos.setCurrentItem(items[0]) 
+            # Seleccionar el item correspondiente
+            for i in range(self.lista_archivos.count()):
+                if self.lista_archivos.item(i).text().startswith(nombre_poly):
+                    self.lista_archivos.setCurrentItem(self.lista_archivos.item(i))
+                    break
 
             if not self.switcher:
                 self.switcher = ModelSwitcher(self.renderer, self.interactor, {nombre_poly: dialogo.generated_files})
@@ -582,3 +599,9 @@ class MainWindow(QWidget):
                 self.renderer.GetRenderWindow().Render()
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo cargar el archivo:\n{str(e)}")
+
+    def abrir_opciones_dialog(self):
+            dialog = OpcionesDialog(self)
+            dialog.checkbox.setChecked(self.ignorar_limite_hardware)
+            if dialog.exec_() == QDialog.Accepted:
+                self.ignorar_limite_hardware = dialog.checkbox.isChecked()
