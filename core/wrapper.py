@@ -29,8 +29,8 @@ class QuadtreeWrapper:
             show_quality_metrics: Si True, muestra métricas de calidad (-q)
         """
         try:
-            # Convertimos a rutas absolutas
-            abs_input = str((self.quadtree_dir / "data" / Path(input_file).name).resolve())
+            # Convertimos a rutas absolutas <--- POR ???
+            abs_input = input_file
             abs_output = str((self.outputs_dir / output_file).resolve())
             
             # Creamos el comando base
