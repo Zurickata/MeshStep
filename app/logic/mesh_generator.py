@@ -47,8 +47,8 @@ class MeshGeneratorController(QDialog):
         self.refinement_spinbox = QSpinBox()
         self.refinement_spinbox.setRange(1, 6)
         if self.ignorar_limite:
-            self.refinement_label = QLabel("Nivel máximo de refinamiento (1-17):")
-            self.refinement_spinbox.setRange(1, 17)
+            self.refinement_label = QLabel("sin nivel max:")
+            self.refinement_spinbox.setRange(1, 102)
         self.refinement_spinbox.setValue(3)
         self.refinement_spinbox.valueChanged.connect(self.verificar_refinamiento)
 
