@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeshStep - Visualización Interactiva de Algoritmos de Mallado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .hero-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .team-card:hover img {
+            transform: scale(1.05);
+        }
+        #mobile-menu {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased text-gray-800">
+    <!-- Header/Navbar -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-project-diagram text-white text-xl"></i>
+                </div>
+                <a href="#" class="text-2xl font-bold text-blue-600">MeshStep</a>
+            </div>
+            
+            <nav class="hidden md:flex space-x-8">
+                <a href="#inicio" class="text-blue-600 font-medium hover:text-blue-800 transition">Inicio</a>
+                <a href="#producto" class="text-gray-600 hover:text-blue-600 transition">Producto</a>
+                <a href="#equipo" class="text-gray-600 hover:text-blue-600 transition">Equipo</a>
+                <a href="#contacto" class="text-gray-600 hover:text-blue-600 transition">Contacto</a>
+            </nav>
+            
+            <button id="menu-toggle" class="md:hidden text-gray-600 focus:outline-none">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white py-2 px-4 shadow-lg">
+            <a href="#inicio" class="block py-2 text-blue-600 font-medium">Inicio</a>
+            <a href="#producto" class="block py-2 text-gray-600 hover:text-blue-600">Producto</a>
+            <a href="#equipo" class="block py-2 text-gray-600 hover:text-blue-600">Equipo</a>
+            <a href="#contacto" class="block py-2 text-gray-600 hover:text-blue-600">Contacto</a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="inicio" class="hero-gradient text-white py-20 md:py-32">
+        <div class="container mx-auto px-4 flex flex-col md:flex-row items-center">
+            <div class="md:w-1/2 mb-10 md:mb-0">
+                <h1 class="text-4xl md:text-5xl font-bold mb-6">MeshStep</h1>
+                <h2 class="text-2xl md:text-3xl font-semibold mb-6">Visualización Educativa de Algoritmos de Mallado</h2>
+                <p class="text-lg mb-8 opacity-90">
+                    Herramienta interactiva para investigadores y académicos que mejora la comprensión del proceso de generación de mallas geométricas mediante visualización paso a paso y análisis de métricas en tiempo real.
+                </p>
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                    <a href="#producto" class="bg-white text-blue-600 hover:bg-gray-100 font-semibold py-3 px-6 rounded-lg shadow-md text-center transition">
+                        Conoce más
+                    </a>
+                    <a href="#contacto" class="bg-transparent border-2 border-white hover:bg-white hover:text-blue-600 font-semibold py-3 px-6 rounded-lg shadow-md text-center transition">
+                        Contáctanos
+                    </a>
+                </div>
+            </div>
+            <div class="md:w-1/2 flex justify-center">
+                <div class="bg-white/20 backdrop-blur-sm p-6 rounded-xl border border-white/30">
+                    <img src="https://via.placeholder.com/500x300?text=MeshStep+Demo" alt="MeshStep Demo" class="rounded-lg shadow-xl">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Product Features -->
+    <section id="producto" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Nuestro Producto</h2>
+                <div class="w-20 h-1 bg-blue-600 mx-auto mb-6"></div>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                    MeshStep resuelve la falta de visualización de pasos intermedios en el proceso de generación de mallas geométricas, ofreciendo una solución innovadora para investigadores y académicos.
+                </p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-md transition duration-300">
+                    <div class="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-eye text-blue-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Visualización Iterativa</h3>
+                    <p class="text-gray-600">
+                        Observa cada paso del proceso de mallado en tiempo real, permitiendo una comprensión profunda de los algoritmos utilizados.
+                    </p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-md transition duration-300">
+                    <div class="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-chart-line text-blue-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Métricas en Tiempo Real</h3>
+                    <p class="text-gray-600">
+                        Analiza métricas de calidad durante el proceso de mallado para identificar problemas y optimizar resultados.
+                    </p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-md transition duration-300">
+                    <div class="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-graduation-cap text-blue-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Enfoque Educativo</h3>
+                    <p class="text-gray-600">
+                        Herramienta diseñada específicamente para apoyar el aprendizaje y la investigación en algoritmos de mallado.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Comparison Section -->
+            <div class="mt-20 bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-6 md:p-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">¿Cómo nos diferenciamos?</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="pb-4 text-left">Característica</th>
+                                    <th class="pb-4 text-center">MeshStep</th>
+                                    <th class="pb-4 text-center">Detri2</th>
+                                    <th class="pb-4 text-center">Gmsh</th>
+                                    <th class="pb-4 text-center">ANSYS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-4 text-left">Visualización paso a paso</td>
+                                    <td class="py-4 text-center text-blue-600"><i class="fas fa-check"></i></td>
+                                    <td class="py-4 text-center text-gray-400"><i class="fas fa-times"></i></td>
+                                    <td class="py-4 text-center text-gray-400"><i class="fas fa-times"></i></td>
+                                    <td class="py-4 text-center text-gray-400"><i class="fas fa-times"></i></td>
+                                </tr>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-4 text-left">Métricas integradas</td>
+                                    <td class="py-4 text-center text-blue-600"><i class="fas fa-check"></i></td>
+                                    <td class="py-4 text-center text-gray-400"><i class="fas fa-times"></i></td>
+                                    <td class="py-4 text-center text-gray-400"><i class="fas fa-times"></i></td>
+                                    <td class="py-4 text-center text-blue-600"><i class="fas fa-check"></i></td>
+                                </tr>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-4 text-left">Enfoque educativo</td>
+                                    <td class="py-4 text-center text-blue-600"><i class="fas fa-check"></i></td>
+                                    <td class="py-4 text-center text-gray-400"><i class="fas fa-times"></i></td>
+                                    <td class="py-4 text-center text-gray-400"><i class="fas fa-times"></i></td>
+                                    <td class="py-4 text-center text-gray-400"><i class="fas fa-times"></i></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-4 text-left">Identificación temprana de errores</td>
+                                    <td class="py-4 text-center text-blue-600"><i class="fas fa-check"></i></td>
+                                    <td class="py-4 text-center text-gray-400"><i class="fas fa-times"></i></td>
+                                    <td class="py-4 text-center text-blue-600"><i class="fas fa-check"></i></td>
+                                    <td class="py-4 text-center text-blue-600"><i class="fas fa-check"></i></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Section -->
+    <section id="equipo" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Nuestro Equipo</h2>
+                <div class="w-20 h-1 bg-blue-600 mx-auto mb-6"></div>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                    Conformado por 6 estudiantes apasionados por la computación gráfica y la educación tecnológica.
+                </p>
+            </div>
+            
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Team Member 1 -->
+                <div class="team-card bg-gray-50 rounded-xl overflow-hidden shadow-md transition duration-300">
+                    <div class="overflow-hidden h-48">
+                        <img src="https://via.placeholder.com/400x300?text=Miembro+1" alt="Miembro del equipo" class="w-full h-full object-cover transition duration-500">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-1">Nombre Apellido</h3>
+                        <p class="text-blue-600 mb-3">Rol en el equipo</p>
+                        <p class="text-gray-600">Breve descripción o especialidad del miembro del equipo.</p>
+                    </div>
+                </div>
+                
+                <!-- Team Member 2 -->
+                <div class="team-card bg-gray-50 rounded-xl overflow-hidden shadow-md transition duration-300">
+                    <div class="overflow-hidden h-48">
+                        <img src="https://via.placeholder.com/400x300?text=Miembro+2" alt="Miembro del equipo" class="w-full h-full object-cover transition duration-500">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-1">Nombre Apellido</h3>
+                        <p class="text-blue-600 mb-3">Rol en el equipo</p>
+                        <p class="text-gray-600">Breve descripción o especialidad del miembro del equipo.</p>
+                    </div>
+                </div>
+                
+                <!-- Team Member 3 -->
+                <div class="team-card bg-gray-50 rounded-xl overflow-hidden shadow-md transition duration-300">
+                    <div class="overflow-hidden h-48">
+                        <img src="https://via.placeholder.com/400x300?text=Miembro+3" alt="Miembro del equipo" class="w-full h-full object-cover transition duration-500">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-1">Nombre Apellido</h3>
+                        <p class="text-blue-600 mb-3">Rol en el equipo</p>
+                        <p class="text-gray-600">Breve descripción o especialidad del miembro del equipo.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-center">
+                <p class="text-gray-600">
+                    * Puedes editar esta sección para incluir información real de los 6 miembros de tu equipo.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contacto" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Contáctanos</h2>
+                <div class="w-20 h-1 bg-blue-600 mx-auto mb-6"></div>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                    ¿Interesado en MeshStep? Escríbenos para más información o para colaborar en nuestro proyecto.
+                </p>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row gap-8">
+                <div class="lg:w-1/2 bg-white p-8 rounded-xl shadow-md">
+                    <h3 class="text-xl font-semibold mb-6">Envía un mensaje</h3>
+                    <form>
+                        <div class="mb-4">
+                            <label for="name" class="block text-gray-700 mb-2">Nombre</label>
+                            <input type="text" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                        </div>
+                        <div class="mb-4">
+                            <label for="email" class="block text-gray-700 mb-2">Correo electrónico</label>
+                            <input type="email" id="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                        </div>
+                        <div class="mb-4">
+                            <label for="message" class="block text-gray-700 mb-2">Mensaje</label>
+                            <textarea id="message" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"></textarea>
+                        </div>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition w-full">
+                            Enviar mensaje
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="lg:w-1/2">
+                    <div class="bg-white p-8 rounded-xl shadow-md mb-6">
+                        <h3 class="text-xl font-semibold mb-4">Información de contacto</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-start">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                                    <i class="fas fa-envelope text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">Correo electrónico</h4>
+                                    <p class="text-gray-600">contacto@meshstep.com</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                                    <i class="fas fa-map-marker-alt text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">Ubicación</h4>
+                                    <p class="text-gray-600">Universidad Técnica Federico Santa María, Chile</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                                    <i class="fas fa-calendar-alt text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">Feria de Software USM</h4>
+                                    <p class="text-gray-600">Edición 2025</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-8 rounded-xl shadow-md">
+                        <h3 class="text-xl font-semibold mb-4">Síguenos</h3>
+                        <div class="flex space-x-4">
+                            <a href="#" class="w-12 h-12 bg-blue-100 hover:bg-blue-200 rounded-full flex items-center justify-center transition">
+                                <i class="fab fa-twitter text-blue-600 text-xl"></i>
+                            </a>
+                            <a href="#" class="w-12 h-12 bg-blue-100 hover:bg-blue-200 rounded-full flex items-center justify-center transition">
+                                <i class="fab fa-linkedin-in text-blue-600 text-xl"></i>
+                            </a>
+                            <a href="#" class="w-12 h-12 bg-blue-100 hover:bg-blue-200 rounded-full flex items-center justify-center transition">
+                                <i class="fab fa-github text-blue-600 text-xl"></i>
+                            </a>
+                            <a href="#" class="w-12 h-12 bg-blue-100 hover:bg-blue-200 rounded-full flex items-center justify-center transition">
+                                <i class="fab fa-youtube text-blue-600 text-xl"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-project-diagram text-white"></i>
+                        </div>
+                        <span class="text-xl font-bold">MeshStep</span>
+                    </div>
+                    <p class="text-gray-400 mt-2">Feria de Software USM 2025</p>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-8 text-center sm:text-left">
+                    <a href="#inicio" class="text-gray-300 hover:text-white transition">Inicio</a>
+                    <a href="#producto" class="text-gray-300 hover:text-white transition">Producto</a>
+                    <a href="#equipo" class="text-gray-300 hover:text-white transition">Equipo</a>
+                    <a href="#contacto" class="text-gray-300 hover:text-white transition">Contacto</a>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2025 MeshStep - Todos los derechos reservados</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                    
+                    // Close mobile menu if open
+                    const mobileMenu = document.getElementById('mobile-menu');
+                    if (!mobileMenu.classList.contains('hidden')) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                }
+            });
+        });
+
+        // Form submission (example)
+        const contactForm = document.querySelector('form');
+        if (contactForm) {
+            contactForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                alert('¡Gracias por tu mensaje! Nos pondremos en contacto contigo pronto.');
+                this.reset();
+            });
+        }
+    </script>
+</body>
+</html>
