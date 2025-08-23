@@ -10,6 +10,7 @@ class PanelDerecho(QScrollArea):
         super().__init__(parent)
         self.parent = parent
         self.modo_visualizacion = "solido"  # Estado inicial
+        self.threshold_angulo = 30  # Valor inicial del threshold
         self.setup_ui()
         
     def setup_ui(self):
@@ -24,12 +25,12 @@ class PanelDerecho(QScrollArea):
         self.layout_principal.setSpacing(12)
         self.layout_principal.setContentsMargins(12, 12, 12, 12)
         
-        # Crear secciones
+        # Crear secciones (quitamos crear_seccion_informacion)
         self.crear_seccion_metricas()
+        self.crear_seccion_threshold()  # Nueva sección para threshold
         self.crear_seccion_animacion()
         self.crear_seccion_visualizacion()
         self.crear_seccion_acciones()
-        self.crear_seccion_informacion()
         self.crear_seccion_estadisticas()
         
         # Espaciador final
@@ -38,6 +39,7 @@ class PanelDerecho(QScrollArea):
         self.setWidget(self.contenido)
         self.aplicar_estilo_botones()
         self.actualizar_estado_botones_visualizacion()
+        self.actualizar_display_threshold()
     
     def crear_seccion_metricas(self):
         """Sección de métricas de calidad"""
@@ -73,6 +75,74 @@ class PanelDerecho(QScrollArea):
         grupo.setLayout(layout)
         self.layout_principal.addWidget(grupo)
     
+    def crear_seccion_threshold(self):
+        """Sección para controlar el threshold de ángulos críticos"""
+        grupo = QGroupBox("Umbral de Ángulos Críticos")
+        grupo.setStyleSheet("QGroupBox { font-weight: bold; color: #ffffff; }")
+        layout = QVBoxLayout()
+        layout.setSpacing(8)
+        
+        # Display del valor actual con color (INVERTIDO)
+        self.label_threshold = QLabel()
+        self.label_threshold.setAlignment(Qt.AlignCenter)
+        self.label_threshold.setStyleSheet("""
+            QLabel {
+                background-color: #2a2a2a;
+                padding: 8px;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 14px;
+            }
+        """)
+        
+        # Slider para el threshold (INVERTIR MIN/MAX)
+        slider_layout = QHBoxLayout()
+        label_min = QLabel("10°")
+        label_min.setStyleSheet("color: #ff6b6b;")  # ROJO para ángulos bajos (peores)
+        
+        self.slider_threshold = QSlider(Qt.Horizontal)
+        self.slider_threshold.setRange(10, 80)
+        self.slider_threshold.setValue(self.threshold_angulo)
+        self.slider_threshold.valueChanged.connect(self.actualizar_threshold)
+        
+        label_max = QLabel("80°")
+        label_max.setStyleSheet("color: #4ecdc4;")  # VERDE para ángulos altos (mejores)
+        
+        slider_layout.addWidget(label_min)
+        slider_layout.addWidget(self.slider_threshold)
+        slider_layout.addWidget(label_max)
+        
+        # Leyenda de colores (CORREGIDA)
+        leyenda_html = """
+        <div style='background-color: #2a2a2a; padding: 8px; border-radius: 4px; font-size: 11px;'>
+            <span style='color: #ff6b6b;'>● Crítico</span> | 
+            <span style='color: #ff9f43;'>● Regular</span> | 
+            <span style='color: #4ecdc4;'>● Bueno</span>
+        </div>
+        """
+        label_leyenda = QLabel(leyenda_html)
+        label_leyenda.setTextFormat(Qt.RichText)
+        
+        layout.addWidget(self.label_threshold)
+        layout.addLayout(slider_layout)
+        layout.addWidget(label_leyenda)
+        grupo.setLayout(layout)
+        self.layout_principal.addWidget(grupo)
+
+    def actualizar_display_threshold(self):
+        """Actualiza el display del threshold con colores (INVERTIDO)"""
+        # Determinar color basado en el valor - ÁNGULOS BAJOS = MALOS = ROJO
+        if self.threshold_angulo <= 25:
+            color = "#f6b6fb"  # ROJO - ángulos muy bajos (críticos)
+        elif self.threshold_angulo <= 45:
+            color = "#ff9f43"  # NARANJA - ángulos medios (regulares)
+        else:
+            color = "#4ecdc4"  # VERDE AZULADO - ángulos altos (buenos)
+        
+        texto = f"Umbral actual: <span style='color: {color}; font-size: 16px;'><b>{self.threshold_angulo}°</b></span>"
+        self.label_threshold.setText(texto)
+        self.label_threshold.setTextFormat(Qt.RichText)
+    
     def crear_seccion_animacion(self):
         """Sección de control de animación"""
         grupo = QGroupBox("Control de Animación")
@@ -106,13 +176,11 @@ class PanelDerecho(QScrollArea):
         self.boton_wireframe = QPushButton("Wireframe")
         self.boton_solido = QPushButton("Sólido")
 
-
-         # Tooltips
+        # Tooltips
         self.boton_wireframe.setToolTip("Shortcut: W")
         self.boton_solido.setToolTip("Shortcut: S")
 
-        
-        # Conectar señales - SOLUCIÓN DEL TOGGLE
+        # Conectar señales
         self.boton_wireframe.clicked.connect(self.activar_wireframe)
         self.boton_solido.clicked.connect(self.activar_solido)
         
@@ -121,7 +189,6 @@ class PanelDerecho(QScrollArea):
         grupo.setLayout(layout)
         self.layout_principal.addWidget(grupo)
     
- 
     def crear_seccion_acciones(self):
         """Sección de acciones rápidas"""
         grupo = QGroupBox("Acciones Rápidas")
@@ -142,36 +209,6 @@ class PanelDerecho(QScrollArea):
         layout.addWidget(self.boton_limpiar, 0, 0)
         layout.addWidget(self.boton_reset_camara, 0, 1)
         layout.addWidget(self.boton_puntos_criticos, 1 , 0 , 1, 2)
-        grupo.setLayout(layout)
-        self.layout_principal.addWidget(grupo)
-    
-    def crear_seccion_informacion(self):
-        """Sección de información del modelo"""
-        grupo = QGroupBox("Información del Modelo")
-        grupo.setStyleSheet("QGroupBox { font-weight: bold; color: #ffffff; }")
-        layout = QVBoxLayout()
-        
-        info_html = """
-        <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px;'>
-            <b>Archivo:</b> brazo_3.vtk<br>
-            <b>Refinamiento:</b> Nivel 3/8<br>
-            <b>Tamaño:</b> 2.4 MB<br>
-            <b>Modificado:</b> 15/12/2023<br>
-            <b>Vértices:</b> 12,458<br>
-            <b>Caras:</b> 24,891
-        </div>
-        """
-        
-        label_info = QLabel(info_html)
-        label_info.setTextFormat(Qt.RichText)
-        
-        # Barra de progreso
-        self.barra_progreso = QProgressBar()
-        self.barra_progreso.setValue(37)
-        self.barra_progreso.setFormat("Progreso de refinamiento: %p%")
-        
-        layout.addWidget(label_info)
-        layout.addWidget(self.barra_progreso)
         grupo.setLayout(layout)
         self.layout_principal.addWidget(grupo)
     
@@ -202,6 +239,26 @@ class PanelDerecho(QScrollArea):
         layout.addWidget(label_stats)
         grupo.setLayout(layout)
         self.layout_principal.addWidget(grupo)
+    
+    def actualizar_threshold(self, valor):
+        """Actualiza el threshold y el display"""
+        self.threshold_angulo = valor
+        self.actualizar_display_threshold()
+        print(f"Threshold actualizado: {valor}°")  # Solo para debug
+    
+    def actualizar_display_threshold(self):
+        """Actualiza el display del threshold con colores"""
+        # Determinar color basado en el valor
+        if self.threshold_angulo <= 25:
+            color = "#ff6b6b"  # Verde azulado - muy bajo
+        elif self.threshold_angulo <= 45:
+            color = "#ff9f43"  # Naranja - medio
+        else:
+            color = "#4ecdc4"  # Rojo - alto
+        
+        texto = f"Umbral actual: <span style='color: {color}; font-size: 16px;'><b>{self.threshold_angulo}°</b></span>"
+        self.label_threshold.setText(texto)
+        self.label_threshold.setTextFormat(Qt.RichText)
     
     def activar_wireframe(self):
         """Activa modo wireframe"""
