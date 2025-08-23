@@ -11,6 +11,8 @@ from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.logic.mesh_generator import MeshGeneratorController
 
+from .panel_derecho import PanelDerecho
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -149,7 +151,7 @@ class MainWindow(QWidget):
         # Widget contenedor del panel central
         panel_central = QWidget()
         panel_central.setLayout(central_layout)
-
+        """ 
         # Panel derecho
         panel_derecho = QWidget()
         layout_derecho = QVBoxLayout()
@@ -174,11 +176,16 @@ class MainWindow(QWidget):
         # Configurar el tamaño de los botones
         self.label_derecho.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         #for btn in [self.boton_n, self.boton_a, self.boton_b, self.boton_r, self.boton_w, self.boton_s]:
-        #    btn.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        #    btn.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred) """
+
+        self.panel_derecho = PanelDerecho(self)
+        
+        # Conectar señales del nuevo panel
+        self._conectar_señales_panel_derecho()
 
         splitter.addWidget(panel_izquierdo)
         splitter.addWidget(panel_central)
-        splitter.addWidget(panel_derecho)
+        splitter.addWidget(self.panel_derecho)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
         splitter.setStretchFactor(2, 1)
@@ -187,6 +194,26 @@ class MainWindow(QWidget):
         layout.addWidget(splitter)
         self.setLayout(layout)
         self.setAcceptDrops(True)
+
+    def _conectar_señales_panel_derecho(self):
+        """Conecta las señales del panel derecho con las funciones existentes"""
+        
+        # Conectar botones de acciones
+        self.panel_derecho.slider_velocidad.valueChanged.connect(self.ajustar_velocidad)
+        
+        # Conectar botones de navegación
+        self.panel_derecho.boton_puntos_criticos.clicked.connect(self.accion_a)
+        self.panel_derecho.boton_reset_camara.clicked.connect(self.accion_r)
+        self.panel_derecho.boton_limpiar.clicked.connect(self.accion_b)
+        
+        
+      
+
+    def ajustar_velocidad(self, valor):
+        """Ajusta la velocidad de la animación"""
+        segundos = valor / 1000.0
+        self.timer_animacion.setInterval(valor)
+        self.panel_derecho.label_velocidad_valor.setText(f"{segundos:.1f}s")
 
     # Este método se encarga de leer el archivo _histo.txt y actualizar el panel derecho con los ángulos
     def actualizar_panel_derecho(self, ruta_archivo):
@@ -329,7 +356,7 @@ class MainWindow(QWidget):
             self.switcher.current_poly = nombre_poly
             self.switcher.current_index = 0
             self.switcher._load_current()
-            self.actualizar_panel_derecho(dialogo.generated_files[0])
+            #self.actualizar_panel_derecho(dialogo.generated_files[0])
 
         elif dialogo.exec_() == QDialog.Rejected:
             return
@@ -346,7 +373,7 @@ class MainWindow(QWidget):
             self.switcher.current_poly = nombre_poly
             self.switcher.current_index = 0
             self.switcher._load_current()
-            self.actualizar_panel_derecho(archivos_vtk[0])
+            #self.actualizar_panel_derecho(archivos_vtk[0])
 
     def mostrar_menu_contextual(self, posicion):
         item = self.lista_archivos.itemAt(posicion)
@@ -407,7 +434,7 @@ class MainWindow(QWidget):
 
         if self.switcher.current_index > 0:
             self.switcher.anterior_modelo()
-            self.actualizar_panel_derecho(archivos[self.switcher.current_index])
+            #self.actualizar_panel_derecho(archivos[self.switcher.current_index])
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
         else:
@@ -424,7 +451,7 @@ class MainWindow(QWidget):
 
         if self.switcher.current_index + 1 < len(archivos):
             self.switcher.siguiente_modelo()
-            self.actualizar_panel_derecho(archivos[self.switcher.current_index])
+            #self.actualizar_panel_derecho(archivos[self.switcher.current_index])
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
         else:
@@ -469,7 +496,7 @@ class MainWindow(QWidget):
         if archivos:
             self.switcher.current_index = 0
             self.switcher._load_current()
-            self.actualizar_panel_derecho(archivos[0])
+            #self.actualizar_panel_derecho(archivos[0])
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
             
@@ -565,7 +592,7 @@ class MainWindow(QWidget):
         if self.switcher:
             try:
                 self.switcher.load_model(filepath)
-                self.actualizar_panel_derecho(filepath)
+                #self.actualizar_panel_derecho(filepath)
                 # Actualizar el índice actual al nuevo archivo
                 if filepath in self.switcher.file_list:
                     self.switcher.current_index = self.switcher.file_list.index(filepath)
