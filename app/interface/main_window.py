@@ -28,23 +28,14 @@ class MainWindow(QWidget):
         self.lista_archivos.customContextMenuRequested.connect(self.mostrar_menu_contextual)
 
         # NUEVOS BOTONES PARA ACCIONES
-        self.boton_n = QPushButton("Siguiente modelo (n)", self)
-        self.boton_n.clicked.connect(self.accion_n)
-
-        self.boton_a = QPushButton("Toggle puntos críticos (a)", self)
-        self.boton_a.clicked.connect(self.accion_a)
+        
 
         # self.boton_b = QPushButton("Borrar extras (b)", self)
         # self.boton_b.clicked.connect(self.accion_b)
 
-        self.boton_r = QPushButton("Reset cámara/modelo (r)", self)
-        self.boton_r.clicked.connect(self.accion_r)
+       
 
-        self.boton_w = QPushButton("Wireframe (w)", self)
-        self.boton_w.clicked.connect(self.accion_w)
-
-        self.boton_s = QPushButton("Sólido (s)", self)
-        self.boton_s.clicked.connect(self.accion_s)
+        
 
         self.rutas_archivos = {}
 
