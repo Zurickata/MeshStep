@@ -42,38 +42,31 @@ class PanelDerecho(QScrollArea):
         self.actualizar_display_threshold()
     
     def crear_seccion_metricas(self):
-        """Sección de métricas de calidad"""
-        grupo = QGroupBox("Métricas de Calidad")
-        grupo.setStyleSheet("QGroupBox { font-weight: bold; color: #ffffff; }")
+        """Sección de métricas de calidad (ahora dinámica)"""
+        self.grupo_metricas = QGroupBox("Métricas de Calidad")
+        self.grupo_metricas.setStyleSheet("QGroupBox { font-weight: bold; color: #ffffff; }")
         layout = QVBoxLayout()
         
-        # Mockup de métricas
-        metricas_html = """
-        <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px;'>
-            <b style='color: #ffd700;'>Ángulos Críticos:</b><br><br>
-            
-            <b>Triángulos:</b><br>
-            <span style='color: #4ecdc4;'>Mín: 25.6° | Máx: 124.3°</span><br>
-            <span style='color: #ff6b6b;'>⚠️ 12 ángulos &lt; 30°</span><br><br>
-            
-            <b>Cuadriláteros:</b><br>
-            <span style='color: #4ecdc4;'>Mín: 45.2° | Máx: 134.8°</span><br>
-            <span style='color: #ff6b6b;'>⚠️ 8 ángulos &lt; 45°</span><br>
-            
-            <div style='margin-top: 10px; padding: 8px; background-color: #3a3a3a; border-radius: 4px;'>
-                <b style='color: #ff9f43;'>Calidad General:</b> 
-                <span style='color: #ff9f43;'>Regular</span>
-            </div>
-        </div>
-        """
+        # Label para mostrar las métricas (inicialmente vacío)
+        self.label_metricas = QLabel("Cargue un archivo para ver las métricas")
+        self.label_metricas.setWordWrap(True)
+        self.label_metricas.setTextFormat(Qt.RichText)
+        self.label_metricas.setStyleSheet("""
+            QLabel {
+                background-color: #2a2a2a;
+                padding: 12px;
+                border-radius: 6px;
+                min-height: 120px;
+            }
+        """)
         
-        label = QLabel(metricas_html)
-        label.setWordWrap(True)
-        label.setTextFormat(Qt.RichText)
-        
-        layout.addWidget(label)
-        grupo.setLayout(layout)
-        self.layout_principal.addWidget(grupo)
+        layout.addWidget(self.label_metricas)
+        self.grupo_metricas.setLayout(layout)
+        self.layout_principal.insertWidget(0, self.grupo_metricas)  # Insertar al principio
+    
+    def actualizar_metricas(self, contenido_html):
+        """Actualiza el contenido de las métricas"""
+        self.label_metricas.setText(contenido_html)
     
     def crear_seccion_threshold(self):
         """Sección para controlar el threshold de ángulos críticos"""

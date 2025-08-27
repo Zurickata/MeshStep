@@ -220,33 +220,172 @@ class MainWindow(QWidget):
 
             angulo_triangulo = None
             angulo_cuadrado = None
+            min_triangulo = None
+            max_triangulo = None
+            min_cuadrado = None
+            max_cuadrado = None
+            criticos_triangulos = 0
+            criticos_cuadrados = 0
+
+            # Variables para el procesamiento del histograma
+            procesando_triangulos = False
+            procesando_cuadrados = False
+            threshold_actual = self.panel_derecho.threshold_angulo
 
             for i, linea in enumerate(lineas):
-                if "For Triangles:" in linea and i + 1 < len(lineas):
-                    angulo_triangulo = lineas[i + 1].strip()
-                if "For Quads:" in linea and i + 1 < len(lineas):
-                    angulo_cuadrado = lineas[i + 1].strip()
+                # Detectar secciones
+                if "For Triangles:" in linea:
+                    procesando_triangulos = True
+                    procesando_cuadrados = False
+                    continue
+                elif "For Quads:" in linea:
+                    procesando_triangulos = False
+                    procesando_cuadrados = True
+                    continue
+                elif "Smallest angle:" in linea and "Largest angle:" in linea:
+                    # Extraer valores mínimo y máximo
+                    partes = linea.split('|')
+                    if len(partes) >= 2:
+                        min_val = partes[0].replace('Smallest angle:', '').strip()
+                        max_val = partes[1].replace('Largest angle:', '').strip()
+                        
+                        if procesando_triangulos:
+                            min_triangulo = min_val
+                            max_triangulo = max_val
+                            angulo_triangulo = f"{min_val} | {max_val}"
+                        elif procesando_cuadrados:
+                            min_cuadrado = min_val
+                            max_cuadrado = max_val
+                            angulo_cuadrado = f"{min_val} | {max_val}"
+                    continue
+                
+                # Procesar líneas del histograma
+                if ("Angle histogram:" in linea or 
+                    "0 -   1 degrees:" in linea or 
+                    linea.strip().startswith('0 -') or 
+                    re.match(r'^\s*\d+ - \s*\d+ degrees:', linea)):
+                    
+                    # Buscar patrones de histograma: "X - Y degrees: COUNT"
+                    match = re.match(r'.*?(\d+)\s*-\s*(\d+)\s*degrees:\s*(\d+)', linea)
+                    if match:
+                        min_deg = int(match.group(1))
+                        max_deg = int(match.group(2))
+                        count = int(match.group(3))
+                        
+                        # Si el rango está por debajo del threshold, sumar al contador
+                        if max_deg < threshold_actual:
+                            if procesando_triangulos:
+                                criticos_triangulos += count
+                            elif procesando_cuadrados:
+                                criticos_cuadrados += count
 
-            def formatear_angulo(label, linea):
-                partes = linea.split('|')
-                min_ang = partes[0].strip()
-                max_ang = partes[1].strip() if len(partes) > 1 else ''
-                return f"<b>- {label}:</b><br>{min_ang}<br>{max_ang}<br><br>"
-
-            if angulo_triangulo or angulo_cuadrado:
-                contenido_html = "<b>Nivel de Refinamiento: " + numero + "</b><br><br><br>"
-                contenido_html += "<b>Ángulos Críticos:</b><br><br>"
-                if angulo_triangulo:
-                    contenido_html += formatear_angulo("Triángulos", angulo_triangulo)
-                if angulo_cuadrado:
-                    contenido_html += formatear_angulo("Cuadriláteros", angulo_cuadrado)
+            # Determinar color basado en el threshold (lógica invertida: ángulos bajos = malos)
+            if threshold_actual <= 25:
+                color_threshold = "#ff6b6b"  # ROJO - ángulos muy bajos (críticos)
+            elif threshold_actual <= 45:
+                color_threshold = "#ff9f43"  # NARANJA - ángulos medios (regulares)
             else:
-                contenido_html = "<b>No se encontraron líneas de ángulos para triángulos ni cuadriláteros.</b>"
+                color_threshold = "#4ecdc4"  # VERDE AZULADO - ángulos altos (buenos)
 
-            self.label_derecho.setText(contenido_html)
+            # Función para determinar el color de un ángulo basado en el threshold
+            def color_por_angulo(angulo_str):
+                try:
+                    if angulo_str and '°' in angulo_str:
+                        valor = float(angulo_str.replace('°', '').split()[0])
+                        if valor < threshold_actual:
+                            return "#ff6b6b"  # Rojo para ángulos críticos
+                        elif valor < threshold_actual + 15:
+                            return "#ff9f43"  # Naranja para ángulos regulares
+                        else:
+                            return "#4ecdc4"  # Verde para ángulos buenos
+                except:
+                    pass
+                return "#ffffff"  # Blanco por defecto
+
+            # Función para formatear valores angulares
+            def formatear_valor_angular(valor):
+                try:
+                    # Extraer el número y agregar el símbolo de grados
+                    num_val = float(valor.split()[0])
+                    return f"{num_val:.1f}°"
+                except:
+                    return valor
+
+            # Determinar calidad general basada en los ángulos críticos
+            total_criticos = criticos_triangulos + criticos_cuadrados
+            if total_criticos == 0:
+                calidad_general = "Excelente"
+                color_calidad = "#4ecdc4"
+            elif total_criticos <= 5:
+                calidad_general = "Buena"
+                color_calidad = "#4ecdc4"
+            elif total_criticos <= 15:
+                calidad_general = "Regular"
+                color_calidad = "#ff9f43"
+            elif total_criticos <= 30:
+                calidad_general = "Mala"
+                color_calidad = "#ff6b6b"
+            else:
+                calidad_general = "Crítica"
+                color_calidad = "#ff0000"
+
+            # Construir el contenido HTML con el estilo deseado
+            contenido_html = f"""
+            <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px;'>
+                <b style='color: #ffd700;'>Nivel de Refinamiento: {numero}</b><br><br>
+                
+                <b style='color: #ffd700;'>Ángulos Críticos (Umbral: <span style='color: {color_threshold};'>{threshold_actual}°</span>)</b><br><br>
+            """
+
+            # Agregar información de triángulos si está disponible
+            if min_triangulo and max_triangulo:
+                min_tri_formatted = formatear_valor_angular(min_triangulo)
+                max_tri_formatted = formatear_valor_angular(max_triangulo)
+                color_min_tri = color_por_angulo(min_triangulo)
+                color_max_tri = color_por_angulo(max_triangulo)
+                
+                contenido_html += f"""
+                <b>Triángulos:</b><br>
+                <span style='color: {color_min_tri};'>Mín: {min_tri_formatted}</span> | 
+                <span style='color: {color_max_tri};'>Máx: {max_tri_formatted}</span><br>
+                <span style='color: #ff6b6b;'>⚠️ {criticos_triangulos} ángulos &lt; {threshold_actual}°</span><br><br>
+                """
+
+            # Agregar información de cuadriláteros si está disponible
+            if min_cuadrado and max_cuadrado:
+                min_cuad_formatted = formatear_valor_angular(min_cuadrado)
+                max_cuad_formatted = formatear_valor_angular(max_cuadrado)
+                color_min_cuad = color_por_angulo(min_cuadrado)
+                color_max_cuad = color_por_angulo(max_cuadrado)
+                
+                contenido_html += f"""
+                <b>Cuadriláteros:</b><br>
+                <span style='color: {color_min_cuad};'>Mín: {min_cuad_formatted}</span> | 
+                <span style='color: {color_max_cuad};'>Máx: {max_cuad_formatted}</span><br>
+                <span style='color: #ff6b6b;'>⚠️ {criticos_cuadrados} ángulos &lt; {threshold_actual}°</span><br>
+                """
+
+            # Agregar calidad general
+            contenido_html += f"""
+                <div style='margin-top: 10px; padding: 8px; background-color: #3a3a3a; border-radius: 4px;'>
+                    <b style='color: {color_calidad};'>Calidad General:</b> 
+                    <span style='color: {color_calidad};'>{calidad_general}</span> 
+                    <span style='color: #cccccc; font-size: 12px;'>({total_criticos} ángulos críticos)</span>
+                </div>
+            </div>
+            """
+
+            # Actualizar el panel derecho
+            self.panel_derecho.actualizar_metricas(contenido_html)
 
         except Exception as e:
-            self.label_derecho.setText(f"<b>Error al leer el archivo:</b><br>{e}")
+            error_html = f"""
+            <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; color: #ff6b6b;'>
+                <b>Error al leer el archivo:</b><br>{str(e)}<br><br>
+                <span style='font-size: 12px; color: #cccccc;'>Ruta: {ruta_modificada}</span>
+            </div>
+            """
+            self.panel_derecho.actualizar_metricas(error_html)
 
     # Métodos para cada acción
 
@@ -280,11 +419,6 @@ class MainWindow(QWidget):
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
 
-        # if self.switcher:
-        #     self.switcher.current_index = (self.switcher.current_index + 1) % len(self.switcher.file_list)
-        #     self.switcher.load_model(self.switcher.file_list[self.switcher.current_index])
-        #     self.switcher.clear_extra_models()
-        #     self.switcher.toggle_load = False
 
     #Toggle puntos críticos
     def accion_a(self):
@@ -318,11 +452,13 @@ class MainWindow(QWidget):
         if self.switcher:
             self.switcher.actor.GetProperty().SetRepresentationToWireframe()
             self.renderer.GetRenderWindow().Render()
+            self.panel_derecho.set_modo_visualizacion("wireframe")
 
     def accion_s(self):
         if self.switcher:
             self.switcher.actor.GetProperty().SetRepresentationToSurface()
             self.renderer.GetRenderWindow().Render()
+            self.panel_derecho.set_modo_visualizacion("solido")
 
     def abrir_dialogo_carga(self):
         dialogo = MeshGeneratorController(self)
@@ -347,7 +483,7 @@ class MainWindow(QWidget):
             self.switcher.current_poly = nombre_poly
             self.switcher.current_index = 0
             self.switcher._load_current()
-            #self.actualizar_panel_derecho(dialogo.generated_files[0])
+            self.actualizar_panel_derecho(dialogo.generated_files[0])
 
         elif dialogo.exec_() == QDialog.Rejected:
             return
@@ -364,7 +500,7 @@ class MainWindow(QWidget):
             self.switcher.current_poly = nombre_poly
             self.switcher.current_index = 0
             self.switcher._load_current()
-            #self.actualizar_panel_derecho(archivos_vtk[0])
+            self.actualizar_panel_derecho(archivos_vtk[0])
 
     def mostrar_menu_contextual(self, posicion):
         item = self.lista_archivos.itemAt(posicion)
@@ -425,7 +561,7 @@ class MainWindow(QWidget):
 
         if self.switcher.current_index > 0:
             self.switcher.anterior_modelo()
-            #self.actualizar_panel_derecho(archivos[self.switcher.current_index])
+            self.actualizar_panel_derecho(archivos[self.switcher.current_index])
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
         else:
@@ -442,7 +578,7 @@ class MainWindow(QWidget):
 
         if self.switcher.current_index + 1 < len(archivos):
             self.switcher.siguiente_modelo()
-            #self.actualizar_panel_derecho(archivos[self.switcher.current_index])
+            self.actualizar_panel_derecho(archivos[self.switcher.current_index])
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
         else:
@@ -487,7 +623,7 @@ class MainWindow(QWidget):
         if archivos:
             self.switcher.current_index = 0
             self.switcher._load_current()
-            #self.actualizar_panel_derecho(archivos[0])
+            self.actualizar_panel_derecho(archivos[0])
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
             
@@ -583,7 +719,7 @@ class MainWindow(QWidget):
         if self.switcher:
             try:
                 self.switcher.load_model(filepath)
-                #self.actualizar_panel_derecho(filepath)
+                self.actualizar_panel_derecho(filepath)
                 # Actualizar el índice actual al nuevo archivo
                 if filepath in self.switcher.file_list:
                     self.switcher.current_index = self.switcher.file_list.index(filepath)

@@ -224,18 +224,28 @@ class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera): #chatgpt
         self.AddObserver("MouseMoveEvent", self.mouse_move_event)
         self.AddObserver("LeftButtonPressEvent", self.left_button_press_event)
         self.AddObserver("LeftButtonReleaseEvent", self.left_button_release_event)
+        self.AddObserver("MiddleButtonPressEvent", self.middle_button_press_event)
+        self.AddObserver("MiddleButtonReleaseEvent", self.middle_button_release_event)
         self.renderer = renderer
         self.left_mouse_down = False
         self.last_pos = (0, 0)
 
     def left_button_press_event(self, obj, event):
-        self.left_mouse_down = True
+        self.OnMiddleButtonDown()
         self.last_pos = self.GetInteractor().GetEventPosition()
-        self.OnLeftButtonDown()
+        
 
     def left_button_release_event(self, obj, event):
-        self.left_mouse_down = False
+        self.OnMiddleButtonUp()
+        
+        
+    def middle_button_press_event(self, obj, event):
+        # Ahora el botón del medio hará Rotación (lo que hacía el click izquierdo)
+        self.OnLeftButtonDown()
+    
+    def middle_button_release_event(self, obj, event):
         self.OnLeftButtonUp()
+       
 
     def mouse_move_event(self, obj, event):
         if self.left_mouse_down:
