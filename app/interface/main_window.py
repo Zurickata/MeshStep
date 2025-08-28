@@ -477,6 +477,8 @@ class MainWindow(QWidget):
 
             if not self.switcher:
                 self.switcher = ModelSwitcher(self.renderer, self.interactor, {nombre_poly: dialogo.generated_files})
+                if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                    self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
             else:
                 self.switcher.file_dict[nombre_poly] = dialogo.generated_files
 
@@ -484,6 +486,9 @@ class MainWindow(QWidget):
             self.switcher.current_index = 0
             self.switcher._load_current()
             self.actualizar_panel_derecho(dialogo.generated_files[0])
+
+            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
 
         elif dialogo.exec_() == QDialog.Rejected:
             return
@@ -501,6 +506,8 @@ class MainWindow(QWidget):
             self.switcher.current_index = 0
             self.switcher._load_current()
             self.actualizar_panel_derecho(archivos_vtk[0])
+            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
 
     def mostrar_menu_contextual(self, posicion):
         item = self.lista_archivos.itemAt(posicion)
@@ -564,6 +571,9 @@ class MainWindow(QWidget):
             self.actualizar_panel_derecho(archivos[self.switcher.current_index])
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
+
+            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
         else:
             QMessageBox.information(self, "Inicio", "Ya estás en el primer modelo.")
 
@@ -581,6 +591,9 @@ class MainWindow(QWidget):
             self.actualizar_panel_derecho(archivos[self.switcher.current_index])
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
+
+            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
         else:
             QMessageBox.information(self, "Fin", "Ya estás en el último modelo.")
 

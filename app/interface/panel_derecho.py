@@ -5,6 +5,10 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QStyle
 
+from collections import defaultdict
+import numpy as np
+
+
 class PanelDerecho(QScrollArea):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -12,6 +16,7 @@ class PanelDerecho(QScrollArea):
         self.modo_visualizacion = "solido"  # Estado inicial
         self.threshold_angulo = 30  # Valor inicial del threshold
         self.setup_ui()
+        self.metricas_actuales = None
         
     def setup_ui(self):
         """Configura la interfaz del panel derecho"""
@@ -204,32 +209,88 @@ class PanelDerecho(QScrollArea):
         layout.addWidget(self.boton_puntos_criticos, 1 , 0 , 1, 2)
         grupo.setLayout(layout)
         self.layout_principal.addWidget(grupo)
+
+    def actualizar_estadisticas(self, metricas):
+        """Actualiza la sección de estadísticas con métricas de calidad"""
+        self.metricas_actuales = metricas
+        
+        if not metricas or 'error' in metricas:
+            stats_html = """
+            <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; font-family: monospace; color: #ff6b6b;'>
+                <b>❌ No hay métricas disponibles</b><br>
+                Carga un modelo primero o verifica el archivo.
+            </div>
+            """
+            self.label_estadisticas.setText(stats_html)
+            return
+        
+        stats = metricas['estadisticas_generales']
+        total_triangulos = stats.get('total_triangulos', 0)
+        total_cuadrilateros = stats.get('total_cuadrilateros', 0)
+        total_caras = total_triangulos + total_cuadrilateros
+        
+        # Calcular porcentajes
+        porc_triangulos = (total_triangulos / total_caras * 100) if total_caras > 0 else 0
+        porc_cuadrilateros = (total_cuadrilateros / total_caras * 100) if total_caras > 0 else 0
+        
+        # Construir HTML en el mismo estilo
+        stats_html = f"""
+        <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; font-family: monospace;'>
+            <b>Topología:</b><br>
+            • Vértices: <span style='color: #4ecdc4;'>N/A</span><br>
+            • Caras: <span style='color: #4ecdc4;'>{total_caras}</span><br>
+            • Triángulos: <span style='color: #ff9f43;'>{total_triangulos}</span> ({porc_triangulos:.1f}%)<br>
+            • Cuadriláteros: <span style='color: #ff9f43;'>{total_cuadrilateros}</span> ({porc_cuadrilateros:.1f}%)<br><br>
+            
+            <b>Calidad:</b><br>
+        """
+        
+        # Añadir métricas de triángulos si existen
+        if metricas['triangulos']:
+            triangulos = metricas['triangulos']
+            stats_html += f"""
+            <b>Triángulos:</b><br>
+            • Relación aspecto: <span style='color: #4ecdc4;'>{triangulos.get('aspect_ratio_avg', 'N/A'):.3f}</span><br>
+            • Ángulo mínimo: <span style='color: #4ecdc4;'>{triangulos.get('min_angle_avg', 'N/A'):.1f}°</span><br>
+            • Ángulo máximo: <span style='color: #ff6b6b;'>{triangulos.get('max_angle_avg', 'N/A'):.1f}°</span><br>
+            • Área promedio: <span style='color: #4ecdc4;'>{triangulos.get('area_avg', 'N/A'):.6f}</span><br>
+            """
+        
+        # Añadir métricas de cuadriláteros si existen
+        if metricas['cuadrilateros']:
+            cuadrilateros = metricas['cuadrilateros']
+            stats_html += f"""
+            <b>Cuadriláteros:</b><br>
+            • Relación aspecto: <span style='color: #4ecdc4;'>{cuadrilateros.get('aspect_ratio_avg', 'N/A'):.3f}</span><br>
+            • Distorsión: <span style='color: #ff6b6b;'>{cuadrilateros.get('skew_avg', 'N/A'):.3f}</span><br>
+            • Relación aristas: <span style='color: #4ecdc4;'>{cuadrilateros.get('edge_ratio_avg', 'N/A'):.3f}</span><br>
+            """
+        
+        stats_html += "</div>"
+        self.label_estadisticas.setText(stats_html)
+    
     
     def crear_seccion_estadisticas(self):
-        """Sección de estadísticas detalladas"""
+        """Sección de estadísticas detalladas - Ahora se actualiza dinámicamente"""
         grupo = QGroupBox("Estadísticas Detalladas")
         grupo.setStyleSheet("QGroupBox { font-weight: bold; color: #ffffff; }")
         layout = QVBoxLayout()
         
-        stats_html = """
-        <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; font-family: monospace;'>
-            <b>Topología:</b><br>
-            • Vértices: <span style='color: #4ecdc4;'>12,458</span><br>
-            • Caras: <span style='color: #4ecdc4;'>24,891</span><br>
-            • Triángulos: <span style='color: #ff9f43;'>18,327</span> (73.6%)<br>
-            • Cuadriláteros: <span style='color: #ff9f43;'>6,564</span> (26.4%)<br><br>
-            
-            <b>Calidad:</b><br>
-            • Relación aspecto: <span style='color: #4ecdc4;'>1.98</span><br>
-            • Distorsión: <span style='color: #ff6b6b;'>0.12</span><br>
-            • Regularidad: <span style='color: #4ecdc4;'>0.85</span>
+        # Label para estadísticas (ahora se actualizará dinámicamente)
+        self.label_estadisticas = QLabel()
+        self.label_estadisticas.setTextFormat(Qt.RichText)
+        self.label_estadisticas.setWordWrap(True)
+        
+        # Mensaje inicial
+        html_inicial = """
+        <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; font-family: monospace; color: #4ecdc4;'>
+            <b>🔄 Esperando modelo...</b><br>
+            Carga un archivo para ver las estadísticas.
         </div>
         """
+        self.label_estadisticas.setText(html_inicial)
         
-        label_stats = QLabel(stats_html)
-        label_stats.setTextFormat(Qt.RichText)
-        
-        layout.addWidget(label_stats)
+        layout.addWidget(self.label_estadisticas)
         grupo.setLayout(layout)
         self.layout_principal.addWidget(grupo)
     
