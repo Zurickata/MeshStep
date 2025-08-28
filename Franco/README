@@ -1,0 +1,26 @@
+FeriaOGL.py
+Visualizador implementado en OpenGL.
+Más personalizable en cuanto a estilo y comportamiento gráfico.
+
+feriaVTK.py           <-----------------------------   utilizar este 
+Visualizador basado en la librería VTK. 
+ya permite visualizar ángulos extremos de los datos.
+
+Vtkanimado.py
+Visualizador VTK con animación simple.
+Muestra una secuencia animada de los datos.
+
+Test.py
+Ejemplo para llamar a las funciones desde a fuera,
+solo se debe llamar al main del archivo, por ejemplo para feriaVTK:
+
+------------------------------------------------------
+import feriaVTK
+
+archivos = ["output.vtk", "output2.vtk", "output3.vtk"]
+
+feriaVTK.visualizar_vtk_unstructured_con_cambio_y_anadir(archivos)
+
+-------------------------------------------------------
+Los output son para pruebas
+
