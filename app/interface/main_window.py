@@ -3,6 +3,7 @@ import os
 import re
 import glob
 import vtk
+import subprocess
 from PyQt5.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout,
                             QPushButton, QMenu, QLabel, QListWidget, QSplitter,
                             QMessageBox, QSizePolicy, QStyle)
@@ -10,6 +11,7 @@ from PyQt5.QtCore import (Qt, QTimer)
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.logic.mesh_generator import MeshGeneratorController
+from app.logic.export_utils import ExportManager
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -24,6 +26,8 @@ class MainWindow(QWidget):
         self.lista_archivos.itemClicked.connect(self.mostrar_contenido)
         self.lista_archivos.setContextMenuPolicy(Qt.CustomContextMenu)
         self.lista_archivos.customContextMenuRequested.connect(self.mostrar_menu_contextual)
+
+        self.export_manager = ExportManager(self)
 
         # NUEVOS BOTONES PARA ACCIONES
         self.boton_n = QPushButton("Siguiente modelo (n)", self)
@@ -43,6 +47,10 @@ class MainWindow(QWidget):
 
         self.boton_s = QPushButton("Sólido (s)", self)
         self.boton_s.clicked.connect(self.accion_s)
+
+        # Botón para exportar registro
+        self.boton_exportar = QPushButton("Exportar registro", self)
+        self.boton_exportar.clicked.connect(self.exportar_registro)
 
         self.rutas_archivos = {}
 
@@ -159,6 +167,7 @@ class MainWindow(QWidget):
         layout_derecho.addWidget(self.label_derecho)
             
         # AGREGAR LOS NUEVOS BOTONES
+        layout_derecho.addWidget(self.boton_exportar)
         layout_derecho.addWidget(self.boton_n)
         layout_derecho.addWidget(self.boton_a)
         # layout_derecho.addWidget(self.boton_b)
@@ -231,6 +240,31 @@ class MainWindow(QWidget):
             self.label_derecho.setText(f"<b>Error al leer el archivo:</b><br>{e}")
 
     # Métodos para cada acción
+
+    # Exportar archivo de registro
+    def exportar_registro(self):
+        """Exporta el archivo de registro del mallado"""
+        success, message = self.export_manager.export_log_file()
+        
+        if not success:
+            if message == "no_log_file":
+                # Solo un mensaje, centrado en la ventana principal
+                QMessageBox.information(
+                    self,  # Esto asegura que se centre en esta ventana
+                    "Información", 
+                    "No hay registro de mallado disponible.\n"
+                    "Ejecute el algoritmo de mallado primero para generar un registro."
+                )
+            elif message == "export_cancelled":
+                # El usuario canceló, no need to show message
+                pass
+            else:
+                # Otro tipo de error
+                QMessageBox.warning(
+                    self,
+                    "Error al exportar",
+                    f"No se pudo exportar el registro:\n{message}"
+                )
 
     # Moverse entre los poly
     def accion_n(self):
@@ -572,3 +606,44 @@ class MainWindow(QWidget):
                 self.renderer.GetRenderWindow().Render()
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo cargar el archivo:\n{str(e)}")
+
+    def closeEvent(self, event):
+        """
+        Se ejecuta automáticamente cuando la ventana se cierra
+        """
+        # Preguntar al usuario si quiere limpiar los outputs
+        reply = QMessageBox.question(
+            self,
+            "Limpiar outputs",
+            "¿Desea eliminar todos los archivos output generados?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                script_path = os.path.join(current_dir, "../../clean_outputs.sh")
+
+                if os.path.exists(script_path):
+                    result = subprocess.run(
+                        ["bash", script_path],
+                        cwd=current_dir,
+                        capture_output=True,
+                        text=True
+                    )
+
+                    print(result)
+                    
+                    if result.returncode == 0:
+                        print("✓ Outputs limpiados exitosamente")
+                    else:
+                        print(f"✗ Error: {result.stderr}")
+                else:
+                    print("⚠ Script de limpieza no encontrado")
+                    
+            except Exception as e:
+                print(f"✗ Error al ejecutar limpieza: {e}")
+        
+        # Aceptar el evento de cierre
+        event.accept()
