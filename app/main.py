@@ -8,7 +8,7 @@ def main():
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     window = MainWindow()
     window.show()
-    window.vtk_widget.Start()
+    # window.vtk_widget.Start()
     sys.exit(app.exec_())
 
 if __name__ == "__main__":

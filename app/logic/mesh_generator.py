@@ -11,6 +11,7 @@ class MeshGeneratorController(QDialog):
         self.mesher = QuadtreeWrapper()
         self.generated_files = []
         self.ignorar_limite = ignorar_limite
+        self.cargar_sin_generar = False
         self.setup_ui()
 
     def setup_ui(self):
@@ -59,6 +60,9 @@ class MeshGeneratorController(QDialog):
         self.run_button = QPushButton("Generar Mallas")
         self.run_button.clicked.connect(self.run_mesh_generation)
         
+        self.cargar_button = QPushButton("Cargar sin generar")
+        self.cargar_button.clicked.connect(self.cargar_sin_generar_accion)
+
         # Área de estado
         self.status_label = QLabel("Presiona 'Generar Mallas' para comenzar")
         self.status_label.setWordWrap(True)
@@ -74,6 +78,7 @@ class MeshGeneratorController(QDialog):
         layout.addWidget(self.refinement_spinbox)
         layout.addWidget(self.input_file_button)
         layout.addWidget(self.run_button)
+        layout.addWidget(self.cargar_button)
         layout.addWidget(self.ruta_archivos)
         layout.addSpacing(20)
         layout.addWidget(self.status_label)
@@ -190,3 +195,7 @@ class MeshGeneratorController(QDialog):
                 "Advertencia",
                 "Los niveles altos de refinamiento (>10) pueden requerir mucha memoria RAM."
             )
+    
+    def cargar_sin_generar_accion(self):
+        self.cargar_sin_generar = True
+        self.accept()
