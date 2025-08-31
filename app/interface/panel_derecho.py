@@ -7,7 +7,8 @@ from PyQt5.QtWidgets import QStyle
 
 from collections import defaultdict
 import numpy as np
-
+import os
+import re
 
 class PanelDerecho(QScrollArea):
     def __init__(self, parent=None):
@@ -30,13 +31,14 @@ class PanelDerecho(QScrollArea):
         self.layout_principal.setSpacing(12)
         self.layout_principal.setContentsMargins(12, 12, 12, 12)
         
-        # Crear secciones (quitamos crear_seccion_informacion)
+        # Crear secciones 
         self.crear_seccion_metricas()
         self.crear_seccion_threshold()  # Nueva sección para threshold
         self.crear_seccion_animacion()
         self.crear_seccion_visualizacion()
         self.crear_seccion_acciones()
         self.crear_seccion_estadisticas()
+        self.crear_seccion_coloreos()
         
         # Espaciador final
         self.layout_principal.addStretch()
@@ -45,6 +47,187 @@ class PanelDerecho(QScrollArea):
         self.aplicar_estilo_botones()
         self.actualizar_estado_botones_visualizacion()
         self.actualizar_display_threshold()
+
+
+    def actualizar_panel_derecho(self, ruta_archivo):
+        try:
+            # Cambiar extensión del archivo de .vtk a _histo.txt
+            base, _ = os.path.splitext(ruta_archivo)
+            ruta_modificada = f"{base}_histo.txt"
+            numero = base.split('_')[-1]
+
+            # Leer el archivo línea por línea
+            with open(ruta_modificada, 'r') as f:
+                lineas = f.readlines()
+
+            angulo_triangulo = None
+            angulo_cuadrado = None
+            min_triangulo = None
+            max_triangulo = None
+            min_cuadrado = None
+            max_cuadrado = None
+            criticos_triangulos = 0
+            criticos_cuadrados = 0
+
+            # Variables para el procesamiento del histograma
+            procesando_triangulos = False
+            procesando_cuadrados = False
+            threshold_actual = self.threshold_angulo
+
+            for i, linea in enumerate(lineas):
+                # Detectar secciones
+                if "For Triangles:" in linea:
+                    procesando_triangulos = True
+                    procesando_cuadrados = False
+                    continue
+                elif "For Quads:" in linea:
+                    procesando_triangulos = False
+                    procesando_cuadrados = True
+                    continue
+                elif "Smallest angle:" in linea and "Largest angle:" in linea:
+                    # Extraer valores mínimo y máximo
+                    partes = linea.split('|')
+                    if len(partes) >= 2:
+                        min_val = partes[0].replace('Smallest angle:', '').strip()
+                        max_val = partes[1].replace('Largest angle:', '').strip()
+                        
+                        if procesando_triangulos:
+                            min_triangulo = min_val
+                            max_triangulo = max_val
+                            angulo_triangulo = f"{min_val} | {max_val}"
+                        elif procesando_cuadrados:
+                            min_cuadrado = min_val
+                            max_cuadrado = max_val
+                            angulo_cuadrado = f"{min_val} | {max_val}"
+                    continue
+                
+                # Procesar líneas del histograma
+                if ("Angle histogram:" in linea or 
+                    "0 -   1 degrees:" in linea or 
+                    linea.strip().startswith('0 -') or 
+                    re.match(r'^\s*\d+ - \s*\d+ degrees:', linea)):
+                    
+                    # Buscar patrones de histograma: "X - Y degrees: COUNT"
+                    match = re.match(r'.*?(\d+)\s*-\s*(\d+)\s*degrees:\s*(\d+)', linea)
+                    if match:
+                        min_deg = int(match.group(1))
+                        max_deg = int(match.group(2))
+                        count = int(match.group(3))
+                        
+                        # Si el rango está por debajo del threshold, sumar al contador
+                        if max_deg < threshold_actual:
+                            if procesando_triangulos:
+                                criticos_triangulos += count
+                            elif procesando_cuadrados:
+                                criticos_cuadrados += count
+
+            # Determinar color basado en el threshold (lógica invertida: ángulos bajos = malos)
+            if threshold_actual <= 25:
+                color_threshold = "#ff6b6b"  # ROJO - ángulos muy bajos (críticos)
+            elif threshold_actual <= 45:
+                color_threshold = "#ff9f43"  # NARANJA - ángulos medios (regulares)
+            else:
+                color_threshold = "#4ecdc4"  # VERDE AZULADO - ángulos altos (buenos)
+
+            # Función para determinar el color de un ángulo basado en el threshold
+            def color_por_angulo(angulo_str):
+                try:
+                    if angulo_str and '°' in angulo_str:
+                        valor = float(angulo_str.replace('°', '').split()[0])
+                        if valor < threshold_actual:
+                            return "#ff6b6b"  # Rojo para ángulos críticos
+                        elif valor < threshold_actual + 15:
+                            return "#ff9f43"  # Naranja para ángulos regulares
+                        else:
+                            return "#4ecdc4"  # Verde para ángulos buenos
+                except:
+                    pass
+                return "#ffffff"  # Blanco por defecto
+
+            # Función para formatear valores angulares
+            def formatear_valor_angular(valor):
+                try:
+                    # Extraer el número y agregar el símbolo de grados
+                    num_val = float(valor.split()[0])
+                    return f"{num_val:.1f}°"
+                except:
+                    return valor
+
+            # Determinar calidad general basada en los ángulos críticos
+            total_criticos = criticos_triangulos + criticos_cuadrados
+            if total_criticos == 0:
+                calidad_general = "Excelente"
+                color_calidad = "#4ecdc4"
+            elif total_criticos <= 5:
+                calidad_general = "Buena"
+                color_calidad = "#4ecdc4"
+            elif total_criticos <= 15:
+                calidad_general = "Regular"
+                color_calidad = "#ff9f43"
+            elif total_criticos <= 30:
+                calidad_general = "Mala"
+                color_calidad = "#ff6b6b"
+            else:
+                calidad_general = "Crítica"
+                color_calidad = "#ff0000"
+
+            # Construir el contenido HTML con el estilo deseado
+            contenido_html = f"""
+            <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px;'>
+                <b style='color: #ffd700;'>Nivel de Refinamiento: {numero}</b><br><br>
+                
+                <b style='color: #ffd700;'>Ángulos Críticos (Umbral: <span style='color: {color_threshold};'>{threshold_actual}°</span>)</b><br><br>
+            """
+
+            # Agregar información de triángulos si está disponible
+            if min_triangulo and max_triangulo:
+                min_tri_formatted = formatear_valor_angular(min_triangulo)
+                max_tri_formatted = formatear_valor_angular(max_triangulo)
+                color_min_tri = color_por_angulo(min_triangulo)
+                color_max_tri = color_por_angulo(max_triangulo)
+                
+                contenido_html += f"""
+                <b>Triángulos:</b><br>
+                <span style='color: {color_min_tri};'>Mín: {min_tri_formatted}</span> | 
+                <span style='color: {color_max_tri};'>Máx: {max_tri_formatted}</span><br>
+                <span style='color: #ff6b6b;'>⚠️ {criticos_triangulos} ángulos &lt; {threshold_actual}°</span><br><br>
+                """
+
+            # Agregar información de cuadriláteros si está disponible
+            if min_cuadrado and max_cuadrado:
+                min_cuad_formatted = formatear_valor_angular(min_cuadrado)
+                max_cuad_formatted = formatear_valor_angular(max_cuadrado)
+                color_min_cuad = color_por_angulo(min_cuadrado)
+                color_max_cuad = color_por_angulo(max_cuadrado)
+                
+                contenido_html += f"""
+                <b>Cuadriláteros:</b><br>
+                <span style='color: {color_min_cuad};'>Mín: {min_cuad_formatted}</span> | 
+                <span style='color: {color_max_cuad};'>Máx: {max_cuad_formatted}</span><br>
+                <span style='color: #ff6b6b;'>⚠️ {criticos_cuadrados} ángulos &lt; {threshold_actual}°</span><br>
+                """
+
+            # Agregar calidad general
+            contenido_html += f"""
+                <div style='margin-top: 10px; padding: 8px; background-color: #3a3a3a; border-radius: 4px;'>
+                    <b style='color: {color_calidad};'>Calidad General:</b> 
+                    <span style='color: {color_calidad};'>{calidad_general}</span> 
+                    <span style='color: #cccccc; font-size: 12px;'>({total_criticos} ángulos críticos)</span>
+                </div>
+            </div>
+            """
+
+            # Actualizar el panel derecho
+            self.actualizar_metricas(contenido_html)
+
+        except Exception as e:
+            error_html = f"""
+            <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; color: #ff6b6b;'>
+                <b>Error al leer el archivo:</b><br>{str(e)}<br><br>
+                <span style='font-size: 12px; color: #cccccc;'>Ruta: {ruta_modificada}</span>
+            </div>
+            """
+            self.panel_derecho.actualizar_metricas(error_html)    
     
     def crear_seccion_metricas(self):
         """Sección de métricas de calidad (ahora dinámica)"""
@@ -294,6 +477,30 @@ class PanelDerecho(QScrollArea):
         grupo.setLayout(layout)
         self.layout_principal.addWidget(grupo)
     
+    def crear_seccion_coloreos(self):
+        """Sección de acciones Coloreo"""
+        grupo = QGroupBox("Coloreo")
+        grupo.setStyleSheet("QGroupBox { font-weight: bold; color: #ffffff; }")
+        layout = QGridLayout()
+        layout.setSpacing(6)
+        
+        # Botones esenciales
+        self.boton_color = QPushButton("Color1")
+        self.boton_color2 = QPushButton("Color2")
+        self.boton_color3 = QPushButton("Color3")
+
+        self.boton_color.setToolTip("Shortcut: 1")
+        self.boton_color2.setToolTip("Shortcut: 2")
+
+        
+        # Agregar al layout
+        layout.addWidget(self.boton_color, 0, 0)
+        layout.addWidget(self.boton_color2, 0, 1)
+        layout.addWidget(self.boton_color3, 1 , 0 , 1, 2)
+        grupo.setLayout(layout)
+        self.layout_principal.addWidget(grupo)
+
+
     def actualizar_threshold(self, valor):
         """Actualiza el threshold y el display"""
         self.threshold_angulo = valor
