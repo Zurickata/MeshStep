@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel, QSpinBo
                             QPushButton, QMessageBox, QFileDialog, QDialog, QHBoxLayout,
                             QGroupBox, QRadioButton)
 from core.wrapper import QuadtreeWrapper
+from app.logic.scripts_historial.crear_historial import crear_historial
 
 class MeshGeneratorController(QDialog):
     def __init__(self, parent=None):
@@ -133,6 +134,26 @@ class MeshGeneratorController(QDialog):
             self.status_label.setText(f"Generación completada!\n{time_report}")
 
             print(self.generated_files)
+
+            # Acá debería ir para generar el historial
+            # No sé como se conecta cuando se genera solo uno
+            try:
+                last_output_path = self.generated_files[-1] if self.generated_files else result_file
+                input_dir = os.path.dirname(last_output_path)
+                name = os.path.splitext(os.path.basename(last_output_path))[0]
+                tipo = "borde" if self.edge_refinement.isChecked() else "completo"
+
+                _cwd = os.getcwd()
+                try:
+                    os.chdir(input_dir)
+                    crear_historial(name, max_refinement, tipo)
+                finally:
+                    os.chdir(_cwd)
+
+                print(f"[Historial] Generado en {input_dir}/historial_completo_new.txt")
+            except Exception as e_hist:
+                print(f"[Historial] Error al generar historial: {e_hist}")
+                self.status_label.setText(self.status_label.text() + f"\n[Historial] Error: {e_hist}")
 
             QMessageBox.information(
                 self, 
