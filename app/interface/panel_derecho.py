@@ -477,6 +477,9 @@ class PanelDerecho(QScrollArea):
         grupo.setLayout(layout)
         self.layout_principal.addWidget(grupo)
     
+
+#---------------------------------------------- Esta es la seccion a modificar xiska ----------------------------------------------------------
+
     def crear_seccion_coloreos(self):
         """Sección de acciones Coloreo"""
         grupo = QGroupBox("Coloreo")

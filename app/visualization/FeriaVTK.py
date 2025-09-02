@@ -19,8 +19,6 @@ from .mesh_metrics import calcular_angulo, calcular_metricas_calidad
 
 
 
-# ------------------------- NUEVAS FUNCIONES PARA MÉTRICAS DE CALIDAD USANDO VTK -------------------------
-
 
     
 

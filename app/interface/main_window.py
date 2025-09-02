@@ -171,6 +171,9 @@ class MainWindow(QWidget):
         self.panel_derecho.boton_reset_camara.clicked.connect(self.accion_r)
         self.panel_derecho.boton_limpiar.clicked.connect(self.accion_b)
 
+
+#---------------------------------------------- Aqui conectas las funciones ----------------------------------------------------------
+
         #Aqui podrias añadir nuevos botones
         #self.self.panel_derecho.boton_color.clicked.connect(self.accion_color)
         #self.self.panel_derecho.boton_color1.clicked.connect(self.accion_color1)
