@@ -6,7 +6,7 @@ from PyQt5.QtCore import QStandardPaths
 class ExportManager:
     def __init__(self, parent_window=None):
         self.parent = parent_window
-        self.default_log_path = Path("quadtree_log.txt")  # Ruta por defecto del archivo de log
+        self.default_log_path = Path("historial_completo_new.txt")
     
     def get_log_file_path(self):
         """Obtiene la ruta del archivo de log del mallado"""
@@ -16,10 +16,10 @@ class ExportManager:
         
         # Si no existe, busca en otras ubicaciones comunes
         possible_paths = [
-            Path("core/quadtree/build/quadtree_log.txt"),
-            Path("quadtree_log.txt"),
-            Path("outputs/logs/quadtree_log.txt"),
-            Path("outputs/quadtree_log.txt")
+            Path("core/quadtree/build/historial_completo_new.txt"),
+            Path("historial_completo_new.txt"),
+            Path("outputs/logs/historial_completo_new.txt"),
+            Path("outputs/historial_completo_new.txt")
         ]
         
         for path in possible_paths:
@@ -92,16 +92,3 @@ class ExportManager:
             if self.parent:
                 QMessageBox.critical(self.parent, "Error", error_msg)
             return False, error_msg
-    
-    def clear_log_file(self):
-        """Limpia el archivo de log (opcional, para cuando se inicia un nuevo mallado)"""
-        log_path = self.get_log_file_path()
-        if log_path and os.path.exists(log_path):
-            try:
-                with open(log_path, 'w', encoding='utf-8') as file:
-                    file.write("")  # Archivo vacío
-                return True
-            except Exception as e:
-                print(f"Error al limpiar archivo de log: {e}")
-                return False
-        return True

@@ -3,6 +3,7 @@ import os
 import re
 import glob
 import vtk
+import shutil
 import subprocess
 from PyQt5.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout,
                             QPushButton, QMenu, QLabel, QListWidget, QSplitter,
@@ -248,18 +249,15 @@ class MainWindow(QWidget):
         
         if not success:
             if message == "no_log_file":
-                # Solo un mensaje, centrado en la ventana principal
                 QMessageBox.information(
-                    self,  # Esto asegura que se centre en esta ventana
+                    self,
                     "Información", 
                     "No hay registro de mallado disponible.\n"
                     "Ejecute el algoritmo de mallado primero para generar un registro."
                 )
             elif message == "export_cancelled":
-                # El usuario canceló, no need to show message
                 pass
             else:
-                # Otro tipo de error
                 QMessageBox.warning(
                     self,
                     "Error al exportar",
@@ -609,9 +607,9 @@ class MainWindow(QWidget):
 
     def closeEvent(self, event):
         """
-        Se ejecuta automáticamente cuando la ventana se cierra
+        Se ejecuta automáticamente cuando la ventana se cierra.
         """
-        # Preguntar al usuario si quiere limpiar los outputs
+        # Preguntar al usuario si quiere limpiar los outputs.
         reply = QMessageBox.question(
             self,
             "Limpiar outputs",
@@ -619,31 +617,25 @@ class MainWindow(QWidget):
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.Yes
         )
-        
+
         if reply == QMessageBox.Yes:
             try:
                 current_dir = os.path.dirname(os.path.abspath(__file__))
-                script_path = os.path.join(current_dir, "../../clean_outputs.sh")
+                outputs_path = os.path.join(current_dir, "../../outputs")
 
-                if os.path.exists(script_path):
-                    result = subprocess.run(
-                        ["bash", script_path],
-                        cwd=current_dir,
-                        capture_output=True,
-                        text=True
-                    )
-
-                    print(result)
+                if os.path.exists(outputs_path):
+                    # Elimina la carpeta 'outputs' y todo su contenido de forma recursiva.
+                    shutil.rmtree(outputs_path)
                     
-                    if result.returncode == 0:
-                        print("✓ Outputs limpiados exitosamente")
-                    else:
-                        print(f"✗ Error: {result.stderr}")
+                    # Crea la carpeta 'outputs' vacía para la próxima ejecución.
+                    os.makedirs(outputs_path)
+                    
+                    print("✓ Outputs limpiados exitosamente.")
                 else:
-                    print("⚠ Script de limpieza no encontrado")
-                    
+                    print("⚠ La carpeta 'outputs' no se encontró. No se necesita limpieza.")
+
             except Exception as e:
-                print(f"✗ Error al ejecutar limpieza: {e}")
-        
-        # Aceptar el evento de cierre
+                print(f"✗ Error al limpiar outputs: {e}")
+
+        # Aceptar el evento de cierre.
         event.accept()

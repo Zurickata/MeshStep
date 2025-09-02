@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel, QSpinBo
                             QPushButton, QMessageBox, QFileDialog, QDialog, QHBoxLayout,
                             QGroupBox, QRadioButton)
 from core.wrapper import QuadtreeWrapper
+from app.logic.scripts_historial.crear_historial import crear_historial
 
 class MeshGeneratorController(QDialog):
     def __init__(self, parent=None):
@@ -79,7 +80,7 @@ class MeshGeneratorController(QDialog):
     def run_mesh_generation(self):
         if not self.archivos_seleccionados:
             QMessageBox.critical(self, "Error", "Debes seleccionar al menos un archivo .poly antes de confirmar.")
-            return
+            return 
         
         max_refinement = self.refinement_spinbox.value()
         input_file = self.archivos_seleccionados[0]
@@ -134,6 +135,24 @@ class MeshGeneratorController(QDialog):
 
             print(self.generated_files)
 
+            try:
+                last_output_path = self.generated_files[-1] if self.generated_files else result_file
+                input_dir = os.path.dirname(last_output_path)
+                name = os.path.splitext(os.path.basename(last_output_path))[0]
+                tipo = "borde" if self.edge_refinement.isChecked() else "completo"
+
+                _cwd = os.getcwd()
+                try:
+                    os.chdir(input_dir)
+                    crear_historial(name, max_refinement, tipo)
+                finally:
+                    os.chdir(_cwd)
+
+                print(f"[Historial] Generado en {input_dir}/historial_completo_new.txt")
+            except Exception as e_hist:
+                print(f"[Historial] Error al generar historial: {e_hist}")
+                self.status_label.setText(self.status_label.text() + f"\n[Historial] Error: {e_hist}")
+
             QMessageBox.information(
                 self, 
                 "Proceso completado", 
@@ -155,6 +174,98 @@ class MeshGeneratorController(QDialog):
             QMessageBox.critical(
                 self,
                 "Error",
+                error_msg
+            )
+
+    def run_single_mesh_for_debug(self):
+        """
+        Ejecuta el mesher UNA sola vez para generar archivos de debug
+        Retorna: No retorns como tal, solo le asigna el Path del output en self.generated_file_debug
+        """
+        if not self.archivos_seleccionados:
+            QMessageBox.critical(self, "Error", "Debes seleccionar al menos un archivo .poly")
+            return
+        
+        input_file = self.archivos_seleccionados[0]
+        refinement_level = self.refinement_spinbox.value()
+        
+        # Determinar tipo de refinamiento
+        refinement_type = "-a" if self.full_refinement.isChecked() else "-s"
+
+        start_time = time.time()
+        self.generated_files = []
+
+        self.status_label.setText(f"Generando malla de nivel {refinement_level}...")
+        self.time_label.setText("Tiempo de ejecución: calculando...")
+        QApplication.processEvents()
+        
+        try:
+            poly_name = os.path.splitext(os.path.basename(input_file))[0]
+            output_name = f"{poly_name}_debug_{refinement_level}"
+            
+            # Ejecutar UNA sola vez (sin ciclo)
+            result_file = self.mesher.generate_mesh(
+                input_file=input_file,
+                output_file=output_name,
+                refinement_level=refinement_level,
+                refinement_type=refinement_type,
+                show_quality_metrics=True
+            )
+            
+            execution_time = time.time() - start_time
+            # self.generated_file_debug = result_file
+            self.generated_files.append(result_file)
+            
+            print(f"Mallado completado en {execution_time:.2f} segundos")
+            
+            self.status_label.setText(
+                f"Generación completada!\n"
+                f"Archivo: {os.path.basename(result_file)}"
+            )
+            self.time_label.setText(f"Tiempo: {execution_time:.2f} segundos")
+            
+            # print(self.generated_file_debug)
+            print(self.generated_files)
+
+            try:
+                last_output_path = self.generated_files[-1] if self.generated_files else result_file
+                input_dir = os.path.dirname(last_output_path)
+                name = os.path.splitext(os.path.basename(last_output_path))[0]
+                tipo = "borde" if self.edge_refinement.isChecked() else "completo"
+
+                _cwd = os.getcwd()
+                try:
+                    os.chdir(input_dir)
+                    crear_historial(name, refinement_level, tipo)
+                finally:
+                    os.chdir(_cwd)
+
+                print(f"[Historial] Generado en {input_dir}/historial_completo_new.txt")
+            except Exception as e_hist:
+                print(f"[Historial] Error al generar historial: {e_hist}")
+                self.status_label.setText(self.status_label.text() + f"\n[Historial] Error: {e_hist}")
+
+            QMessageBox.information(
+                self, 
+                "Proceso completado", 
+                f"Se generaró una malla de {refinement_level} LR en {execution_time:.2f} segundos"
+            )
+            self.accept()
+            
+        except Exception as e:
+            execution_time = time.time() - start_time
+            error_msg = (
+                f"Error después de {execution_time:.2f} segundos:\n"
+                f"{str(e)}"
+            )
+
+            print(f"ERROR: {error_msg}")
+            self.time_label.setText(f"Error después de {execution_time:.2f}s")
+            self.status_label.setText(error_msg)
+            
+            QMessageBox.critical(
+                self,
+                "Error en debug",
                 error_msg
             )
 
