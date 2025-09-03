@@ -4,12 +4,15 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel, QSpinBo
                             QPushButton, QMessageBox, QFileDialog, QDialog, QHBoxLayout,
                             QGroupBox, QRadioButton)
 from core.wrapper import QuadtreeWrapper
+from app.logic.scripts_historial.crear_historial import crear_historial
 
 class MeshGeneratorController(QDialog):
     def __init__(self, parent=None, ignorar_limite=False):
         super().__init__(parent)
         self.mesher = QuadtreeWrapper()
         self.generated_files = []
+        self.historial_status = False
+        self.ruta_historial = ""
         self.ignorar_limite = ignorar_limite
         self.cargar_sin_generar = False
         self.setup_ui()
@@ -162,6 +165,27 @@ class MeshGeneratorController(QDialog):
             self.status_label.setText(f"Generación completada!\n{time_report}")
 
             print(self.generated_files)
+
+            try:
+                last_output_path = self.generated_files[-1] if self.generated_files else result_file
+                input_dir = os.path.dirname(last_output_path)
+                name = os.path.splitext(os.path.basename(last_output_path))[0]
+                tipo = "borde" if self.edge_refinement.isChecked() else "completo"
+
+                _cwd = os.getcwd()
+                try:
+                    os.chdir(input_dir)
+                    crear_historial(name, max_refinement, tipo)
+                    self.historial_status = True
+                    self.ruta_historial = f"{input_dir}/{name}_historial.txt"
+                finally:
+                    os.chdir(_cwd)
+
+                print(f"[Historial] Generado en {input_dir}/{name}_historial.txt")
+                self.status_label.setText(self.status_label.text() + f"\nEl historial se generó correctamente")
+            except Exception as e_hist:
+                print(f"[Historial] Error al generar historial: {e_hist}")
+                self.status_label.setText(self.status_label.text() + f"\nOcurrió un error al generar el historial")
 
             QMessageBox.information(
                 self, 

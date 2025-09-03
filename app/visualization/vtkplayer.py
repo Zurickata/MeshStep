@@ -2,7 +2,7 @@ import vtk
 import numpy as np
 import os
 import sys
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 
@@ -423,6 +423,7 @@ class VTKPlayer(QWidget):
                 print(f"→ Puntos: {self.ugrid.GetNumberOfPoints()} | Celdas: {self.ugrid.GetNumberOfCells()}")
             else:
                 print("No quedan más comandos.")
+                QMessageBox.information(self, "Fin", "Ya estás en el último paso.")
         elif comando == "r":
             print("Reiniciando modelo y script...")
             self.ugrid = cargar_ugrid(self.vtk_file)
