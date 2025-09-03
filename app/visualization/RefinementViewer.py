@@ -212,9 +212,9 @@ class RefinementViewer(QWidget):
             self.actualizar_panel_derecho(archivos[0])
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
-            items = self.lista_archivos.findItems(self.switcher.current_poly, Qt.MatchExactly)
-            if items:
-                self.lista_archivos.setCurrentItem(items[0])
+            # items = self.lista_archivos.findItems(self.switcher.current_poly, Qt.MatchExactly)
+            # if items:
+            #     self.lista_archivos.setCurrentItem(items[0])
     
     def toggle_overlay(self):
         if self.overlay_actor:

@@ -2,6 +2,7 @@ import os
 import re
 import glob
 import vtk
+import shutil
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMenu, QLabel, QListWidget, QListWidgetItem, QSplitter, QMessageBox, QSizePolicy, QStyle, QTabWidget, QDialog)
 from PyQt5.QtCore import Qt, QTimer
 from app.visualization.RefinementViewer import RefinementViewer
@@ -468,3 +469,39 @@ class MainWindow(QWidget):
                 self.vtk_player.vtk_widget.GetRenderWindow().GetInteractor().Initialize()
             except Exception:
                 pass
+
+
+    def closeEvent(self, event):
+        """
+        Se ejecuta automáticamente cuando la ventana se cierra.
+        """
+        # Preguntar al usuario si quiere limpiar los outputs.
+        reply = QMessageBox.question(
+            self,
+            "Limpiar outputs",
+            "¿Desea eliminar todos los archivos output generados?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+
+        if reply == QMessageBox.Yes:
+            try:
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                outputs_path = os.path.join(current_dir, "../../outputs")
+
+                if os.path.exists(outputs_path):
+                    # Elimina la carpeta 'outputs' y todo su contenido de forma recursiva.
+                    shutil.rmtree(outputs_path)
+                    
+                    # Crea la carpeta 'outputs' vacía para la próxima ejecución.
+                    os.makedirs(outputs_path)
+                    
+                    print("✓ Outputs limpiados exitosamente.")
+                else:
+                    print("⚠ La carpeta 'outputs' no se encontró. No se necesita limpieza.")
+
+            except Exception as e:
+                print(f"✗ Error al limpiar outputs: {e}")
+
+        # Aceptar el evento de cierre.
+        event.accept()
