@@ -12,6 +12,7 @@ from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.logic.mesh_generator import MeshGeneratorController
 
 from .panel_derecho import PanelDerecho
+from app.visualization.coloreo_metricas import colorear_celdas
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -175,11 +176,64 @@ class MainWindow(QWidget):
 #---------------------------------------------- Aqui conectas las funciones ----------------------------------------------------------
 
         #Aqui podrias añadir nuevos botones
-        #self.self.panel_derecho.boton_color.clicked.connect(self.accion_color)
-        #self.self.panel_derecho.boton_color1.clicked.connect(self.accion_color1)
-        #self.self.panel_derecho.boton_color2.clicked.connect(self.accion_color2)
+        self.panel_derecho.boton_color.clicked.connect(self.accion_area)
+        self.panel_derecho.boton_color2.clicked.connect(self.accion_angulo_minimo)
+        self.panel_derecho.boton_color3.clicked.connect(self.accion_relacion_aspecto)
         
         
+    def accion_area(self):
+        if not self.switcher:
+            print("No hay modelo cargado.")
+            return
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if archivos and 0 <= self.switcher.current_index < len(archivos):
+            nombre = os.path.basename(archivos[self.switcher.current_index])
+        else:
+            print("No hay archivo actual.")
+    # Métodos para cada acción
+        input_path = "outputs/" + nombre
+        output_path = "outputs/" + "color_" +nombre
+        colorear_celdas(
+            input_path, output_path,
+            metric="area", bins=12,
+            base_color=(0,255,0), end_color=(255,0,0)
+        )   
+
+    def accion_angulo_minimo(self):
+        if not self.switcher:
+            print("No hay modelo cargado.")
+            return
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if archivos and 0 <= self.switcher.current_index < len(archivos):
+            nombre = os.path.basename(archivos[self.switcher.current_index])
+        else:
+            print("No hay archivo actual.")
+    # Métodos para cada acción
+        input_path = "outputs/" +  nombre
+        output_path = "outputs/" + "color_" + nombre
+        colorear_celdas(
+            input_path, output_path,
+            metric="angle", bins=12,
+            base_color=(0,255,0), end_color=(255,0,0)
+        )
+
+    def accion_relacion_aspecto(self):
+        if not self.switcher:
+            print("No hay modelo cargado.")
+            return
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if archivos and 0 <= self.switcher.current_index < len(archivos):
+            nombre = os.path.basename(archivos[self.switcher.current_index])
+        else:
+            print("No hay archivo actual.")
+    # Métodos para cada acción
+        input_path = "outputs/" + nombre
+        output_path = "outputs/" + "color_" +nombre
+        colorear_celdas(
+            input_path, output_path,
+            metric="aspect", bins=12,
+            base_color=(0,255,0), end_color=(255,0,0)
+        )
       
 
     def ajustar_velocidad(self, valor):

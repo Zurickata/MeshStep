@@ -488,9 +488,9 @@ class PanelDerecho(QScrollArea):
         layout.setSpacing(6)
         
         # Botones esenciales
-        self.boton_color = QPushButton("Color1")
-        self.boton_color2 = QPushButton("Color2")
-        self.boton_color3 = QPushButton("Color3")
+        self.boton_color = QPushButton("Por área")
+        self.boton_color2 = QPushButton("Por ángulo mínimo")
+        self.boton_color3 = QPushButton("Relación de aspecto")
 
         self.boton_color.setToolTip("Shortcut: 1")
         self.boton_color2.setToolTip("Shortcut: 2")

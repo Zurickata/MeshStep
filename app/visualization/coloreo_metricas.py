@@ -192,19 +192,4 @@ def colorear_celdas(
     print(f"✔ Archivo generado: {output_path} ({n_cells} celdas)")
 
 
-# ÁREA
-colorear_celdas("a_output_5_quads.vtk", "out_area.vtk",
-                metric="area", bins=12,
-                base_color=(0,255,0), end_color=(255,0,0))
-
-# ASPECT RATIO
-colorear_celdas("a_output_5_quads.vtk", "out_aspect.vtk",
-                metric="aspect", bins=12,
-                base_color=(0,0,255), end_color=(255,128,0))
-
-# ANGLE
-colorear_celdas("a_output_5_quads.vtk", "out_angle.vtk",
-                metric="angle", bins=12,
-                base_color=(128,0,128), end_color=(255,0,0))
-
 
