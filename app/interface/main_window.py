@@ -13,6 +13,9 @@ from app.interface.options_dialog import OpcionesDialog
 from app.interface.panel_derecho import PanelDerecho
 from app.visualization.vtkplayer import VTKPlayer
 
+from .panel_derecho import PanelDerecho
+from app.visualization.coloreo_metricas import colorear_celdas
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -31,8 +34,6 @@ class MainWindow(QWidget):
         self.lista_archivos.itemClicked.connect(self.mostrar_contenido)
         self.lista_archivos.setContextMenuPolicy(Qt.CustomContextMenu)
         self.lista_archivos.customContextMenuRequested.connect(self.mostrar_menu_contextual)
-
-        self.panel_derecho = PanelDerecho(self)
 
         self.rutas_archivos = {}
         self.rutas_octree = {}
@@ -58,8 +59,24 @@ class MainWindow(QWidget):
         layout_izquierdo.addWidget(self.lista_archivos)
         panel_izquierdo.setLayout(layout_izquierdo)
 
+        # Layout principal del panel central
+        central_layout = QVBoxLayout()
+        central_layout.addWidget(self.vtk_widget, 1)  # El widget VTK ocupa la mayor parte
+        central_layout.addWidget(nav_widget)          # Los botones de navegación abajo
+        central_layout.setContentsMargins(0, 0, 0, 0)
+        central_layout.setSpacing(0)
+
+        # Widget contenedor del panel central
+        panel_central = QWidget()
+        panel_central.setLayout(central_layout)
+        
+        self.panel_derecho = PanelDerecho(self)
+        
+        # Conectar señales del nuevo panel
+        self._conectar_señales_panel_derecho()
+
         splitter.addWidget(panel_izquierdo)
-        splitter.addWidget(self.panel_central)
+        splitter.addWidget(panel_central)
         splitter.addWidget(self.panel_derecho)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
@@ -70,9 +87,89 @@ class MainWindow(QWidget):
         self.setLayout(layout)
         self.setAcceptDrops(True)
 
-        self.switcher = None
-        self.refinement_viewer.actualizar_panel_derecho = self.panel_derecho.actualizar_panel
+    def _conectar_señales_panel_derecho(self):
+        """Conecta las señales del panel derecho con las funciones existentes"""
+        
+        # Conectar botones de acciones
+        self.panel_derecho.slider_velocidad.valueChanged.connect(self.ajustar_velocidad)
+        
+        # Conectar botones de navegación
+        self.panel_derecho.boton_puntos_criticos.clicked.connect(self.accion_a)
+        self.panel_derecho.boton_reset_camara.clicked.connect(self.accion_r)
+        self.panel_derecho.boton_limpiar.clicked.connect(self.accion_b)
+
+
+#---------------------------------------------- Aqui conectas las funciones ----------------------------------------------------------
+
+        #Aqui podrias añadir nuevos botones
+        self.panel_derecho.boton_color.clicked.connect(self.accion_area)
+        self.panel_derecho.boton_color2.clicked.connect(self.accion_angulo_minimo)
+        self.panel_derecho.boton_color3.clicked.connect(self.accion_relacion_aspecto)
+        
+        
+    def accion_area(self):
+        if not self.switcher:
+            print("No hay modelo cargado.")
+            return
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if archivos and 0 <= self.switcher.current_index < len(archivos):
+            nombre = os.path.basename(archivos[self.switcher.current_index])
+        else:
+            print("No hay archivo actual.")
+    # Métodos para cada acción
+        input_path = "outputs/" + nombre
+        output_path = "outputs/" + "color_" +nombre
+        colorear_celdas(
+            input_path, output_path,
+            metric="area", bins=12,
+            base_color=(0,255,0), end_color=(255,0,0)
+        )   
+
+    def accion_angulo_minimo(self):
+        if not self.switcher:
+            print("No hay modelo cargado.")
+            return
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if archivos and 0 <= self.switcher.current_index < len(archivos):
+            nombre = os.path.basename(archivos[self.switcher.current_index])
+        else:
+            print("No hay archivo actual.")
+    # Métodos para cada acción
+        input_path = "outputs/" +  nombre
+        output_path = "outputs/" + "color_" + nombre
+        colorear_celdas(
+            input_path, output_path,
+            metric="angle", bins=12,
+            base_color=(0,255,0), end_color=(255,0,0)
+        )
+
+    def accion_relacion_aspecto(self):
+        if not self.switcher:
+            print("No hay modelo cargado.")
+            return
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if archivos and 0 <= self.switcher.current_index < len(archivos):
+            nombre = os.path.basename(archivos[self.switcher.current_index])
+        else:
+            print("No hay archivo actual.")
+    # Métodos para cada acción
+        input_path = "outputs/" + nombre
+        output_path = "outputs/" + "color_" +nombre
+        colorear_celdas(
+            input_path, output_path,
+            metric="aspect", bins=12,
+            base_color=(0,255,0), end_color=(255,0,0)
+        )
+      
+
+    def ajustar_velocidad(self, valor):
+        """Ajusta la velocidad de la animación"""
+        segundos = valor / 1000.0
+        self.timer_animacion.setInterval(valor)
+        self.panel_derecho.label_velocidad_valor.setText(f"{segundos:.1f}s")
+
     # Este método se encarga de leer el archivo _histo.txt y actualizar el panel derecho con los ángulos
+    
 
     # Métodos para cada acción
 
@@ -91,12 +188,12 @@ class MainWindow(QWidget):
     #     except ValueError:
     #         next_poly = polys_cargados[0]
         
-    #     archivos = self.switcher.file_dict.get(next_poly, [])
-    #     if archivos:
-    #         self.switcher.current_poly = next_poly
-    #         self.switcher.current_index = 0
-    #         self.switcher._load_current()
-    #         self.actualizar_panel_derecho(archivos[0])
+        # archivos = self.switcher.file_dict.get(next_poly, [])
+        # if archivos:
+        #     self.switcher.current_poly = next_poly
+        #     self.switcher.current_index = 0
+        #     self.switcher._load_current()
+        #     self.panel_derechoactualizar_panel_derecho(archivos[0])
 
     #         items = self.lista_archivos.findItems(next_poly, Qt.MatchExactly)
     #         if items:
@@ -112,43 +209,107 @@ class MainWindow(QWidget):
     #     #     self.switcher.clear_extra_models()
     #     #     self.switcher.toggle_load = False
 
-    # #Toggle puntos críticos
-    # def accion_a(self):
-    #     if self.switcher:
-    #         self.switcher.toggle_load = not self.switcher.toggle_load
-    #         if self.switcher.toggle_load:
-    #             print("Cargando puntos criticos...")
-    #             self.switcher.marcar_angulos_extremos()
-    #             self.renderer.GetRenderWindow().Render()
-    #         else:
-    #             print("Toggle desactivado puntos criticos.")
-    #             self.switcher.clear_extra_models()
-    #             self.renderer.GetRenderWindow().Render()
+    #Toggle puntos críticos
+    def accion_a(self):
+        if self.switcher:
+            self.switcher.toggle_load = not self.switcher.toggle_load
+            if self.switcher.toggle_load:
+                print("Cargando puntos criticos...")
+                self.switcher.marcar_angulos_extremos()
+                self.renderer.GetRenderWindow().Render()
+            else:
+                print("Toggle desactivado puntos criticos.")
+                self.switcher.clear_extra_models()
+                self.renderer.GetRenderWindow().Render()
 
-    # def accion_b(self):
-    #     if self.switcher:
-    #         self.switcher.clear_extra_models()
+    def accion_b(self):
+        if self.switcher:
+            self.switcher.clear_extra_models()
 
-    # def accion_r(self):
-    #     if self.switcher:
-    #         print("🔁 Reseteando cámara y modelo")
-    #         self.switcher.actor.SetOrientation(0, 0, 0)
-    #         self.switcher.actor.SetPosition(0, 0, 0)
-    #         self.switcher.actor.SetScale(1, 1, 1)
-    #         self.renderer.ResetCamera()
-    #         if isinstance(self.interactor.GetInteractorStyle(), CustomInteractorStyle):
-    #             self.interactor.GetInteractorStyle().reset_camera_and_rotation()
-    #         self.renderer.GetRenderWindow().Render()
+    def accion_r(self):
+        if self.switcher:
+            print("🔁 Reseteando cámara y modelo")
+            self.switcher.actor.SetOrientation(0, 0, 0)
+            self.switcher.actor.SetPosition(0, 0, 0)
+            self.switcher.actor.SetScale(1, 1, 1)
+            self.renderer.ResetCamera()
+            if isinstance(self.interactor.GetInteractorStyle(), CustomInteractorStyle):
+                self.interactor.GetInteractorStyle().reset_camera_and_rotation()
+            self.renderer.GetRenderWindow().Render()
 
     # def accion_w(self):
     #     if self.switcher:
     #         self.switcher.actor.GetProperty().SetRepresentationToWireframe()
     #         self.renderer.GetRenderWindow().Render()
+    #         self.panel_derecho.set_modo_visualizacion("wireframe")
 
     # def accion_s(self):
     #     if self.switcher:
     #         self.switcher.actor.GetProperty().SetRepresentationToSurface()
     #         self.renderer.GetRenderWindow().Render()
+    #         self.panel_derecho.set_modo_visualizacion("solido")
+
+    # def abrir_dialogo_carga(self):
+    #     dialogo = MeshGeneratorController(self)
+
+    #     if dialogo.exec_() == QDialog.Accepted:
+    #         ruta_poly = dialogo.archivos_seleccionados[0]
+    #         nombre_poly = os.path.basename(ruta_poly)
+
+    #         if nombre_poly not in self.rutas_archivos:
+    #             self.rutas_archivos[nombre_poly] = dialogo.generated_files
+    #             self.lista_archivos.addItem(nombre_poly)
+
+    #         items = self.lista_archivos.findItems(nombre_poly, Qt.MatchExactly)
+    #         if items:
+    #             self.lista_archivos.setCurrentItem(items[0]) 
+
+    #         if not self.switcher:
+    #             self.switcher = ModelSwitcher(self.renderer, self.interactor, {nombre_poly: dialogo.generated_files})
+    #             if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+    #                 self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
+    #         else:
+    #             self.switcher.file_dict[nombre_poly] = dialogo.generated_files
+
+    #         self.switcher.current_poly = nombre_poly
+    #         self.switcher.current_index = 0
+    #         self.switcher._load_current()
+    #         self.panel_derecho.actualizar_panel_derecho(dialogo.generated_files[0])
+
+    #         if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+    #             self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
+
+    #     elif dialogo.exec_() == QDialog.Rejected:
+    #         return
+        
+    #     print("Rutas_Archivo:", self.rutas_archivos)
+    #     print("Lista_Archivos:", self.lista_archivos)
+    #     print("Generated_Files:", dialogo.generated_files)
+
+    def mostrar_contenido(self, item):
+        nombre_poly = item.text()
+        archivos_vtk = self.rutas_archivos.get(nombre_poly)
+
+        if archivos_vtk and self.switcher:
+            self.switcher.current_poly = nombre_poly
+            self.switcher.current_index = 0
+            self.switcher._load_current()
+            self.panel_derecho.actualizar_panel_derecho(archivos_vtk[0])
+            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
+
+    def mostrar_menu_contextual(self, posicion):
+        item = self.lista_archivos.itemAt(posicion)
+        if item:
+            menu = QMenu()
+            accion_eliminar = menu.addAction("Eliminar archivo de la lista")
+            accion = menu.exec_(self.lista_archivos.mapToGlobal(posicion))
+            if accion == accion_eliminar:
+                nombre = item.text()
+                if nombre in self.rutas_archivos:
+                    del self.rutas_archivos[nombre]
+                self.lista_archivos.takeItem(self.lista_archivos.row(item))
+                
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -272,7 +433,7 @@ class MainWindow(QWidget):
         if self.switcher:
             try:
                 self.switcher.load_model(filepath)
-                self.actualizar_panel_derecho(filepath)
+                self.panel_derecho.actualizar_panel_derecho(filepath)
                 # Actualizar el índice actual al nuevo archivo
                 if filepath in self.switcher.file_list:
                     self.switcher.current_index = self.switcher.file_list.index(filepath)
@@ -330,15 +491,23 @@ class MainWindow(QWidget):
                     {nombre_poly: dialogo.generated_files}
                 )
                 self.refinement_viewer.set_switcher(self.switcher, poly_path=ruta_poly)
+                if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                    self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
             else:
                 self.switcher.file_dict[nombre_poly] = dialogo.generated_files
                 self.refinement_viewer.poly_path = ruta_poly
                 self.refinement_viewer._load_overlay_poly()
 
+            
+
             # Selecciona el archivo recién cargado
             self.switcher.current_poly = nombre_poly
             self.switcher.current_index = 0
             self.switcher._load_current()
+            self.panel_derecho.actualizar_panel_derecho(dialogo.generated_files[0])
+
+            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
             self.refinement_viewer.actualizar_panel_derecho(dialogo.generated_files[0])
 
     def mostrar_contenido(self, item):
