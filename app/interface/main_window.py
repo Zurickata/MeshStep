@@ -10,6 +10,7 @@ from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.logic.mesh_generator import MeshGeneratorController
 from app.interface.options_dialog import OpcionesDialog
 from app.interface.panel_derecho import PanelDerecho
+from app.visualization.vtkplayer import VTKPlayer
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -37,10 +38,10 @@ class MainWindow(QWidget):
 
         # Panel central: pestañas
         self.refinement_viewer = RefinementViewer(self)
-        self.base_viewer = BaseViewer(self)
+        self.vtk_player = VTKPlayer(self)
         self.tab_widget = QTabWidget()
         self.tab_widget.addTab(self.refinement_viewer, "Niveles de refinación")
-        self.tab_widget.addTab(self.base_viewer, "Paso a paso")
+        self.tab_widget.addTab(self.vtk_player, "Paso a paso")
         self.tab_widget.currentChanged.connect(self.cambiar_visualizador)
 
         self.panel_central = QWidget()
@@ -459,10 +460,11 @@ class MainWindow(QWidget):
             self.refinement_viewer.vtk_widget.show()
             self.refinement_viewer.vtk_widget.GetRenderWindow().Render()
         else:
-            self.base_viewer.vtk_widget.show()
-            self.base_viewer.vtk_widget.GetRenderWindow().Render()
+            self.vtk_player.vtk_widget.show()
+            self.vtk_player.vtk_widget.GetRenderWindow().Render()
+            self.vtk_player.run_script("a_output_3_quads.vtk", "historial_completo_new.txt")
             # Inicializa el interactor si es necesario
             try:
-                self.base_viewer.vtk_widget.GetRenderWindow().GetInteractor().Initialize()
+                self.vtk_player.vtk_widget.GetRenderWindow().GetInteractor().Initialize()
             except Exception:
                 pass
