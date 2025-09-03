@@ -255,7 +255,9 @@ class RefinementViewer(QWidget):
             input_path, output_path,
             metric="area", bins=12,
             base_color=(0,255,0), end_color=(255,0,0)
-        )   
+        )
+        self.switcher.load_model(output_path)
+        self.renderer.GetRenderWindow().Render()
 
     def accion_angulo_minimo(self):
         if not self.switcher:
@@ -274,6 +276,8 @@ class RefinementViewer(QWidget):
             metric="angle", bins=12,
             base_color=(0,255,0), end_color=(255,0,0)
         )
+        self.switcher.load_model(output_path)
+        self.renderer.GetRenderWindow().Render()
 
     def accion_relacion_aspecto(self):
         if not self.switcher:
@@ -292,3 +296,5 @@ class RefinementViewer(QWidget):
             metric="aspect", bins=12,
             base_color=(0,255,0), end_color=(255,0,0)
         )
+        self.switcher.load_model(output_path)
+        self.renderer.GetRenderWindow().Render()
