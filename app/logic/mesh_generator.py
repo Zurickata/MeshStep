@@ -11,6 +11,8 @@ class MeshGeneratorController(QDialog):
         super().__init__(parent)
         self.mesher = QuadtreeWrapper()
         self.generated_files = []
+        self.historial_status = False
+        self.ruta_historial = ""
         self.setup_ui()
 
     def setup_ui(self):
@@ -147,13 +149,16 @@ class MeshGeneratorController(QDialog):
                 try:
                     os.chdir(input_dir)
                     crear_historial(name, max_refinement, tipo)
+                    self.historial_status = True
+                    self.ruta_historial = f"{input_dir}/{name}_historial.txt"
                 finally:
                     os.chdir(_cwd)
 
-                print(f"[Historial] Generado en {input_dir}/historial_completo_new.txt")
+                print(f"[Historial] Generado en {input_dir}/{name}_historial.txt")
+                self.status_label.setText(self.status_label.text() + f"\nEl historial se generó correctamente")
             except Exception as e_hist:
                 print(f"[Historial] Error al generar historial: {e_hist}")
-                self.status_label.setText(self.status_label.text() + f"\n[Historial] Error: {e_hist}")
+                self.status_label.setText(self.status_label.text() + f"\nOcurrió un error al generar el historial")
 
             QMessageBox.information(
                 self, 

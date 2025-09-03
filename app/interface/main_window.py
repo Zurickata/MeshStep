@@ -3,7 +3,7 @@ import os
 import re
 import glob
 import vtk
-import subprocess
+import shutil
 from PyQt5.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout,
                             QPushButton, QMenu, QLabel, QListWidget, QSplitter,
                             QMessageBox, QSizePolicy, QStyle)
@@ -53,6 +53,7 @@ class MainWindow(QWidget):
         self.boton_exportar.clicked.connect(self.exportar_registro)
 
         self.rutas_archivos = {}
+        self.registro_historial = {}
 
         self.vtk_widget = QVTKRenderWindowInteractor(self)
         self.renderer = vtk.vtkRenderer()
@@ -350,6 +351,9 @@ class MainWindow(QWidget):
             if nombre_poly not in self.rutas_archivos:
                 self.rutas_archivos[nombre_poly] = dialogo.generated_files
                 self.lista_archivos.addItem(nombre_poly)
+                # Depende cómo queramos guardar la ruta también
+                if dialogo.historial_status:
+                    self.registro_historial[nombre_poly] = dialogo.ruta_historial
 
             items = self.lista_archivos.findItems(nombre_poly, Qt.MatchExactly)
             if items:
@@ -371,6 +375,7 @@ class MainWindow(QWidget):
         print("Rutas_Archivo:", self.rutas_archivos)
         print("Lista_Archivos:", self.lista_archivos)
         print("Generated_Files:", dialogo.generated_files)
+        print("Registro_Historial:", self.registro_historial)
 
     def mostrar_contenido(self, item):
         nombre_poly = item.text()
@@ -381,7 +386,6 @@ class MainWindow(QWidget):
             self.switcher.current_index = 0
             self.switcher._load_current()
             self.actualizar_panel_derecho(archivos_vtk[0])
-
     def mostrar_menu_contextual(self, posicion):
         item = self.lista_archivos.itemAt(posicion)
         if item:
@@ -646,4 +650,40 @@ class MainWindow(QWidget):
                 print(f"✗ Error al ejecutar limpieza: {e}")
         
         # Aceptar el evento de cierre
+        event.accept()
+
+    
+    def closeEvent(self, event):
+        """
+        Se ejecuta automáticamente cuando la ventana se cierra.
+        """
+        # Preguntar al usuario si quiere limpiar los outputs.
+        reply = QMessageBox.question(
+            self,
+            "Limpiar outputs",
+            "¿Desea eliminar todos los archivos output generados?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+
+        if reply == QMessageBox.Yes:
+            try:
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                outputs_path = os.path.join(current_dir, "../../outputs")
+
+                if os.path.exists(outputs_path):
+                    # Elimina la carpeta 'outputs' y todo su contenido de forma recursiva.
+                    shutil.rmtree(outputs_path)
+                    
+                    # Crea la carpeta 'outputs' vacía para la próxima ejecución.
+                    os.makedirs(outputs_path)
+                    
+                    print("✓ Outputs limpiados exitosamente.")
+                else:
+                    print("⚠ La carpeta 'outputs' no se encontró. No se necesita limpieza.")
+
+            except Exception as e:
+                print(f"✗ Error al limpiar outputs: {e}")
+
+        # Aceptar el evento de cierre.
         event.accept()
