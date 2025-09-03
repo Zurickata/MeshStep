@@ -212,15 +212,6 @@ class ModelSwitcher:
 
             self.renderer.GetRenderWindow().Render()
 
-        elif key == 'm':  # Nueva tecla para mostrar métricas
-            print("\n" + "="*60)
-            print("MOSTRANDO MÉTRICAS DE CALIDAD ACTUALES")
-            print("="*60)
-            if self.metricas_actuales:
-                mostrar_metricas_calidad(self.metricas_actuales)
-            else:
-                print("No hay métricas disponibles. Carga un modelo primero.")
-
 
 # ---------------------------------------------------------------------------Cambio en el estilo para el control de la camara!
 class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera): #chatgpt

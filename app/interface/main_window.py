@@ -4,7 +4,7 @@ import glob
 import vtk
 import shutil
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMenu, QLabel, QListWidget, QListWidgetItem, QSplitter, QMessageBox, QSizePolicy, QStyle, QTabWidget, QDialog)
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt
 from app.visualization.RefinementViewer import RefinementViewer
 from app.visualization.BaseViewer import BaseViewer
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
@@ -12,8 +12,6 @@ from app.logic.mesh_generator import MeshGeneratorController
 from app.interface.options_dialog import OpcionesDialog
 from app.interface.panel_derecho import PanelDerecho
 from app.visualization.vtkplayer import VTKPlayer
-
-from .panel_derecho import PanelDerecho
 from app.visualization.coloreo_metricas import colorear_celdas
 
 class MainWindow(QWidget):
@@ -35,11 +33,14 @@ class MainWindow(QWidget):
         self.lista_archivos.setContextMenuPolicy(Qt.CustomContextMenu)
         self.lista_archivos.customContextMenuRequested.connect(self.mostrar_menu_contextual)
 
+        self.refinement_viewer = RefinementViewer(self)
+        self.panel_derecho = PanelDerecho(parent=self)
+        self.refinement_viewer.panel_derecho = self.panel_derecho
+        self.panel_derecho.refinement_viewer = self.refinement_viewer
+
         self.rutas_archivos = {}
         self.rutas_octree = {}
 
-        # Panel central: pestañas
-        self.refinement_viewer = RefinementViewer(self)
         self.vtk_player = VTKPlayer(self)
         self.tab_widget = QTabWidget()
         self.tab_widget.addTab(self.refinement_viewer, "Niveles de refinación")
@@ -59,24 +60,8 @@ class MainWindow(QWidget):
         layout_izquierdo.addWidget(self.lista_archivos)
         panel_izquierdo.setLayout(layout_izquierdo)
 
-        # Layout principal del panel central
-        central_layout = QVBoxLayout()
-        central_layout.addWidget(self.vtk_widget, 1)  # El widget VTK ocupa la mayor parte
-        central_layout.addWidget(nav_widget)          # Los botones de navegación abajo
-        central_layout.setContentsMargins(0, 0, 0, 0)
-        central_layout.setSpacing(0)
-
-        # Widget contenedor del panel central
-        panel_central = QWidget()
-        panel_central.setLayout(central_layout)
-        
-        self.panel_derecho = PanelDerecho(self)
-        
-        # Conectar señales del nuevo panel
-        self._conectar_señales_panel_derecho()
-
         splitter.addWidget(panel_izquierdo)
-        splitter.addWidget(panel_central)
+        splitter.addWidget(self.panel_central)
         splitter.addWidget(self.panel_derecho)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
@@ -87,89 +72,9 @@ class MainWindow(QWidget):
         self.setLayout(layout)
         self.setAcceptDrops(True)
 
-    def _conectar_señales_panel_derecho(self):
-        """Conecta las señales del panel derecho con las funciones existentes"""
-        
-        # Conectar botones de acciones
-        self.panel_derecho.slider_velocidad.valueChanged.connect(self.ajustar_velocidad)
-        
-        # Conectar botones de navegación
-        self.panel_derecho.boton_puntos_criticos.clicked.connect(self.accion_a)
-        self.panel_derecho.boton_reset_camara.clicked.connect(self.accion_r)
-        self.panel_derecho.boton_limpiar.clicked.connect(self.accion_b)
-
-
-#---------------------------------------------- Aqui conectas las funciones ----------------------------------------------------------
-
-        #Aqui podrias añadir nuevos botones
-        self.panel_derecho.boton_color.clicked.connect(self.accion_area)
-        self.panel_derecho.boton_color2.clicked.connect(self.accion_angulo_minimo)
-        self.panel_derecho.boton_color3.clicked.connect(self.accion_relacion_aspecto)
-        
-        
-    def accion_area(self):
-        if not self.switcher:
-            print("No hay modelo cargado.")
-            return
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if archivos and 0 <= self.switcher.current_index < len(archivos):
-            nombre = os.path.basename(archivos[self.switcher.current_index])
-        else:
-            print("No hay archivo actual.")
-    # Métodos para cada acción
-        input_path = "outputs/" + nombre
-        output_path = "outputs/" + "color_" +nombre
-        colorear_celdas(
-            input_path, output_path,
-            metric="area", bins=12,
-            base_color=(0,255,0), end_color=(255,0,0)
-        )   
-
-    def accion_angulo_minimo(self):
-        if not self.switcher:
-            print("No hay modelo cargado.")
-            return
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if archivos and 0 <= self.switcher.current_index < len(archivos):
-            nombre = os.path.basename(archivos[self.switcher.current_index])
-        else:
-            print("No hay archivo actual.")
-    # Métodos para cada acción
-        input_path = "outputs/" +  nombre
-        output_path = "outputs/" + "color_" + nombre
-        colorear_celdas(
-            input_path, output_path,
-            metric="angle", bins=12,
-            base_color=(0,255,0), end_color=(255,0,0)
-        )
-
-    def accion_relacion_aspecto(self):
-        if not self.switcher:
-            print("No hay modelo cargado.")
-            return
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if archivos and 0 <= self.switcher.current_index < len(archivos):
-            nombre = os.path.basename(archivos[self.switcher.current_index])
-        else:
-            print("No hay archivo actual.")
-    # Métodos para cada acción
-        input_path = "outputs/" + nombre
-        output_path = "outputs/" + "color_" +nombre
-        colorear_celdas(
-            input_path, output_path,
-            metric="aspect", bins=12,
-            base_color=(0,255,0), end_color=(255,0,0)
-        )
-      
-
-    def ajustar_velocidad(self, valor):
-        """Ajusta la velocidad de la animación"""
-        segundos = valor / 1000.0
-        self.timer_animacion.setInterval(valor)
-        self.panel_derecho.label_velocidad_valor.setText(f"{segundos:.1f}s")
+        self.switcher = None
 
     # Este método se encarga de leer el archivo _histo.txt y actualizar el panel derecho con los ángulos
-    
 
     # Métodos para cada acción
 
@@ -188,12 +93,12 @@ class MainWindow(QWidget):
     #     except ValueError:
     #         next_poly = polys_cargados[0]
         
-        # archivos = self.switcher.file_dict.get(next_poly, [])
-        # if archivos:
-        #     self.switcher.current_poly = next_poly
-        #     self.switcher.current_index = 0
-        #     self.switcher._load_current()
-        #     self.panel_derechoactualizar_panel_derecho(archivos[0])
+    #     archivos = self.switcher.file_dict.get(next_poly, [])
+    #     if archivos:
+    #         self.switcher.current_poly = next_poly
+    #         self.switcher.current_index = 0
+    #         self.switcher._load_current()
+    #         self.actualizar_panel_derecho(archivos[0])
 
     #         items = self.lista_archivos.findItems(next_poly, Qt.MatchExactly)
     #         if items:
@@ -209,107 +114,43 @@ class MainWindow(QWidget):
     #     #     self.switcher.clear_extra_models()
     #     #     self.switcher.toggle_load = False
 
-    #Toggle puntos críticos
-    def accion_a(self):
-        if self.switcher:
-            self.switcher.toggle_load = not self.switcher.toggle_load
-            if self.switcher.toggle_load:
-                print("Cargando puntos criticos...")
-                self.switcher.marcar_angulos_extremos()
-                self.renderer.GetRenderWindow().Render()
-            else:
-                print("Toggle desactivado puntos criticos.")
-                self.switcher.clear_extra_models()
-                self.renderer.GetRenderWindow().Render()
+    # #Toggle puntos críticos
+    # def accion_a(self):
+    #     if self.switcher:
+    #         self.switcher.toggle_load = not self.switcher.toggle_load
+    #         if self.switcher.toggle_load:
+    #             print("Cargando puntos criticos...")
+    #             self.switcher.marcar_angulos_extremos()
+    #             self.renderer.GetRenderWindow().Render()
+    #         else:
+    #             print("Toggle desactivado puntos criticos.")
+    #             self.switcher.clear_extra_models()
+    #             self.renderer.GetRenderWindow().Render()
 
     def accion_b(self):
-        if self.switcher:
-            self.switcher.clear_extra_models()
+        if self.refinement_viewer.switcher:
+            self.refinement_viewer.switcher.clear_extra_models()
 
     def accion_r(self):
-        if self.switcher:
+        if self.refinement_viewer.switcher:
             print("🔁 Reseteando cámara y modelo")
-            self.switcher.actor.SetOrientation(0, 0, 0)
-            self.switcher.actor.SetPosition(0, 0, 0)
-            self.switcher.actor.SetScale(1, 1, 1)
-            self.renderer.ResetCamera()
-            if isinstance(self.interactor.GetInteractorStyle(), CustomInteractorStyle):
-                self.interactor.GetInteractorStyle().reset_camera_and_rotation()
-            self.renderer.GetRenderWindow().Render()
+            self.refinement_viewer.switcher.actor.SetOrientation(0, 0, 0)
+            self.refinement_viewer.switcher.actor.SetPosition(0, 0, 0)
+            self.refinement_viewer.switcher.actor.SetScale(1, 1, 1)
+            self.refinement_viewer.renderer.ResetCamera()
+            if isinstance(self.refinement_viewer.interactor.GetInteractorStyle(), CustomInteractorStyle):
+                self.refinement_viewer.interactor.GetInteractorStyle().reset_camera_and_rotation()
+            self.refinement_viewer.renderer.GetRenderWindow().Render()
 
-    # def accion_w(self):
-    #     if self.switcher:
-    #         self.switcher.actor.GetProperty().SetRepresentationToWireframe()
-    #         self.renderer.GetRenderWindow().Render()
-    #         self.panel_derecho.set_modo_visualizacion("wireframe")
+    def accion_w(self):
+        if self.refinement_viewer.switcher:
+            self.refinement_viewer.switcher.actor.GetProperty().SetRepresentationToWireframe()
+            self.refinement_viewer.renderer.GetRenderWindow().Render()
 
-    # def accion_s(self):
-    #     if self.switcher:
-    #         self.switcher.actor.GetProperty().SetRepresentationToSurface()
-    #         self.renderer.GetRenderWindow().Render()
-    #         self.panel_derecho.set_modo_visualizacion("solido")
-
-    # def abrir_dialogo_carga(self):
-    #     dialogo = MeshGeneratorController(self)
-
-    #     if dialogo.exec_() == QDialog.Accepted:
-    #         ruta_poly = dialogo.archivos_seleccionados[0]
-    #         nombre_poly = os.path.basename(ruta_poly)
-
-    #         if nombre_poly not in self.rutas_archivos:
-    #             self.rutas_archivos[nombre_poly] = dialogo.generated_files
-    #             self.lista_archivos.addItem(nombre_poly)
-
-    #         items = self.lista_archivos.findItems(nombre_poly, Qt.MatchExactly)
-    #         if items:
-    #             self.lista_archivos.setCurrentItem(items[0]) 
-
-    #         if not self.switcher:
-    #             self.switcher = ModelSwitcher(self.renderer, self.interactor, {nombre_poly: dialogo.generated_files})
-    #             if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
-    #                 self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
-    #         else:
-    #             self.switcher.file_dict[nombre_poly] = dialogo.generated_files
-
-    #         self.switcher.current_poly = nombre_poly
-    #         self.switcher.current_index = 0
-    #         self.switcher._load_current()
-    #         self.panel_derecho.actualizar_panel_derecho(dialogo.generated_files[0])
-
-    #         if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
-    #             self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
-
-    #     elif dialogo.exec_() == QDialog.Rejected:
-    #         return
-        
-    #     print("Rutas_Archivo:", self.rutas_archivos)
-    #     print("Lista_Archivos:", self.lista_archivos)
-    #     print("Generated_Files:", dialogo.generated_files)
-
-    def mostrar_contenido(self, item):
-        nombre_poly = item.text()
-        archivos_vtk = self.rutas_archivos.get(nombre_poly)
-
-        if archivos_vtk and self.switcher:
-            self.switcher.current_poly = nombre_poly
-            self.switcher.current_index = 0
-            self.switcher._load_current()
-            self.panel_derecho.actualizar_panel_derecho(archivos_vtk[0])
-            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
-                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
-
-    def mostrar_menu_contextual(self, posicion):
-        item = self.lista_archivos.itemAt(posicion)
-        if item:
-            menu = QMenu()
-            accion_eliminar = menu.addAction("Eliminar archivo de la lista")
-            accion = menu.exec_(self.lista_archivos.mapToGlobal(posicion))
-            if accion == accion_eliminar:
-                nombre = item.text()
-                if nombre in self.rutas_archivos:
-                    del self.rutas_archivos[nombre]
-                self.lista_archivos.takeItem(self.lista_archivos.row(item))
-                
+    def accion_s(self):
+        if self.refinement_viewer.switcher:
+            self.refinement_viewer.switcher.actor.GetProperty().SetRepresentationToSurface()
+            self.refinement_viewer.renderer.GetRenderWindow().Render()
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -433,7 +274,9 @@ class MainWindow(QWidget):
         if self.switcher:
             try:
                 self.switcher.load_model(filepath)
-                self.panel_derecho.actualizar_panel_derecho(filepath)
+                self.refinement_viewer.panel_derecho.actualizar_panel_derecho(filepath)
+                # if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                #     self.refinement_viewer.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
                 # Actualizar el índice actual al nuevo archivo
                 if filepath in self.switcher.file_list:
                     self.switcher.current_index = self.switcher.file_list.index(filepath)
@@ -482,8 +325,6 @@ class MainWindow(QWidget):
                 item.setData(Qt.UserRole, tipo)
                 self.lista_archivos.addItem(item)
 
-            # Actualiza el diccionario global de archivos
-            # Si ya existe, actualiza; si no, agrega
             if not self.switcher:
                 self.switcher = ModelSwitcher(
                     self.refinement_viewer.renderer,
@@ -491,35 +332,25 @@ class MainWindow(QWidget):
                     {nombre_poly: dialogo.generated_files}
                 )
                 self.refinement_viewer.set_switcher(self.switcher, poly_path=ruta_poly)
-                if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
-                    self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
             else:
                 self.switcher.file_dict[nombre_poly] = dialogo.generated_files
                 self.refinement_viewer.poly_path = ruta_poly
                 self.refinement_viewer._load_overlay_poly()
 
-            
-
-            # Selecciona el archivo recién cargado
             self.switcher.current_poly = nombre_poly
             self.switcher.current_index = 0
             self.switcher._load_current()
             self.panel_derecho.actualizar_panel_derecho(dialogo.generated_files[0])
-
-            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
-                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
-            self.refinement_viewer.actualizar_panel_derecho(dialogo.generated_files[0])
+            if self.refinement_viewer.switcher:
+                self.panel_derecho.actualizar_estadisticas(self.refinement_viewer.switcher.metricas_actuales)
 
     def mostrar_contenido(self, item):
         nombre_poly = item.text().split(" ")[0]
         archivos_vtk = self.rutas_archivos.get(nombre_poly) or self.rutas_octree.get(nombre_poly)
         poly_path = None
         if nombre_poly in self.rutas_archivos:
-            # Si guardas el path original en el diccionario, úsalo
             poly_path = self.rutas_archivos.get(nombre_poly + "_path", None)
-            # Si no, reconstruye el path a partir del nombre
             if not poly_path:
-                # Busca en el directorio data
                 posibles = [os.path.join("data", nombre_poly), os.path.join("data", nombre_poly.replace(" ", ""))]
                 for p in posibles:
                     if os.path.exists(p):
@@ -527,14 +358,15 @@ class MainWindow(QWidget):
                         break
         elif nombre_poly in self.rutas_octree:
             poly_path = self.rutas_octree.get(nombre_poly + "_path", None)
-        # Si tienes el path, actualiza el overlay
         if poly_path:
             self.refinement_viewer.update_overlay_poly(poly_path)
         if archivos_vtk and self.switcher:
             self.switcher.current_poly = nombre_poly
             self.switcher.current_index = 0
             self.switcher._load_current()
-            self.refinement_viewer.actualizar_panel_derecho(archivos_vtk[0])
+            self.panel_derecho.actualizar_panel_derecho(archivos_vtk[0])
+            if self.refinement_viewer.switcher:
+                self.panel_derecho.actualizar_estadisticas(self.refinement_viewer.switcher.metricas_actuales)
 
     def mostrar_menu_contextual(self, posicion):
         item = self.lista_archivos.itemAt(posicion)
@@ -548,76 +380,6 @@ class MainWindow(QWidget):
                     del self.rutas_archivos[nombre]
                 self.lista_archivos.takeItem(self.lista_archivos.row(item))
 
-    def actualizar_panel_derecho(self, ruta_archivo):
-        self.panel_derecho.actualizar_panel(ruta_archivo)
-
-    # Navegación y animación (puedes mover la lógica a RefinementViewer si lo prefieres)
-    def navegar_anterior(self):
-        if not self.switcher:
-            return
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if not archivos:
-            return
-        if self.switcher.current_index > 0:
-            self.switcher.anterior_modelo()
-            self.actualizar_panel_derecho(archivos[self.switcher.current_index])
-            self.switcher.toggle_load = False
-            self.switcher.clear_extra_models()
-        else:
-            QMessageBox.information(self, "Inicio", "Ya estás en el primer modelo.")
-
-    def navegar_siguiente(self):
-        if not self.switcher:
-            return
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if not archivos:
-            return
-        if self.switcher.current_index + 1 < len(archivos):
-            self.switcher.siguiente_modelo()
-            self.actualizar_panel_derecho(archivos[self.switcher.current_index])
-            self.switcher.toggle_load = False
-            self.switcher.clear_extra_models()
-        else:
-            QMessageBox.information(self, "Fin", "Ya estás en el último modelo.")
-
-    def iniciar_animacion(self):
-        if self.switcher and self.switcher.file_dict:
-            self.refinement_viewer.boton_play.setEnabled(False)
-            self.refinement_viewer.boton_pausa.setEnabled(True)
-            self.timer_animacion.start()
-
-    def detener_animacion(self):
-        self.timer_animacion.stop()
-        self.refinement_viewer.boton_play.setEnabled(True)
-        self.refinement_viewer.boton_pausa.setEnabled(False)
-
-    def avance_automatico(self):
-        if not self.switcher:
-            self.detener_animacion()
-            return
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if not archivos:
-            self.detener_animacion()
-            return
-        if self.switcher.current_index + 1 >= len(archivos):
-            self.reiniciar_secuencia()
-        else:
-            self.navegar_siguiente()
-
-    def reiniciar_secuencia(self):
-        if not self.switcher:
-            return
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if archivos:
-            self.switcher.current_index = 0
-            self.switcher._load_current()
-            self.actualizar_panel_derecho(archivos[0])
-            self.switcher.toggle_load = False
-            self.switcher.clear_extra_models()
-            items = self.lista_archivos.findItems(self.switcher.current_poly, Qt.MatchExactly)
-            if items:
-                self.lista_archivos.setCurrentItem(items[0])
-
     def abrir_opciones_dialog(self):
         dialog = OpcionesDialog(self)
         dialog.checkbox.setChecked(self.ignorar_limite_hardware)
@@ -625,7 +387,6 @@ class MainWindow(QWidget):
             self.ignorar_limite_hardware = dialog.checkbox.isChecked()
 
     def cambiar_visualizador(self, index):
-        # 0: Niveles de refinación, 1: Paso a paso
         if index == 0:
             self.refinement_viewer.vtk_widget.show()
             self.refinement_viewer.vtk_widget.GetRenderWindow().Render()
@@ -633,18 +394,12 @@ class MainWindow(QWidget):
             self.vtk_player.vtk_widget.show()
             self.vtk_player.vtk_widget.GetRenderWindow().Render()
             self.vtk_player.run_script("a_output_3_quads.vtk", "historial_completo_new.txt")
-            # Inicializa el interactor si es necesario
             try:
                 self.vtk_player.vtk_widget.GetRenderWindow().GetInteractor().Initialize()
             except Exception:
                 pass
 
-
     def closeEvent(self, event):
-        """
-        Se ejecuta automáticamente cuando la ventana se cierra.
-        """
-        # Preguntar al usuario si quiere limpiar los outputs.
         reply = QMessageBox.question(
             self,
             "Limpiar outputs",
@@ -652,25 +407,16 @@ class MainWindow(QWidget):
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.Yes
         )
-
         if reply == QMessageBox.Yes:
             try:
                 current_dir = os.path.dirname(os.path.abspath(__file__))
                 outputs_path = os.path.join(current_dir, "../../outputs")
-
                 if os.path.exists(outputs_path):
-                    # Elimina la carpeta 'outputs' y todo su contenido de forma recursiva.
                     shutil.rmtree(outputs_path)
-                    
-                    # Crea la carpeta 'outputs' vacía para la próxima ejecución.
                     os.makedirs(outputs_path)
-                    
                     print("✓ Outputs limpiados exitosamente.")
                 else:
                     print("⚠ La carpeta 'outputs' no se encontró. No se necesita limpieza.")
-
             except Exception as e:
                 print(f"✗ Error al limpiar outputs: {e}")
-
-        # Aceptar el evento de cierre.
         event.accept()

@@ -9,10 +9,12 @@ from collections import defaultdict
 import numpy as np
 import os
 import re
+from app.visualization.FeriaVTK import CustomInteractorStyle
 
 class PanelDerecho(QScrollArea):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.refinement_viewer = None
         self.parent = parent
         self.modo_visualizacion = "solido"  # Estado inicial
         self.threshold_angulo = 30  # Valor inicial del threshold
@@ -386,6 +388,10 @@ class PanelDerecho(QScrollArea):
         self.boton_puntos_criticos.setToolTip("Shortcut: A")
         self.boton_reset_camara.setToolTip("Shortcut: R")
         
+        self.boton_limpiar.clicked.connect(self.limpiar_modelos)
+        self.boton_puntos_criticos.clicked.connect(self.toggle_puntos_criticos)
+        self.boton_reset_camara.clicked.connect(self.resetear_camara)
+
         # Agregar al layout
         layout.addWidget(self.boton_limpiar, 0, 0)
         layout.addWidget(self.boton_reset_camara, 0, 1)
@@ -394,6 +400,7 @@ class PanelDerecho(QScrollArea):
         self.layout_principal.addWidget(grupo)
 
     def actualizar_estadisticas(self, metricas):
+        print("actualizar_estadisticas llamado", metricas)
         """Actualiza la sección de estadísticas con métricas de calidad"""
         self.metricas_actuales = metricas
         
@@ -495,7 +502,16 @@ class PanelDerecho(QScrollArea):
         self.boton_color.setToolTip("Shortcut: 1")
         self.boton_color2.setToolTip("Shortcut: 2")
 
-        
+        self.boton_color.clicked.connect(
+            lambda: self.refinement_viewer.accion_area() if self.refinement_viewer else None
+        )
+        self.boton_color2.clicked.connect(
+            lambda: self.refinement_viewer.accion_angulo_minimo() if self.refinement_viewer else None
+        )
+        self.boton_color3.clicked.connect(
+            lambda: self.refinement_viewer.accion_relacion_aspecto() if self.refinement_viewer else None
+        )
+
         # Agregar al layout
         layout.addWidget(self.boton_color, 0, 0)
         layout.addWidget(self.boton_color2, 0, 1)
@@ -608,3 +624,26 @@ class PanelDerecho(QScrollArea):
         # Aplicar a todos los botones
         for btn in self.findChildren(QPushButton):
             btn.setStyleSheet(estilo_base)
+
+    def limpiar_modelos(self):
+        if self.refinement_viewer and self.refinement_viewer.switcher:
+            self.refinement_viewer.switcher.clear_extra_models()
+
+    def toggle_puntos_criticos(self):
+        if self.refinement_viewer and self.refinement_viewer.switcher:
+            self.refinement_viewer.switcher.toggle_load = not self.refinement_viewer.switcher.toggle_load
+            if self.refinement_viewer.switcher.toggle_load:
+                self.refinement_viewer.switcher.marcar_angulos_extremos()
+            else:
+                self.refinement_viewer.switcher.clear_extra_models()
+            self.refinement_viewer.renderer.GetRenderWindow().Render()
+
+    def resetear_camara(self):
+        if self.refinement_viewer and self.refinement_viewer.switcher:
+            self.refinement_viewer.switcher.actor.SetOrientation(0, 0, 0)
+            self.refinement_viewer.switcher.actor.SetPosition(0, 0, 0)
+            self.refinement_viewer.switcher.actor.SetScale(1, 1, 1)
+            self.refinement_viewer.renderer.ResetCamera()
+            if isinstance(self.refinement_viewer.interactor.GetInteractorStyle(), CustomInteractorStyle):
+                self.refinement_viewer.interactor.GetInteractorStyle().reset_camera_and_rotation()
+            self.refinement_viewer.renderer.GetRenderWindow().Render()
