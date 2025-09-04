@@ -12,6 +12,7 @@ from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.logic.mesh_generator import MeshGeneratorController
 
 from .panel_derecho import PanelDerecho
+from app.visualization.coloreo_metricas import colorear_celdas
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -28,23 +29,14 @@ class MainWindow(QWidget):
         self.lista_archivos.customContextMenuRequested.connect(self.mostrar_menu_contextual)
 
         # NUEVOS BOTONES PARA ACCIONES
-        self.boton_n = QPushButton("Siguiente modelo (n)", self)
-        self.boton_n.clicked.connect(self.accion_n)
-
-        self.boton_a = QPushButton("Toggle puntos críticos (a)", self)
-        self.boton_a.clicked.connect(self.accion_a)
+        
 
         # self.boton_b = QPushButton("Borrar extras (b)", self)
         # self.boton_b.clicked.connect(self.accion_b)
 
-        self.boton_r = QPushButton("Reset cámara/modelo (r)", self)
-        self.boton_r.clicked.connect(self.accion_r)
+       
 
-        self.boton_w = QPushButton("Wireframe (w)", self)
-        self.boton_w.clicked.connect(self.accion_w)
-
-        self.boton_s = QPushButton("Sólido (s)", self)
-        self.boton_s.clicked.connect(self.accion_s)
+        
 
         self.rutas_archivos = {}
 
@@ -151,43 +143,16 @@ class MainWindow(QWidget):
         # Widget contenedor del panel central
         panel_central = QWidget()
         panel_central.setLayout(central_layout)
-
         
-        # Panel derecho
         self.panel_derecho = PanelDerecho(self)
         
-        # Conectar señales del panel derecho
+        # Conectar señales del nuevo panel
         self._conectar_señales_panel_derecho()
-        
-        """ panel_derecho = QWidget()
-        layout_derecho = QVBoxLayout()
-        self.label_derecho = QLabel("Métricas de ángulos críticos")
-        self.label_derecho.setAlignment(Qt.AlignCenter)
-        self.label_derecho.setWordWrap(True) 
-        layout_derecho.addWidget(self.label_derecho)
-            
-        # AGREGAR LOS NUEVOS BOTONES
-        layout_derecho.addWidget(self.boton_n)
-        layout_derecho.addWidget(self.boton_a)
-        # layout_derecho.addWidget(self.boton_b)
-        layout_derecho.addWidget(self.boton_r)
-        layout_derecho.addWidget(self.boton_w)
-        layout_derecho.addWidget(self.boton_s)
-        panel_derecho.setLayout(layout_derecho)
-
-        # Configurar el tamaño mínimo de los paneles
-        panel_derecho.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        panel_derecho.setMinimumWidth(100)  # You can adjust this value
-
-        # Configurar el tamaño de los botones
-        self.label_derecho.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        #for btn in [self.boton_n, self.boton_a, self.boton_b, self.boton_r, self.boton_w, self.boton_s]:
-        #    btn.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred) """
 
         # Configurar el splitter con el nuevo panel
         splitter.addWidget(panel_izquierdo)
         splitter.addWidget(panel_central)
-        splitter.addWidget(self.panel_derecho)  # Nuevo panel derecho
+        splitter.addWidget(self.panel_derecho)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
         splitter.setStretchFactor(2, 1)
@@ -199,18 +164,78 @@ class MainWindow(QWidget):
 
     def _conectar_señales_panel_derecho(self):
         """Conecta las señales del panel derecho con las funciones existentes"""
-       
+        
         # Conectar botones de acciones
-        self.panel_derecho.boton_wireframe.clicked.connect(self.accion_w)
-        self.panel_derecho.boton_solido.clicked.connect(self.accion_s)
-        self.panel_derecho.boton_puntos_criticos.clicked.connect(self.accion_a)
-        self.panel_derecho.boton_limpiar.clicked.connect(self.accion_b)
-        self.panel_derecho.boton_reset_camara.clicked.connect(self.accion_r)
-       
-        
-        
-        # Conectar slider de velocidad
         self.panel_derecho.slider_velocidad.valueChanged.connect(self.ajustar_velocidad)
+        
+        # Conectar botones de navegación
+        self.panel_derecho.boton_puntos_criticos.clicked.connect(self.accion_a)
+        self.panel_derecho.boton_reset_camara.clicked.connect(self.accion_r)
+        self.panel_derecho.boton_limpiar.clicked.connect(self.accion_b)
+
+
+#---------------------------------------------- Aqui conectas las funciones ----------------------------------------------------------
+
+        #Aqui podrias añadir nuevos botones
+        self.panel_derecho.boton_color.clicked.connect(self.accion_area)
+        self.panel_derecho.boton_color2.clicked.connect(self.accion_angulo_minimo)
+        self.panel_derecho.boton_color3.clicked.connect(self.accion_relacion_aspecto)
+        
+        
+    def accion_area(self):
+        if not self.switcher:
+            print("No hay modelo cargado.")
+            return
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if archivos and 0 <= self.switcher.current_index < len(archivos):
+            nombre = os.path.basename(archivos[self.switcher.current_index])
+        else:
+            print("No hay archivo actual.")
+    # Métodos para cada acción
+        input_path = "outputs/" + nombre
+        output_path = "outputs/" + "color_" +nombre
+        colorear_celdas(
+            input_path, output_path,
+            metric="area", bins=12,
+            base_color=(0,255,0), end_color=(255,0,0)
+        )   
+
+    def accion_angulo_minimo(self):
+        if not self.switcher:
+            print("No hay modelo cargado.")
+            return
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if archivos and 0 <= self.switcher.current_index < len(archivos):
+            nombre = os.path.basename(archivos[self.switcher.current_index])
+        else:
+            print("No hay archivo actual.")
+    # Métodos para cada acción
+        input_path = "outputs/" +  nombre
+        output_path = "outputs/" + "color_" + nombre
+        colorear_celdas(
+            input_path, output_path,
+            metric="angle", bins=12,
+            base_color=(0,255,0), end_color=(255,0,0)
+        )
+
+    def accion_relacion_aspecto(self):
+        if not self.switcher:
+            print("No hay modelo cargado.")
+            return
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if archivos and 0 <= self.switcher.current_index < len(archivos):
+            nombre = os.path.basename(archivos[self.switcher.current_index])
+        else:
+            print("No hay archivo actual.")
+    # Métodos para cada acción
+        input_path = "outputs/" + nombre
+        output_path = "outputs/" + "color_" +nombre
+        colorear_celdas(
+            input_path, output_path,
+            metric="aspect", bins=12,
+            base_color=(0,255,0), end_color=(255,0,0)
+        )
+      
 
     def ajustar_velocidad(self, valor):
         """Ajusta la velocidad de la animación"""
@@ -219,46 +244,7 @@ class MainWindow(QWidget):
         self.panel_derecho.label_velocidad_valor.setText(f"{segundos:.1f}s")
 
     # Este método se encarga de leer el archivo _histo.txt y actualizar el panel derecho con los ángulos
-    """ def actualizar_panel_derecho(self, ruta_archivo):
-        try:
-            # Cambiar extensión del archivo de .vtk a _histo.txt
-            base, _ = os.path.splitext(ruta_archivo)
-            ruta_modificada = f"{base}_histo.txt"
-            numero = base.split('_')[-1]
-
-            # Leer el archivo línea por línea
-            with open(ruta_modificada, 'r') as f:
-                lineas = f.readlines()
-
-            angulo_triangulo = None
-            angulo_cuadrado = None
-
-            for i, linea in enumerate(lineas):
-                if "For Triangles:" in linea and i + 1 < len(lineas):
-                    angulo_triangulo = lineas[i + 1].strip()
-                if "For Quads:" in linea and i + 1 < len(lineas):
-                    angulo_cuadrado = lineas[i + 1].strip()
-
-            def formatear_angulo(label, linea):
-                partes = linea.split('|')
-                min_ang = partes[0].strip()
-                max_ang = partes[1].strip() if len(partes) > 1 else ''
-                return f"<b>- {label}:</b><br>{min_ang}<br>{max_ang}<br><br>"
-
-            if angulo_triangulo or angulo_cuadrado:
-                contenido_html = "<b>Nivel de Refinamiento: " + numero + "</b><br><br><br>"
-                contenido_html += "<b>Ángulos Críticos:</b><br><br>"
-                if angulo_triangulo:
-                    contenido_html += formatear_angulo("Triángulos", angulo_triangulo)
-                if angulo_cuadrado:
-                    contenido_html += formatear_angulo("Cuadriláteros", angulo_cuadrado)
-            else:
-                contenido_html = "<b>No se encontraron líneas de ángulos para triángulos ni cuadriláteros.</b>"
-
-            self.label_derecho.setText(contenido_html)
-
-        except Exception as e:
-            self.label_derecho.setText(f"<b>Error al leer el archivo:</b><br>{e}") """
+    
 
     # Métodos para cada acción
 
@@ -282,7 +268,7 @@ class MainWindow(QWidget):
             self.switcher.current_poly = next_poly
             self.switcher.current_index = 0
             self.switcher._load_current()
-            self.actualizar_panel_derecho(archivos[0])
+            self.panel_derechoactualizar_panel_derecho(archivos[0])
 
             items = self.lista_archivos.findItems(next_poly, Qt.MatchExactly)
             if items:
@@ -292,11 +278,6 @@ class MainWindow(QWidget):
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
 
-        # if self.switcher:
-        #     self.switcher.current_index = (self.switcher.current_index + 1) % len(self.switcher.file_list)
-        #     self.switcher.load_model(self.switcher.file_list[self.switcher.current_index])
-        #     self.switcher.clear_extra_models()
-        #     self.switcher.toggle_load = False
 
     #Toggle puntos críticos
     def accion_a(self):
@@ -330,11 +311,13 @@ class MainWindow(QWidget):
         if self.switcher:
             self.switcher.actor.GetProperty().SetRepresentationToWireframe()
             self.renderer.GetRenderWindow().Render()
+            self.panel_derecho.set_modo_visualizacion("wireframe")
 
     def accion_s(self):
         if self.switcher:
             self.switcher.actor.GetProperty().SetRepresentationToSurface()
             self.renderer.GetRenderWindow().Render()
+            self.panel_derecho.set_modo_visualizacion("solido")
 
     def abrir_dialogo_carga(self):
         dialogo = MeshGeneratorController(self)
@@ -353,13 +336,18 @@ class MainWindow(QWidget):
 
             if not self.switcher:
                 self.switcher = ModelSwitcher(self.renderer, self.interactor, {nombre_poly: dialogo.generated_files})
+                if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                    self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
             else:
                 self.switcher.file_dict[nombre_poly] = dialogo.generated_files
 
             self.switcher.current_poly = nombre_poly
             self.switcher.current_index = 0
             self.switcher._load_current()
-            # self.actualizar_panel_derecho(dialogo.generated_files[0])
+            self.panel_derecho.actualizar_panel_derecho(dialogo.generated_files[0])
+
+            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
 
         elif dialogo.exec_() == QDialog.Rejected:
             return
@@ -376,7 +364,9 @@ class MainWindow(QWidget):
             self.switcher.current_poly = nombre_poly
             self.switcher.current_index = 0
             self.switcher._load_current()
-            self.actualizar_panel_derecho(archivos_vtk[0])
+            self.panel_derecho.actualizar_panel_derecho(archivos_vtk[0])
+            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
 
     def mostrar_menu_contextual(self, posicion):
         item = self.lista_archivos.itemAt(posicion)
@@ -437,9 +427,12 @@ class MainWindow(QWidget):
 
         if self.switcher.current_index > 0:
             self.switcher.anterior_modelo()
-            self.actualizar_panel_derecho(archivos[self.switcher.current_index])
+            self.panel_derecho.actualizar_panel_derecho(archivos[self.switcher.current_index])
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
+
+            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
         else:
             QMessageBox.information(self, "Inicio", "Ya estás en el primer modelo.")
 
@@ -454,9 +447,11 @@ class MainWindow(QWidget):
 
         if self.switcher.current_index + 1 < len(archivos):
             self.switcher.siguiente_modelo()
-            # self.actualizar_panel_derecho(archivos[self.switcher.current_index])
+            self.panel_derecho.actualizar_panel_derecho(archivos[self.switcher.current_index])
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
+
+            self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
         else:
             QMessageBox.information(self, "Fin", "Ya estás en el último modelo.")
 
@@ -499,7 +494,7 @@ class MainWindow(QWidget):
         if archivos:
             self.switcher.current_index = 0
             self.switcher._load_current()
-            # self.actualizar_panel_derecho(archivos[0])
+            self.panel_derecho.actualizar_panel_derecho(archivos[0])
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
             
@@ -595,7 +590,7 @@ class MainWindow(QWidget):
         if self.switcher:
             try:
                 self.switcher.load_model(filepath)
-                self.actualizar_panel_derecho(filepath)
+                self.panel_derecho.actualizar_panel_derecho(filepath)
                 # Actualizar el índice actual al nuevo archivo
                 if filepath in self.switcher.file_list:
                     self.switcher.current_index = self.switcher.file_list.index(filepath)
