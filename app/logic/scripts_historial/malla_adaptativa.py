@@ -124,7 +124,7 @@ def refinamiento_adaptativo(malla_file, squad_file, nivel_max=2, output_file="ca
     ugrid.SetCells(vtk.VTK_QUAD, quads_vtk)
 
     guardar_vtk(ugrid, output_file)
-    print(f"\n✅ Archivo exportado: {output_file}")
+    #print(f"\n✅ Archivo exportado: {output_file}")
 
 # -----------------------------
 # MAIN

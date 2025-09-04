@@ -404,7 +404,7 @@ class PanelDerecho(QScrollArea):
         self.layout_principal.addWidget(grupo)
 
     def actualizar_estadisticas(self, metricas):
-        print("actualizar_estadisticas llamado", metricas)
+        #print("actualizar_estadisticas llamado", metricas)
         """Actualiza la sección de estadísticas con métricas de calidad"""
         self.metricas_actuales = metricas
         
