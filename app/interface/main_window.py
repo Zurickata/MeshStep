@@ -383,9 +383,21 @@ class MainWindow(QWidget):
                 self.lista_archivos.takeItem(self.lista_archivos.row(item))
 
     def abrir_opciones_dialog(self):
-        dialog = OpcionesDialog(self)
+        # Obtener el nombre del poly y nivel de refinamiento actual
+        poly_name = None
+        refinement_level = None
+        if self.switcher and self.switcher.current_poly:
+            poly_name = self.switcher.current_poly
+            # Intentar extraer el nivel de refinamiento del nombre del archivo
+            archivos = self.switcher.file_dict.get(poly_name, [])
+            if archivos:
+                # Ejemplo: a_output_5.vtk -> 5
+                import re
+                m = re.search(r'_output_(\d+)', archivos[-1])
+                if m:
+                    refinement_level = int(m.group(1))
+        dialog = OpcionesDialog(self, poly_name=poly_name, refinement_level=refinement_level)
         dialog.checkbox.setChecked(self.ignorar_limite_hardware)
-        
         if dialog.exec_() == QDialog.Accepted:
             self.ignorar_limite_hardware = dialog.checkbox.isChecked()
 
