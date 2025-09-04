@@ -14,21 +14,13 @@ import vtk
 # - Tecla 'a': Activar/Desactivar Angulos criticos
 import math
 import numpy as np
+from collections import defaultdict
+from .mesh_metrics import calcular_angulo, calcular_metricas_calidad
 
-def calcular_angulo(p1, p2, p3):
-    # Calcula el ángulo en p2 formado por p1-p2-p3 (en radianes)
-    v1 = [p1[i] - p2[i] for i in range(3)]
-    v2 = [p3[i] - p2[i] for i in range(3)]
-    def norma(v): return math.sqrt(sum(c*c for c in v))
-    def dot(a, b): return sum(a[i]*b[i] for i in range(3))
 
-    nv1 = norma(v1)
-    nv2 = norma(v2)
-    if nv1 == 0 or nv2 == 0:
-            return 0
-    cos_theta = dot(v1, v2) / (nv1 * nv2)
-    cos_theta = max(-1.0, min(1.0, cos_theta))  # Evitar errores numéricos
-    return math.acos(cos_theta)
+
+
+    
 
 
 class ModelSwitcher:
@@ -45,6 +37,8 @@ class ModelSwitcher:
         self.reader = vtk.vtkUnstructuredGridReader()
         self.mapper = vtk.vtkDataSetMapper()
         self.actor = vtk.vtkActor()
+
+        self.metricas_actuales = None
 
         # Actor es un modelo .poly 
         self.renderer.AddActor(self.actor)
@@ -67,6 +61,8 @@ class ModelSwitcher:
         self.reader.Update()
         self.mapper.SetInputConnection(self.reader.GetOutputPort())
         self.actor.SetMapper(self.mapper)
+        # Calcular métricas al cargar el modelo
+        self.metricas_actuales = calcular_metricas_calidad(self.reader.GetOutput())
         self.renderer.ResetCamera()
         self.renderer.GetRenderWindow().Render()
 
@@ -217,25 +213,34 @@ class ModelSwitcher:
             self.renderer.GetRenderWindow().Render()
 
 
-
 # ---------------------------------------------------------------------------Cambio en el estilo para el control de la camara!
 class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera): #chatgpt
     def __init__(self, renderer, parent=None):
         self.AddObserver("MouseMoveEvent", self.mouse_move_event)
         self.AddObserver("LeftButtonPressEvent", self.left_button_press_event)
         self.AddObserver("LeftButtonReleaseEvent", self.left_button_release_event)
+        self.AddObserver("MiddleButtonPressEvent", self.middle_button_press_event)
+        self.AddObserver("MiddleButtonReleaseEvent", self.middle_button_release_event)
         self.renderer = renderer
         self.left_mouse_down = False
         self.last_pos = (0, 0)
 
     def left_button_press_event(self, obj, event):
-        self.left_mouse_down = True
+        self.OnMiddleButtonDown()
         self.last_pos = self.GetInteractor().GetEventPosition()
-        self.OnLeftButtonDown()
+        
 
     def left_button_release_event(self, obj, event):
-        self.left_mouse_down = False
+        self.OnMiddleButtonUp()
+        
+        
+    def middle_button_press_event(self, obj, event):
+        # Ahora el botón del medio hará Rotación (lo que hacía el click izquierdo)
+        self.OnLeftButtonDown()
+    
+    def middle_button_release_event(self, obj, event):
         self.OnLeftButtonUp()
+       
 
     def mouse_move_event(self, obj, event):
         if self.left_mouse_down:

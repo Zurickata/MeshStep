@@ -7,10 +7,14 @@ from core.wrapper import QuadtreeWrapper
 from app.logic.scripts_historial.crear_historial import crear_historial
 
 class MeshGeneratorController(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, ignorar_limite=False):
         super().__init__(parent)
         self.mesher = QuadtreeWrapper()
         self.generated_files = []
+        self.historial_status = False
+        self.ruta_historial = ""
+        self.ignorar_limite = ignorar_limite
+        self.cargar_sin_generar = False
         self.setup_ui()
 
     def setup_ui(self):
@@ -26,25 +30,42 @@ class MeshGeneratorController(QDialog):
         self.full_refinement = QRadioButton("Refinamiento completo")
         self.edge_refinement.setChecked(True)  # Por defecto refinamiento de borde
         
-        type_layout = QHBoxLayout()
-        type_layout.addWidget(self.edge_refinement)
-        type_layout.addWidget(self.full_refinement)
-        self.refinement_type_group.setLayout(type_layout)
+        refinement_layout = QHBoxLayout()
+        refinement_layout.addWidget(self.edge_refinement)
+        refinement_layout.addWidget(self.full_refinement)
+        self.refinement_type_group.setLayout(refinement_layout)
+
+        # Grupo para selección de algoritmo
+        self.algorithm_type_group = QGroupBox("Algoritmo")
+        self.quadtree = QRadioButton("Quadtree")
+        self.octree = QRadioButton("Octree")
+        self.quadtree.setChecked(True)  # Por defecto quadtree
+        
+        algorithm_layout = QHBoxLayout()
+        algorithm_layout.addWidget(self.quadtree)
+        algorithm_layout.addWidget(self.octree)
+        self.algorithm_type_group.setLayout(algorithm_layout)
 
         # Controles de generación
-        self.refinement_label = QLabel("Nivel máximo de refinamiento (1-15):")
+        self.refinement_label = QLabel("Nivel máximo de refinamiento (1-6):")
         self.refinement_spinbox = QSpinBox()
-        self.refinement_spinbox.setRange(1, 17)
+        self.refinement_spinbox.setRange(1, 6)
+        if self.ignorar_limite:
+            self.refinement_label = QLabel("sin nivel max:")
+            self.refinement_spinbox.setRange(1, 102)
         self.refinement_spinbox.setValue(3)
         self.refinement_spinbox.valueChanged.connect(self.verificar_refinamiento)
 
-        self.input_file_button = QPushButton("Seleccionar archivo .poly")
+        self.input_file_button = QPushButton("Seleccionar archivo")
         self.input_file_button.clicked.connect(self.select_input_file)
 
         # Botón para ejecutar
         self.run_button = QPushButton("Generar Mallas")
         self.run_button.clicked.connect(self.run_mesh_generation)
         
+        # self.cargar_button = QPushButton("Cargar sin generar")
+        # self.cargar_button.clicked.connect(self.cargar_sin_generar_accion)
+
         # Área de estado
         self.status_label = QLabel("Presiona 'Generar Mallas' para comenzar")
         self.status_label.setWordWrap(True)
@@ -55,6 +76,7 @@ class MeshGeneratorController(QDialog):
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.refinement_type_group)  # Agregamos el grupo de selección
+        layout.addWidget(self.algorithm_type_group)   # <-- Agrega el grupo de algoritmo aquí
         layout.addWidget(self.refinement_label)
         layout.addWidget(self.refinement_spinbox)
         layout.addWidget(self.input_file_button)
@@ -67,11 +89,19 @@ class MeshGeneratorController(QDialog):
         self.setLayout(layout)
 
     def select_input_file(self):
+        # Determinar el filtro según el algoritmo seleccionado
+        if self.quadtree.isChecked():
+            file_filter = "Archivos POLY (*.poly)"
+        elif self.octree.isChecked():
+            file_filter = "Archivos POLY (*.poly);;Archivos MDL (*.mdl)"
+        else:
+            file_filter = "Archivos POLY (*.poly)"  # fallback
+
         archivos, _ = QFileDialog.getOpenFileNames(
             self,
-            "Seleccionar archivo .poly",
+            "Seleccionar archivo",
             "",
-            "Archivos POLY (*.poly)"
+            file_filter
         )
         if archivos:
             self.archivos_seleccionados = archivos
@@ -80,7 +110,7 @@ class MeshGeneratorController(QDialog):
     def run_mesh_generation(self):
         if not self.archivos_seleccionados:
             QMessageBox.critical(self, "Error", "Debes seleccionar al menos un archivo .poly antes de confirmar.")
-            return 
+            return
         
         max_refinement = self.refinement_spinbox.value()
         input_file = self.archivos_seleccionados[0]
@@ -145,13 +175,17 @@ class MeshGeneratorController(QDialog):
                 try:
                     os.chdir(input_dir)
                     crear_historial(name, max_refinement, tipo)
+                    self.historial_status = True
+                    self.ruta_quads = f"{input_dir}/{name}_quads.vtk"
+                    self.ruta_historial = f"{input_dir}/{name}_historial.txt"
                 finally:
                     os.chdir(_cwd)
 
-                print(f"[Historial] Generado en {input_dir}/historial_completo_new.txt")
+                print(f"[Historial] Generado en {input_dir}/{name}_historial.txt")
+                self.status_label.setText(self.status_label.text() + f"\nEl historial se generó correctamente")
             except Exception as e_hist:
                 print(f"[Historial] Error al generar historial: {e_hist}")
-                self.status_label.setText(self.status_label.text() + f"\n[Historial] Error: {e_hist}")
+                self.status_label.setText(self.status_label.text() + f"\nOcurrió un error al generar el historial")
 
             QMessageBox.information(
                 self, 
@@ -177,98 +211,6 @@ class MeshGeneratorController(QDialog):
                 error_msg
             )
 
-    def run_single_mesh_for_debug(self):
-        """
-        Ejecuta el mesher UNA sola vez para generar archivos de debug
-        Retorna: No retorns como tal, solo le asigna el Path del output en self.generated_file_debug
-        """
-        if not self.archivos_seleccionados:
-            QMessageBox.critical(self, "Error", "Debes seleccionar al menos un archivo .poly")
-            return
-        
-        input_file = self.archivos_seleccionados[0]
-        refinement_level = self.refinement_spinbox.value()
-        
-        # Determinar tipo de refinamiento
-        refinement_type = "-a" if self.full_refinement.isChecked() else "-s"
-
-        start_time = time.time()
-        self.generated_files = []
-
-        self.status_label.setText(f"Generando malla de nivel {refinement_level}...")
-        self.time_label.setText("Tiempo de ejecución: calculando...")
-        QApplication.processEvents()
-        
-        try:
-            poly_name = os.path.splitext(os.path.basename(input_file))[0]
-            output_name = f"{poly_name}_debug_{refinement_level}"
-            
-            # Ejecutar UNA sola vez (sin ciclo)
-            result_file = self.mesher.generate_mesh(
-                input_file=input_file,
-                output_file=output_name,
-                refinement_level=refinement_level,
-                refinement_type=refinement_type,
-                show_quality_metrics=True
-            )
-            
-            execution_time = time.time() - start_time
-            # self.generated_file_debug = result_file
-            self.generated_files.append(result_file)
-            
-            print(f"Mallado completado en {execution_time:.2f} segundos")
-            
-            self.status_label.setText(
-                f"Generación completada!\n"
-                f"Archivo: {os.path.basename(result_file)}"
-            )
-            self.time_label.setText(f"Tiempo: {execution_time:.2f} segundos")
-            
-            # print(self.generated_file_debug)
-            print(self.generated_files)
-
-            try:
-                last_output_path = self.generated_files[-1] if self.generated_files else result_file
-                input_dir = os.path.dirname(last_output_path)
-                name = os.path.splitext(os.path.basename(last_output_path))[0]
-                tipo = "borde" if self.edge_refinement.isChecked() else "completo"
-
-                _cwd = os.getcwd()
-                try:
-                    os.chdir(input_dir)
-                    crear_historial(name, refinement_level, tipo)
-                finally:
-                    os.chdir(_cwd)
-
-                print(f"[Historial] Generado en {input_dir}/historial_completo_new.txt")
-            except Exception as e_hist:
-                print(f"[Historial] Error al generar historial: {e_hist}")
-                self.status_label.setText(self.status_label.text() + f"\n[Historial] Error: {e_hist}")
-
-            QMessageBox.information(
-                self, 
-                "Proceso completado", 
-                f"Se generaró una malla de {refinement_level} LR en {execution_time:.2f} segundos"
-            )
-            self.accept()
-            
-        except Exception as e:
-            execution_time = time.time() - start_time
-            error_msg = (
-                f"Error después de {execution_time:.2f} segundos:\n"
-                f"{str(e)}"
-            )
-
-            print(f"ERROR: {error_msg}")
-            self.time_label.setText(f"Error después de {execution_time:.2f}s")
-            self.status_label.setText(error_msg)
-            
-            QMessageBox.critical(
-                self,
-                "Error en debug",
-                error_msg
-            )
-
     def verificar_refinamiento(self):
         valor = self.refinement_spinbox.value()
         if valor > 10:
@@ -277,3 +219,7 @@ class MeshGeneratorController(QDialog):
                 "Advertencia",
                 "Los niveles altos de refinamiento (>10) pueden requerir mucha memoria RAM."
             )
+    
+    def cargar_sin_generar_accion(self):
+        self.cargar_sin_generar = True
+        self.accept()
