@@ -301,3 +301,9 @@ class RefinementViewer(QWidget):
 
         self.switcher.load_model(output_path)
         self.renderer.GetRenderWindow().Render()
+
+    def ajustar_velocidad(self, valor):
+        """Ajusta la velocidad de la animación"""
+        segundos = valor / 1000.0
+        self.timer_animacion.setInterval(valor)
+        self.panel_derecho.label_velocidad_valor.setText(f"{segundos:.1f}s")

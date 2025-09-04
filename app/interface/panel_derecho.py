@@ -340,6 +340,8 @@ class PanelDerecho(QScrollArea):
         self.slider_velocidad.setRange(500, 3000)
         self.slider_velocidad.setValue(1500)
         self.label_velocidad_valor = QLabel("1.5s")
+
+        self.slider_velocidad.valueChanged.connect(self._on_velocidad_cambiada)
         
         velocidad_layout.addWidget(label_velocidad)
         velocidad_layout.addWidget(self.slider_velocidad)
@@ -647,3 +649,12 @@ class PanelDerecho(QScrollArea):
             if isinstance(self.refinement_viewer.interactor.GetInteractorStyle(), CustomInteractorStyle):
                 self.refinement_viewer.interactor.GetInteractorStyle().reset_camera_and_rotation()
             self.refinement_viewer.renderer.GetRenderWindow().Render()
+
+    def _on_velocidad_cambiada(self, valor):
+        """Maneja el cambio de velocidad"""
+        segundos = valor / 1000.0
+        self.label_velocidad_valor.setText(f"{segundos:.1f}s")
+        
+        # Ajustar directamente en el refinement viewer si está disponible
+        if self.refinement_viewer:
+            self.refinement_viewer.ajustar_velocidad(valor)

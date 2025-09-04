@@ -411,12 +411,17 @@ class MainWindow(QWidget):
                 )
 
     def cambiar_visualizador(self, index):
-        if index == 0:
+        if index == 0:  # Tab de refinamiento
             self.refinement_viewer.vtk_widget.show()
             self.refinement_viewer.vtk_widget.GetRenderWindow().Render()
-        else:
-            # ruta_quads = 
-            # ruta_historial = 
+            # HABILITAR panel derecho
+            if hasattr(self, 'panel_derecho'):
+                self.panel_derecho.show()  # Quitar estilo de deshabilitado
+            
+        else:  # Tab de paso a paso
+            # DESHABILITAR panel derecho
+            if hasattr(self, 'panel_derecho'):
+                self.panel_derecho.hide()
             self.vtk_player.vtk_widget.show()
             self.vtk_player.vtk_widget.GetRenderWindow().Render()
 
