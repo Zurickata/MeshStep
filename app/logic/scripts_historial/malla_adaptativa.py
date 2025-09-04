@@ -64,16 +64,16 @@ def refinar_quad(quad, squad_points, nivel, nivel_max, caras_congeladas, path="r
                 hijos_resultado.extend(res)
             else:
                 valido = False
-                print(f"[{child_path}] ❌ hijo no cumple, invalido subdivisión.")
+                # print(f"[{child_path}] ❌ hijo no cumple, invalido subdivisión.")
                 break
 
         if valido:
-            print(f"[{path}] ✅ todos los hijos válidos, sustituyo por hijos.")
+            # print(f"[{path}] ✅ todos los hijos válidos, sustituyo por hijos.")
             caras_congeladas.extend(hijos_congelados)
             return hijos_resultado
         else:
             caras_congeladas.append(quad)
-            print(f"[{path}] 🔒 fallback: hijos inválidos, conservo padre.")
+            # print(f"[{path}] 🔒 fallback: hijos inválidos, conservo padre.")
             return [quad]
 
     else:

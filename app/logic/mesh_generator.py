@@ -37,8 +37,8 @@ class MeshGeneratorController(QDialog):
 
         # Grupo para selección de algoritmo
         self.algorithm_type_group = QGroupBox("Algoritmo")
-        self.quadtree = QRadioButton("Quadtree")
-        self.octree = QRadioButton("Octree")
+        self.quadtree = QRadioButton("Quadtree (2D)")
+        self.octree = QRadioButton("Octree (3D)")
         self.quadtree.setChecked(True)  # Por defecto quadtree
         
         algorithm_layout = QHBoxLayout()
@@ -51,7 +51,7 @@ class MeshGeneratorController(QDialog):
         self.refinement_spinbox = QSpinBox()
         self.refinement_spinbox.setRange(1, 6)
         if self.ignorar_limite:
-            self.refinement_label = QLabel("sin nivel max:")
+            self.refinement_label = QLabel("Sin nivel máximo:")
             self.refinement_spinbox.setRange(1, 102)
         self.refinement_spinbox.setValue(3)
         self.refinement_spinbox.valueChanged.connect(self.verificar_refinamiento)
@@ -88,6 +88,10 @@ class MeshGeneratorController(QDialog):
 
         self.setLayout(layout)
 
+        self.quadtree.toggled.connect(self.actualizar_estado_run_button)
+        self.octree.toggled.connect(self.actualizar_estado_run_button)
+        self.actualizar_estado_run_button()
+
     def select_input_file(self):
         # Determinar el filtro según el algoritmo seleccionado
         if self.quadtree.isChecked():
@@ -105,9 +109,21 @@ class MeshGeneratorController(QDialog):
         )
         if archivos:
             self.archivos_seleccionados = archivos
-            self.ruta_archivos.setText(f"{len(archivos)} archivo(s) seleccionados")
+            self.ruta_archivos.setText(f"Archivo seleccionado: {os.path.basename(archivos[0])}")
+
+    def actualizar_estado_run_button(self):
+        if self.octree.isChecked():
+            self.run_button.setEnabled(False)
+            self.status_label.setText("La generación de mallas con Octree no está implementada aún.")
+        else:
+            self.run_button.setEnabled(True)
+            self.status_label.setText("Presiona 'Generar Mallas' para comenzar")
 
     def run_mesh_generation(self):
+        if self.octree.isChecked():
+            QMessageBox.warning(self, "No implementado", "La generación de mallas con Octree no está implementada aún.")
+            return
+         
         if not self.archivos_seleccionados:
             QMessageBox.critical(self, "Error", "Debes seleccionar al menos un archivo .poly antes de confirmar.")
             return
