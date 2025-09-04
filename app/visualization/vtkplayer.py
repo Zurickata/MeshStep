@@ -20,6 +20,35 @@ def mover_vertice(ugrid, vid, new_pos):
     ugrid.Modified()
     return ugrid
 
+def eliminar_colores(ugrid):
+    """
+    Elimina cualquier array de colores (scalars) de un vtkUnstructuredGrid.
+    Esto quita los colores tanto de puntos como de celdas.
+    """
+    # Borrar arrays asociados a puntos
+    point_data = ugrid.GetPointData()
+    if point_data:
+        for i in reversed(range(point_data.GetNumberOfArrays())):
+            name = point_data.GetArrayName(i)
+            if name and ("color" in name.lower() or "scalars" in name.lower()):
+                print(f"[INFO] Eliminando array de puntos: {name}")
+                point_data.RemoveArray(name)
+        point_data.SetScalars(None)
+
+    # Borrar arrays asociados a celdas
+    cell_data = ugrid.GetCellData()
+    if cell_data:
+        for i in reversed(range(cell_data.GetNumberOfArrays())):
+            name = cell_data.GetArrayName(i)
+            if name and ("color" in name.lower() or "scalars" in name.lower()):
+                print(f"[INFO] Eliminando array de celdas: {name}")
+                cell_data.RemoveArray(name)
+        cell_data.SetScalars(None)
+
+    ugrid.Modified()
+    return ugrid
+
+
 def borrar_carascid(ugrid, cantidad):
     """
     Elimina 'cantidad' de caras/celdas desde la posición 0 de un vtkUnstructuredGrid.
@@ -112,7 +141,7 @@ def change_model(name, outputs_dir=OUTPUTS_DIR):
         reader.Update()
         ugrid = vtk.vtkUnstructuredGrid()
         ugrid.DeepCopy(reader.GetOutput())
-        return ugrid
+        return eliminar_colores(ugrid)
 
     raise ValueError(f"[ERROR] change_model: modelo o archivo no encontrado → {name}")
 
