@@ -221,7 +221,6 @@ class ModelSwitcher:
             else:
                 print("No hay métricas disponibles. Carga un modelo primero.")
 
-
 # ---------------------------------------------------------------------------Cambio en el estilo para el control de la camara!
 class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera): #chatgpt
     def __init__(self, renderer, parent=None):

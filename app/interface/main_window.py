@@ -1,24 +1,29 @@
-import sys
 import os
 import re
 import glob
 import vtk
-from PyQt5.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout,
-                            QPushButton, QMenu, QLabel, QListWidget, QSplitter,
-                            QMessageBox, QSizePolicy, QStyle)
-from PyQt5.QtCore import (Qt, QTimer)
-from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+import shutil
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMenu, QLabel, QListWidget, QListWidgetItem, QSplitter, QMessageBox, QSizePolicy, QStyle, QTabWidget, QDialog)
+from PyQt5.QtCore import Qt
+from app.visualization.RefinementViewer import RefinementViewer
+from app.visualization.BaseViewer import BaseViewer
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.logic.mesh_generator import MeshGeneratorController
-
-from .panel_derecho import PanelDerecho
-from app.visualization.coloreo_metricas import colorear_celdas
+from app.interface.options_dialog import OpcionesDialog
+from app.interface.panel_derecho import PanelDerecho
+from app.visualization.vtkplayer import VTKPlayer
+from app.logic.export_utils import ExportManager
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("MeshStep")
         self.resize(1280, 720)
+
+        self.ignorar_limite_hardware = False
+
+        self.boton_opciones = QPushButton("Opciones", self)
+        self.boton_opciones.clicked.connect(self.abrir_opciones_dialog)
 
         self.boton_cargar = QPushButton("Cargar archivos", self)
         self.boton_cargar.clicked.connect(self.abrir_dialogo_carga)
@@ -28,130 +33,37 @@ class MainWindow(QWidget):
         self.lista_archivos.setContextMenuPolicy(Qt.CustomContextMenu)
         self.lista_archivos.customContextMenuRequested.connect(self.mostrar_menu_contextual)
 
-        # NUEVOS BOTONES PARA ACCIONES
-        
+        self.export_manager = ExportManager(self)
 
-        # self.boton_b = QPushButton("Borrar extras (b)", self)
-        # self.boton_b.clicked.connect(self.accion_b)
-
-       
-
-        
+        self.refinement_viewer = RefinementViewer(self)
+        self.panel_derecho = PanelDerecho(parent=self)
+        self.refinement_viewer.panel_derecho = self.panel_derecho
+        self.panel_derecho.refinement_viewer = self.refinement_viewer
 
         self.rutas_archivos = {}
+        self.rutas_octree = {}
 
-        self.vtk_widget = QVTKRenderWindowInteractor(self)
-        self.renderer = vtk.vtkRenderer()
-        self.vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
-        self.interactor = self.vtk_widget.GetRenderWindow().GetInteractor()
-        self.interactor.SetInteractorStyle(CustomInteractorStyle(self.renderer))
-        self.interactor.Initialize()
+        self.vtk_player = VTKPlayer(self)
+        self.tab_widget = QTabWidget()
+        self.tab_widget.addTab(self.refinement_viewer, "Niveles de refinación")
+        self.tab_widget.addTab(self.vtk_player, "Paso a paso")
+        self.tab_widget.currentChanged.connect(self.cambiar_visualizador)
 
-        # Crear botones de navegación
-        
-        self.boton_anterior = QPushButton()
-        self.boton_anterior.setIcon(self.style().standardIcon(QStyle.SP_ArrowLeft))
-        self.boton_anterior.setText("Anterior")
-
-        self.boton_siguiente = QPushButton()
-        self.boton_siguiente.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
-        self.boton_siguiente.setText("Siguiente")
-
-        # Conectar botones a funciones
-        self.boton_anterior.clicked.connect(self.navegar_anterior)
-        self.boton_siguiente.clicked.connect(self.navegar_siguiente)
-
-
-
-        # Nuevos botones para control de animación
-        self.boton_play = QPushButton()
-        self.boton_play.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
-        self.boton_play.setText("Play")
-
-        self.boton_pausa = QPushButton()
-        self.boton_pausa.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
-        self.boton_pausa.setText("Pausa")
-
-        self.boton_reinicio = QPushButton()
-        self.boton_reinicio.setIcon(self.style().standardIcon(QStyle.SP_MediaSkipBackward))
-        self.boton_reinicio.setText("Reinicio")
-        
-        # Configurar timer para animación automática
-        self.timer_animacion = QTimer(self)
-        self.timer_animacion.setInterval(1500)  # 1.5 segundos
-        self.timer_animacion.timeout.connect(self.avance_automatico)
-        
-        # Conectar botones
-        self.boton_play.clicked.connect(self.iniciar_animacion)
-        self.boton_pausa.clicked.connect(self.detener_animacion)
-        self.boton_reinicio.clicked.connect(self.reiniciar_secuencia)
-        
-        # Estilo para los nuevos botones
-        estilo_botones = """
-            QPushButton {
-                background-color: #4a4a4a;
-                color: white;
-                border: none;
-                padding: 8px;
-                font-size: 14px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #5a5a5a;
-            }
-        """
-        # Aplicar a todos los botones
-        for btn in [self.boton_anterior, self.boton_siguiente, 
-                    self.boton_play, self.boton_pausa, self.boton_reinicio]:
-            btn.setStyleSheet(estilo_botones)
-
-        
-        self.boton_pausa.setEnabled(False)
-
-        # Crear layout para los botones de navegación
-        nav_layout = QHBoxLayout()
-        nav_layout.addWidget(self.boton_anterior)
-        nav_layout.addWidget(self.boton_siguiente)
-        nav_layout.addWidget(self.boton_play)
-        nav_layout.addWidget(self.boton_pausa)
-        nav_layout.addWidget(self.boton_reinicio)
-        nav_layout.setContentsMargins(0, 0, 0, 0)
-        nav_layout.setSpacing(5)
-        
-        # Widget contenedor para los botones de navegación
-        nav_widget = QWidget()
-        nav_widget.setLayout(nav_layout)
-        nav_widget.setFixedHeight(40)
-
-        self.switcher = None
+        self.panel_central = QWidget()
+        central_layout = QVBoxLayout()
+        central_layout.addWidget(self.tab_widget)
+        self.panel_central.setLayout(central_layout)
 
         splitter = QSplitter(Qt.Horizontal)
-
         panel_izquierdo = QWidget()
         layout_izquierdo = QVBoxLayout()
+        layout_izquierdo.addWidget(self.boton_opciones)
         layout_izquierdo.addWidget(self.boton_cargar)
         layout_izquierdo.addWidget(self.lista_archivos)
         panel_izquierdo.setLayout(layout_izquierdo)
 
-        # Layout principal del panel central
-        central_layout = QVBoxLayout()
-        central_layout.addWidget(self.vtk_widget, 1)  # El widget VTK ocupa la mayor parte
-        central_layout.addWidget(nav_widget)          # Los botones de navegación abajo
-        central_layout.setContentsMargins(0, 0, 0, 0)
-        central_layout.setSpacing(0)
-
-        # Widget contenedor del panel central
-        panel_central = QWidget()
-        panel_central.setLayout(central_layout)
-        
-        self.panel_derecho = PanelDerecho(self)
-        
-        # Conectar señales del nuevo panel
-        self._conectar_señales_panel_derecho()
-
-        # Configurar el splitter con el nuevo panel
         splitter.addWidget(panel_izquierdo)
-        splitter.addWidget(panel_central)
+        splitter.addWidget(self.panel_central)
         splitter.addWidget(self.panel_derecho)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
@@ -162,224 +74,85 @@ class MainWindow(QWidget):
         self.setLayout(layout)
         self.setAcceptDrops(True)
 
-    def _conectar_señales_panel_derecho(self):
-        """Conecta las señales del panel derecho con las funciones existentes"""
-        
-        # Conectar botones de acciones
-        self.panel_derecho.slider_velocidad.valueChanged.connect(self.ajustar_velocidad)
-        
-        # Conectar botones de navegación
-        self.panel_derecho.boton_puntos_criticos.clicked.connect(self.accion_a)
-        self.panel_derecho.boton_reset_camara.clicked.connect(self.accion_r)
-        self.panel_derecho.boton_limpiar.clicked.connect(self.accion_b)
-
-
-#---------------------------------------------- Aqui conectas las funciones ----------------------------------------------------------
-
-        #Aqui podrias añadir nuevos botones
-        self.panel_derecho.boton_color.clicked.connect(self.accion_area)
-        self.panel_derecho.boton_color2.clicked.connect(self.accion_angulo_minimo)
-        self.panel_derecho.boton_color3.clicked.connect(self.accion_relacion_aspecto)
-        
-        
-    def accion_area(self):
-        if not self.switcher:
-            print("No hay modelo cargado.")
-            return
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if archivos and 0 <= self.switcher.current_index < len(archivos):
-            nombre = os.path.basename(archivos[self.switcher.current_index])
-        else:
-            print("No hay archivo actual.")
-    # Métodos para cada acción
-        input_path = "outputs/" + nombre
-        output_path = "outputs/" + "color_" +nombre
-        colorear_celdas(
-            input_path, output_path,
-            metric="area", bins=12,
-            base_color=(0,255,0), end_color=(255,0,0)
-        )   
-
-    def accion_angulo_minimo(self):
-        if not self.switcher:
-            print("No hay modelo cargado.")
-            return
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if archivos and 0 <= self.switcher.current_index < len(archivos):
-            nombre = os.path.basename(archivos[self.switcher.current_index])
-        else:
-            print("No hay archivo actual.")
-    # Métodos para cada acción
-        input_path = "outputs/" +  nombre
-        output_path = "outputs/" + "color_" + nombre
-        colorear_celdas(
-            input_path, output_path,
-            metric="angle", bins=12,
-            base_color=(0,255,0), end_color=(255,0,0)
-        )
-
-    def accion_relacion_aspecto(self):
-        if not self.switcher:
-            print("No hay modelo cargado.")
-            return
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if archivos and 0 <= self.switcher.current_index < len(archivos):
-            nombre = os.path.basename(archivos[self.switcher.current_index])
-        else:
-            print("No hay archivo actual.")
-    # Métodos para cada acción
-        input_path = "outputs/" + nombre
-        output_path = "outputs/" + "color_" +nombre
-        colorear_celdas(
-            input_path, output_path,
-            metric="aspect", bins=12,
-            base_color=(0,255,0), end_color=(255,0,0)
-        )
-      
-
-    def ajustar_velocidad(self, valor):
-        """Ajusta la velocidad de la animación"""
-        segundos = valor / 1000.0
-        self.timer_animacion.setInterval(valor)
-        self.panel_derecho.label_velocidad_valor.setText(f"{segundos:.1f}s")
+        self.switcher = None
 
     # Este método se encarga de leer el archivo _histo.txt y actualizar el panel derecho con los ángulos
-    
 
     # Métodos para cada acción
 
     # Moverse entre los poly
-    def accion_n(self):
-        if not self.switcher:
-            return
-        polys_cargados = list(self.switcher.file_dict.keys())
-        if not polys_cargados:
-            return
+    # def accion_n(self):
+    #     if not self.switcher:
+    #         return
+    #     polys_cargados = list(self.switcher.file_dict.keys())
+    #     if not polys_cargados:
+    #         return
         
-        try:
-            i = polys_cargados.index(self.switcher.current_poly)
-            next_index = (i + 1) % len(polys_cargados)
-            next_poly = polys_cargados[next_index]
-        except ValueError:
-            next_poly = polys_cargados[0]
+    #     try:
+    #         i = polys_cargados.index(self.switcher.current_poly)
+    #         next_index = (i + 1) % len(polys_cargados)
+    #         next_poly = polys_cargados[next_index]
+    #     except ValueError:
+    #         next_poly = polys_cargados[0]
         
-        archivos = self.switcher.file_dict.get(next_poly, [])
-        if archivos:
-            self.switcher.current_poly = next_poly
-            self.switcher.current_index = 0
-            self.switcher._load_current()
-            self.panel_derechoactualizar_panel_derecho(archivos[0])
+    #     archivos = self.switcher.file_dict.get(next_poly, [])
+    #     if archivos:
+    #         self.switcher.current_poly = next_poly
+    #         self.switcher.current_index = 0
+    #         self.switcher._load_current()
+    #         self.actualizar_panel_derecho(archivos[0])
 
-            items = self.lista_archivos.findItems(next_poly, Qt.MatchExactly)
-            if items:
-                self.lista_archivos.setCurrentItem(items[0])
+    #         items = self.lista_archivos.findItems(next_poly, Qt.MatchExactly)
+    #         if items:
+    #             self.lista_archivos.setCurrentItem(items[0])
             
-            # Eliminar los puntos críticos si están
-            self.switcher.toggle_load = False
-            self.switcher.clear_extra_models()
+    #         # Eliminar los puntos críticos si están
+    #         self.switcher.toggle_load = False
+    #         self.switcher.clear_extra_models()
 
+    #     # if self.switcher:
+    #     #     self.switcher.current_index = (self.switcher.current_index + 1) % len(self.switcher.file_list)
+    #     #     self.switcher.load_model(self.switcher.file_list[self.switcher.current_index])
+    #     #     self.switcher.clear_extra_models()
+    #     #     self.switcher.toggle_load = False
 
-    #Toggle puntos críticos
-    def accion_a(self):
-        if self.switcher:
-            self.switcher.toggle_load = not self.switcher.toggle_load
-            if self.switcher.toggle_load:
-                print("Cargando puntos criticos...")
-                self.switcher.marcar_angulos_extremos()
-                self.renderer.GetRenderWindow().Render()
-            else:
-                print("Toggle desactivado puntos criticos.")
-                self.switcher.clear_extra_models()
-                self.renderer.GetRenderWindow().Render()
+    # #Toggle puntos críticos
+    # def accion_a(self):
+    #     if self.switcher:
+    #         self.switcher.toggle_load = not self.switcher.toggle_load
+    #         if self.switcher.toggle_load:
+    #             print("Cargando puntos criticos...")
+    #             self.switcher.marcar_angulos_extremos()
+    #             self.renderer.GetRenderWindow().Render()
+    #         else:
+    #             print("Toggle desactivado puntos criticos.")
+    #             self.switcher.clear_extra_models()
+    #             self.renderer.GetRenderWindow().Render()
 
     def accion_b(self):
-        if self.switcher:
-            self.switcher.clear_extra_models()
+        if self.refinement_viewer.switcher:
+            self.refinement_viewer.switcher.clear_extra_models()
 
     def accion_r(self):
-        if self.switcher:
+        if self.refinement_viewer.switcher:
             print("🔁 Reseteando cámara y modelo")
-            self.switcher.actor.SetOrientation(0, 0, 0)
-            self.switcher.actor.SetPosition(0, 0, 0)
-            self.switcher.actor.SetScale(1, 1, 1)
-            self.renderer.ResetCamera()
-            if isinstance(self.interactor.GetInteractorStyle(), CustomInteractorStyle):
-                self.interactor.GetInteractorStyle().reset_camera_and_rotation()
-            self.renderer.GetRenderWindow().Render()
+            self.refinement_viewer.switcher.actor.SetOrientation(0, 0, 0)
+            self.refinement_viewer.switcher.actor.SetPosition(0, 0, 0)
+            self.refinement_viewer.switcher.actor.SetScale(1, 1, 1)
+            self.refinement_viewer.renderer.ResetCamera()
+            if isinstance(self.refinement_viewer.interactor.GetInteractorStyle(), CustomInteractorStyle):
+                self.refinement_viewer.interactor.GetInteractorStyle().reset_camera_and_rotation()
+            self.refinement_viewer.renderer.GetRenderWindow().Render()
 
     def accion_w(self):
-        if self.switcher:
-            self.switcher.actor.GetProperty().SetRepresentationToWireframe()
-            self.renderer.GetRenderWindow().Render()
-            self.panel_derecho.set_modo_visualizacion("wireframe")
+        if self.refinement_viewer.switcher:
+            self.refinement_viewer.switcher.actor.GetProperty().SetRepresentationToWireframe()
+            self.refinement_viewer.renderer.GetRenderWindow().Render()
 
     def accion_s(self):
-        if self.switcher:
-            self.switcher.actor.GetProperty().SetRepresentationToSurface()
-            self.renderer.GetRenderWindow().Render()
-            self.panel_derecho.set_modo_visualizacion("solido")
-
-    def abrir_dialogo_carga(self):
-        dialogo = MeshGeneratorController(self)
-
-        if dialogo.exec_() == QDialog.Accepted:
-            ruta_poly = dialogo.archivos_seleccionados[0]
-            nombre_poly = os.path.basename(ruta_poly)
-
-            if nombre_poly not in self.rutas_archivos:
-                self.rutas_archivos[nombre_poly] = dialogo.generated_files
-                self.lista_archivos.addItem(nombre_poly)
-
-            items = self.lista_archivos.findItems(nombre_poly, Qt.MatchExactly)
-            if items:
-                self.lista_archivos.setCurrentItem(items[0]) 
-
-            if not self.switcher:
-                self.switcher = ModelSwitcher(self.renderer, self.interactor, {nombre_poly: dialogo.generated_files})
-                if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
-                    self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
-            else:
-                self.switcher.file_dict[nombre_poly] = dialogo.generated_files
-
-            self.switcher.current_poly = nombre_poly
-            self.switcher.current_index = 0
-            self.switcher._load_current()
-            self.panel_derecho.actualizar_panel_derecho(dialogo.generated_files[0])
-
-            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
-                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
-
-        elif dialogo.exec_() == QDialog.Rejected:
-            return
-        
-        print("Rutas_Archivo:", self.rutas_archivos)
-        print("Lista_Archivos:", self.lista_archivos)
-        print("Generated_Files:", dialogo.generated_files)
-
-    def mostrar_contenido(self, item):
-        nombre_poly = item.text()
-        archivos_vtk = self.rutas_archivos.get(nombre_poly)
-
-        if archivos_vtk and self.switcher:
-            self.switcher.current_poly = nombre_poly
-            self.switcher.current_index = 0
-            self.switcher._load_current()
-            self.panel_derecho.actualizar_panel_derecho(archivos_vtk[0])
-            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
-                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
-
-    def mostrar_menu_contextual(self, posicion):
-        item = self.lista_archivos.itemAt(posicion)
-        if item:
-            menu = QMenu()
-            accion_eliminar = menu.addAction("Eliminar archivo de la lista")
-            accion = menu.exec_(self.lista_archivos.mapToGlobal(posicion))
-            if accion == accion_eliminar:
-                nombre = item.text()
-                if nombre in self.rutas_archivos:
-                    del self.rutas_archivos[nombre]
-                self.lista_archivos.takeItem(self.lista_archivos.row(item))
-                
+        if self.refinement_viewer.switcher:
+            self.refinement_viewer.switcher.actor.GetProperty().SetRepresentationToSurface()
+            self.refinement_viewer.renderer.GetRenderWindow().Render()
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -415,94 +188,7 @@ class MainWindow(QWidget):
                 self.vista_texto.setPlainText(contenido)
             except Exception as e:
                 QMessageBox.critical(self, "Error al leer archivo", str(e))
-    
-    def navegar_anterior(self):
-        """Función para navegar al modelo anterior numéricamente"""
-        if not self.switcher:
-            return
-
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if not archivos:
-            return
-
-        if self.switcher.current_index > 0:
-            self.switcher.anterior_modelo()
-            self.panel_derecho.actualizar_panel_derecho(archivos[self.switcher.current_index])
-            self.switcher.toggle_load = False
-            self.switcher.clear_extra_models()
-
-            if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
-                self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
-        else:
-            QMessageBox.information(self, "Inicio", "Ya estás en el primer modelo.")
-
-    def navegar_siguiente(self):
-        """Función para navegar al siguiente modelo numéricamente"""
-        if not self.switcher:
-            return
-
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if not archivos:
-            return
-
-        if self.switcher.current_index + 1 < len(archivos):
-            self.switcher.siguiente_modelo()
-            self.panel_derecho.actualizar_panel_derecho(archivos[self.switcher.current_index])
-            self.switcher.toggle_load = False
-            self.switcher.clear_extra_models()
-
-            self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
-        else:
-            QMessageBox.information(self, "Fin", "Ya estás en el último modelo.")
-
-    def iniciar_animacion(self):
-        """Inicia el avance automático de modelos"""
-        if self.switcher and self.switcher.file_dict:
-            self.boton_play.setEnabled(False)
-            self.boton_pausa.setEnabled(True)
-            self.timer_animacion.start()
-            
-    def detener_animacion(self):
-        """Detiene el avance automático"""
-        self.timer_animacion.stop()
-        self.boton_play.setEnabled(True)
-        self.boton_pausa.setEnabled(False)
-        
-    def avance_automatico(self):
-        """Función que se ejecuta automáticamente cada intervalo de tiempo"""
-        if not self.switcher:
-            self.detener_animacion()
-            return
-            
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if not archivos:
-            self.detener_animacion()
-            return
-            
-        # Si estamos en el último modelo, volver al primero
-        if self.switcher.current_index + 1 >= len(archivos):
-            self.reiniciar_secuencia()
-        else:
-            self.navegar_siguiente()
-            
-    def reiniciar_secuencia(self):
-        """Vuelve al primer modelo de la secuencia actual"""
-        if not self.switcher:
-            return
-            
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if archivos:
-            self.switcher.current_index = 0
-            self.switcher._load_current()
-            self.panel_derecho.actualizar_panel_derecho(archivos[0])
-            self.switcher.toggle_load = False
-            self.switcher.clear_extra_models()
-            
-            # Resaltar el elemento correspondiente en la lista
-            items = self.lista_archivos.findItems(self.switcher.current_poly, Qt.MatchExactly)
-            if items:
-                self.lista_archivos.setCurrentItem(items[0])
-
+  
     def _encontrar_serie_completa(self, base_name, extension):
         """Encuentra todos los archivos de la misma serie numérica"""
         print(f"DEBUG: Buscando serie completa para: {base_name}_*.{extension}")
@@ -590,10 +276,186 @@ class MainWindow(QWidget):
         if self.switcher:
             try:
                 self.switcher.load_model(filepath)
-                self.panel_derecho.actualizar_panel_derecho(filepath)
+                self.refinement_viewer.panel_derecho.actualizar_panel_derecho(filepath)
+                # if hasattr(self.switcher, 'metricas_actuales') and self.switcher.metricas_actuales:
+                #     self.refinement_viewer.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
                 # Actualizar el índice actual al nuevo archivo
                 if filepath in self.switcher.file_list:
                     self.switcher.current_index = self.switcher.file_list.index(filepath)
                 self.renderer.GetRenderWindow().Render()
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo cargar el archivo:\n{str(e)}")
+  
+
+        # 0: Niveles de refinación, 1: Paso a paso
+        if index == 0:
+            self.central_layout.removeWidget(self.base_viewer)
+            self.base_viewer.hide()
+            self.central_layout.addWidget(self.feria_vtk_widget)
+            self.feria_vtk_widget.show()
+        else:
+            self.central_layout.removeWidget(self.feria_vtk_widget)
+            self.feria_vtk_widget.hide()
+            self.central_layout.addWidget(self.base_viewer)
+            self.base_viewer.show()
+    
+    def abrir_dialogo_carga(self):
+        dialogo = MeshGeneratorController(self, ignorar_limite=self.ignorar_limite_hardware)
+        if dialogo.exec_() == QDialog.Accepted:
+            if dialogo.cargar_sin_generar:
+                archivo = dialogo.archivos_seleccionados[0]
+                self.tab_widget.setCurrentIndex(1)
+                self.base_viewer.load_poly_or_mdl(archivo)
+                return
+
+            ruta_poly = dialogo.archivos_seleccionados[0]
+            nombre_poly = os.path.basename(ruta_poly)
+            if dialogo.quadtree.isChecked():
+                diccionario = self.rutas_archivos
+                tipo = "2D"
+            elif dialogo.octree.isChecked():
+                diccionario = self.rutas_octree
+                tipo = "3D"
+            else:
+                diccionario = self.rutas_archivos
+                tipo = "2D"
+
+            item_text = f"{nombre_poly} ({tipo})"
+            if nombre_poly not in diccionario:
+                diccionario[nombre_poly] = dialogo.generated_files
+                item = QListWidgetItem(item_text)
+                item.setData(Qt.UserRole, tipo)
+                self.lista_archivos.addItem(item)
+
+            if not self.switcher:
+                self.switcher = ModelSwitcher(
+                    self.refinement_viewer.renderer,
+                    self.refinement_viewer.interactor,
+                    {nombre_poly: dialogo.generated_files}
+                )
+                self.refinement_viewer.set_switcher(self.switcher, poly_path=ruta_poly)
+            else:
+                self.switcher.file_dict[nombre_poly] = dialogo.generated_files
+                self.refinement_viewer.poly_path = ruta_poly
+                self.refinement_viewer._load_overlay_poly()
+
+            self.switcher.current_poly = nombre_poly
+            self.switcher.current_index = 0
+            self.switcher._load_current()
+            self.panel_derecho.actualizar_panel_derecho(dialogo.generated_files[0])
+            if self.refinement_viewer.switcher:
+                self.panel_derecho.actualizar_estadisticas(self.refinement_viewer.switcher.metricas_actuales)
+
+    def mostrar_contenido(self, item):
+        nombre_poly = item.text().split(" ")[0]
+        archivos_vtk = self.rutas_archivos.get(nombre_poly) or self.rutas_octree.get(nombre_poly)
+        poly_path = None
+        if nombre_poly in self.rutas_archivos:
+            poly_path = self.rutas_archivos.get(nombre_poly + "_path", None)
+            if not poly_path:
+                posibles = [os.path.join("data", nombre_poly), os.path.join("data", nombre_poly.replace(" ", ""))]
+                for p in posibles:
+                    if os.path.exists(p):
+                        poly_path = p
+                        break
+        elif nombre_poly in self.rutas_octree:
+            poly_path = self.rutas_octree.get(nombre_poly + "_path", None)
+        if poly_path:
+            self.refinement_viewer.update_overlay_poly(poly_path)
+        if archivos_vtk and self.switcher:
+            self.switcher.current_poly = nombre_poly
+            self.switcher.current_index = 0
+            self.switcher._load_current()
+            self.panel_derecho.actualizar_panel_derecho(archivos_vtk[0])
+            if self.refinement_viewer.switcher:
+                self.panel_derecho.actualizar_estadisticas(self.refinement_viewer.switcher.metricas_actuales)
+
+    def mostrar_menu_contextual(self, posicion):
+        item = self.lista_archivos.itemAt(posicion)
+        if item:
+            menu = QMenu()
+            accion_eliminar = menu.addAction("Eliminar archivo de la lista")
+            accion = menu.exec_(self.lista_archivos.mapToGlobal(posicion))
+            if accion == accion_eliminar:
+                nombre = item.text().split(" ")[0]
+                if nombre in self.rutas_archivos:
+                    del self.rutas_archivos[nombre]
+                self.lista_archivos.takeItem(self.lista_archivos.row(item))
+
+    def abrir_opciones_dialog(self):
+        dialog = OpcionesDialog(self)
+        dialog.checkbox.setChecked(self.ignorar_limite_hardware)
+        
+        if dialog.exec_() == QDialog.Accepted:
+            self.ignorar_limite_hardware = dialog.checkbox.isChecked()
+
+    def exportar_registro(self):
+        """Exporta el archivo de registro del mallado"""
+        success, message = self.export_manager.export_log_file()
+        
+        if not success:
+            if message == "no_log_file":
+                QMessageBox.information(
+                    self,
+                    "Información", 
+                    "No hay registro de mallado disponible.\n"
+                    "Ejecute el algoritmo de mallado primero para generar un registro."
+                )
+            elif message == "export_cancelled":
+                pass
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Error al exportar",
+                    f"No se pudo exportar el registro:\n{message}"
+                )
+
+    def cambiar_visualizador(self, index):
+        if index == 0:
+            self.refinement_viewer.vtk_widget.show()
+            self.refinement_viewer.vtk_widget.GetRenderWindow().Render()
+        else:
+            # ruta_quads = 
+            # ruta_historial = 
+            self.vtk_player.vtk_widget.show()
+            self.vtk_player.vtk_widget.GetRenderWindow().Render()
+
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        print(archivos[-1])
+        if archivos:
+            item = archivos[-1]  # Path completo del último archivo generado
+            filename = os.path.basename(item)  # Ejemplo: a_output_3.vtk
+            nombre_base = os.path.splitext(filename)[0]  # Resultado: "a_output_3"
+
+            ruta_vtk = f"{nombre_base}.vtk"
+            ruta_historial = f"{nombre_base}_historial.txt"
+
+            self.vtk_player.run_script(ruta_vtk, ruta_historial)
+            try:
+                self.vtk_player.vtk_widget.GetRenderWindow().GetInteractor().Initialize()
+            except Exception:
+                pass
+        else:
+            QMessageBox.warning(self, "Archivo no seleccionado", "Selecciona una malla en la lista para visualizar el paso a paso.")
+            
+    def closeEvent(self, event):
+        reply = QMessageBox.question(
+            self,
+            "Limpiar outputs",
+            "¿Desea eliminar todos los archivos output generados?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+        if reply == QMessageBox.Yes:
+            try:
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                outputs_path = os.path.join(current_dir, "../../outputs")
+                if os.path.exists(outputs_path):
+                    shutil.rmtree(outputs_path)
+                    os.makedirs(outputs_path)
+                    print("✓ Outputs limpiados exitosamente.")
+                else:
+                    print("⚠ La carpeta 'outputs' no se encontró. No se necesita limpieza.")
+            except Exception as e:
+                print(f"✗ Error al limpiar outputs: {e}")
+        event.accept()
