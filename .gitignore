@@ -3,6 +3,10 @@ core/quadtree/build/
 core/quadtree/**/*.so
 core/quadtree/**/*.o
 
+core/octree/build/
+core/octree/**/*.so
+core/octree/**/*.o
+
 outputs/
 
 # Byte-compiled / optimized / DLL files
