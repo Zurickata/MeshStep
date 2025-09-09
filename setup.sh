@@ -6,7 +6,15 @@ cd core/quadtree/build
 cmake ../src
 make
 cd ../../..
-echo "¡Algoritmo Compilado!"
+echo "¡Quadtree Compilado!"
+
+# Compilar el algoritmo Octree 
+mkdir -p core/octree/build
+cd core/octree/build
+cmake ../src
+make
+cd ../../..
+echo "¡Octree Compilado!"
 
 # Crear y activar entorno virtual
 python3 -m venv venv
