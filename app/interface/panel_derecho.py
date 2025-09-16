@@ -229,7 +229,7 @@ class PanelDerecho(QScrollArea):
                 <span style='font-size: 12px; color: #cccccc;'>Ruta: {ruta_modificada}</span>
             </div>
             """
-            self.panel_derecho.actualizar_metricas(error_html)    
+            self.actualizar_metricas(error_html)    
     
     def crear_seccion_metricas(self):
         """Sección de métricas de calidad (ahora dinámica)"""
