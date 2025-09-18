@@ -385,19 +385,23 @@ class PanelDerecho(QScrollArea):
         self.boton_limpiar = QPushButton("Limpiar")
         self.boton_puntos_criticos = QPushButton("Puntos Críticos")
         self.boton_reset_camara = QPushButton("Reset Cámara")
+        self.boton_reload = QPushButton("Reload")  # Nuevo botón
 
         self.boton_limpiar.setToolTip("Shortcut: B")
-        self.boton_puntos_criticos.setToolTip("Shortcut: A")
+        self.boton_puntos_criticos.setToolTip("Shortcut: A")+
         self.boton_reset_camara.setToolTip("Shortcut: R")
+        self.boton_reload.setToolTip("Shortcut: L")  # Tooltip para reload
         
         self.boton_limpiar.clicked.connect(self.limpiar_modelos)
         self.boton_puntos_criticos.clicked.connect(self.toggle_puntos_criticos)
         self.boton_reset_camara.clicked.connect(self.resetear_camara)
+        self.boton_reload.clicked.connect(self.reload_modelo)  # Conectar nuevo método
 
         # Agregar al layout
         layout.addWidget(self.boton_limpiar, 0, 0)
         layout.addWidget(self.boton_reset_camara, 0, 1)
-        layout.addWidget(self.boton_puntos_criticos, 1 , 0 , 1, 2)
+        layout.addWidget(self.boton_puntos_criticos, 1 , 0)
+        layout.addWidget(self.boton_reload, 1, 1)  # Nuevo botón en posición 1,1
         grupo.setLayout(layout)
         self.layout_principal.addWidget(grupo)
 
@@ -658,3 +662,30 @@ class PanelDerecho(QScrollArea):
         # Ajustar directamente en el refinement viewer si está disponible
         if self.refinement_viewer:
             self.refinement_viewer.ajustar_velocidad(valor)
+
+    def reload_modelo(self):
+        """Recarga el modelo actual desde el archivo"""
+        if self.refinement_viewer and self.refinement_viewer.switcher:
+            switcher = self.refinement_viewer.switcher
+            archivos = switcher.file_dict.get(switcher.current_poly, [])
+            
+            if archivos and 0 <= switcher.current_index < len(archivos):
+                archivo_actual = archivos[switcher.current_index]
+                print(f"Recargando modelo: {archivo_actual}")
+                
+                # Forzar recarga del modelo
+                switcher.load_model(archivo_actual)
+                
+                # Limpiar extras y resetear toggle
+                switcher.clear_extra_models()
+                switcher.toggle_load = False
+                
+                # Actualizar panel derecho si es necesario
+                if hasattr(self, 'actualizar_panel_derecho'):
+                    self.actualizar_panel_derecho(archivo_actual)
+                
+                print("✅ Modelo recargado exitosamente")
+            else:
+                print("⚠️ No hay modelo actual para recargar")
+        else:
+            print("⚠️ No hay refinement viewer o switcher disponible")
