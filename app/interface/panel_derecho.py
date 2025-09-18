@@ -36,12 +36,11 @@ class PanelDerecho(QScrollArea):
         # Crear secciones 
         self.crear_seccion_metricas()
         self.crear_seccion_threshold()  # Nueva sección para threshold
-        self.crear_seccion_animacion()
         self.crear_seccion_visualizacion()
         self.crear_seccion_acciones()
         self.crear_seccion_estadisticas()
         self.crear_seccion_coloreos()
-        
+        self.crear_seccion_animacion()
         # Espaciador final
         self.layout_principal.addStretch()
         
@@ -388,7 +387,7 @@ class PanelDerecho(QScrollArea):
         self.boton_reload = QPushButton("Reload")  # Nuevo botón
 
         self.boton_limpiar.setToolTip("Shortcut: B")
-        self.boton_puntos_criticos.setToolTip("Shortcut: A")+
+        self.boton_puntos_criticos.setToolTip("Shortcut: A")
         self.boton_reset_camara.setToolTip("Shortcut: R")
         self.boton_reload.setToolTip("Shortcut: L")  # Tooltip para reload
         

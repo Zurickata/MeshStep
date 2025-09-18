@@ -243,6 +243,7 @@ class RefinementViewer(QWidget):
         if not self.switcher:
             print("No hay modelo cargado.")
             return
+        self.panel_derecho.reload_modelo()
         archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
         if archivos and 0 <= self.switcher.current_index < len(archivos):
             nombre = os.path.basename(archivos[self.switcher.current_index])
@@ -264,6 +265,7 @@ class RefinementViewer(QWidget):
         if not self.switcher:
             print("No hay modelo cargado.")
             return
+        self.panel_derecho.reload_modelo()
         archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
         if archivos and 0 <= self.switcher.current_index < len(archivos):
             nombre = os.path.basename(archivos[self.switcher.current_index])
@@ -285,6 +287,7 @@ class RefinementViewer(QWidget):
         if not self.switcher:
             print("No hay modelo cargado.")
             return
+        self.panel_derecho.reload_modelo()
         archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
         if archivos and 0 <= self.switcher.current_index < len(archivos):
             nombre = os.path.basename(archivos[self.switcher.current_index])
