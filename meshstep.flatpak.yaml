@@ -1,0 +1,34 @@
+app-id: com.meshstep.Visualizador
+runtime: org.kde.Platform
+runtime-version: "6.6"
+sdk: org.kde.Sdk
+command: meshstep
+finish-args:
+  # Permisos: acceso a red, display (X11/Wayland), GPU y home
+  - --share=network
+  - --socket=x11
+  - --socket=wayland
+  - --device=dri
+  - --filesystem=home
+
+modules:
+  - name: meshstep
+    buildsystem: simple
+    build-commands:
+      - chmod +x setup.sh
+      - ./setup.sh
+      - install -Dm755 run-meshstep.sh /app/bin/meshstep
+    sources:
+      - type: dir
+        path: .
+        exclude:
+          - .git
+          - .github
+          - flatpak
+          - build
+          - "*.yml"
+          - "*.yaml"
+          - "README*"
+          - "LICENSE*"
+          - setup.sh
+          - run-meshstep.sh
