@@ -182,8 +182,8 @@ class MeshGeneratorController(QDialog):
                     finally:
                         os.chdir(_cwd)
 
-                    print(f"[Historial] Generado en {self.ruta_historial}")
-                    self.status_label.setText(self.status_label.text() + "\nEl historial se generó correctamente")
+                print(f"[Historial] Generado en {self.ruta_historial}")
+                self.status_label.setText(self.status_label.text() + "\nEl historial se generó correctamente")
             except Exception as e_hist:
                 print(f"[Historial] Error al generar historial: {e_hist}")
                 self.status_label.setText(self.status_label.text() + "\nOcurrió un error al generar el historial")
@@ -195,7 +195,8 @@ class MeshGeneratorController(QDialog):
 
             time_report = (
                 f"Tiempo total: {total_time:.2f} segundos\n"
-                f"Tiempo promedio por nivel: {avg_time:.2f} segundos"
+                f"Tiempo promedio por nivel: {avg_time:.2f} segundos\n"
+                f"Tiempo del Historial: {historial_time:.2f} segundos"
             )
 
             self.time_label.setText(time_report)

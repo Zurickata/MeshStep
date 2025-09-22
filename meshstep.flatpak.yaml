@@ -21,14 +21,3 @@ modules:
     sources:
       - type: dir
         path: .
-        exclude:
-          - .git
-          - .github
-          - flatpak
-          - build
-          - "*.yml"
-          - "*.yaml"
-          - "README*"
-          - "LICENSE*"
-          - setup.sh
-          - run-meshstep.sh

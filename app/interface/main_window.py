@@ -469,10 +469,16 @@ class MainWindow(QWidget):
                 outputs_path = os.path.join(current_dir, "../../outputs")
                 if os.path.exists(outputs_path):
                     shutil.rmtree(outputs_path)
-                    os.makedirs(outputs_path)
-                    print("✓ Outputs limpiados exitosamente.")
+                    os.makedirs(outputs_path, exist_ok=True)
+                    msg = "Outputs limpiados exitosamente."
+                    print(msg)
+                    QMessageBox.information(self, "Outputs limpiados", msg)
                 else:
-                    print("⚠ La carpeta 'outputs' no se encontró. No se necesita limpieza.")
+                    msg = "La carpeta 'outputs' no se encontró. No se necesita limpieza."
+                    print(msg)
+                    QMessageBox.information(self, "Outputs no encontrados", msg)
             except Exception as e:
-                print(f"✗ Error al limpiar outputs: {e}")
+                msg = f"Error al limpiar outputs: {e}"
+                print(msg)
+                QMessageBox.critical(self, "Error al limpiar outputs", msg)
         event.accept()

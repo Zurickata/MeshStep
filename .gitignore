@@ -8,6 +8,8 @@ core/octree/**/*.so
 core/octree/**/*.o
 
 outputs/
+.flatpak-builder/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -20,6 +22,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+build-dir/
 develop-eggs/
 dist/
 downloads/

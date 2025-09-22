@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Compilar el algoritmo Quadtree 
+rm -rf core/quadtree/build
 mkdir -p core/quadtree/build
 cd core/quadtree/build
 cmake ../src
@@ -9,6 +10,7 @@ cd ../../..
 echo "¡Quadtree Compilado!"
 
 # Compilar el algoritmo Octree 
+rm -rf core/octree/build
 mkdir -p core/octree/build
 cd core/octree/build
 cmake ../src
