@@ -46,7 +46,8 @@ def calcular_metricas_calidad(grid):
     
     resultados['estadisticas_generales']['total_triangulos'] = len(triangulos)
     resultados['estadisticas_generales']['total_cuadrilateros'] = len(cuadrilateros)
-    
+    print("Total triángulos:", len(triangulos))
+    print("Total cuadriláteros:", len(cuadrilateros))
     # Métricas para triángulos
     if triangulos:
         triangulo_metrics = _calcular_metricas_triangulos(grid, triangulos)

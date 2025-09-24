@@ -10,6 +10,7 @@ import numpy as np
 import os
 import re
 from app.visualization.FeriaVTK import CustomInteractorStyle
+from app.visualization.FeriaVTK import notifier
 
 class PanelDerecho(QScrollArea):
     def __init__(self, parent=None):
@@ -49,6 +50,37 @@ class PanelDerecho(QScrollArea):
         self.actualizar_estado_botones_visualizacion()
         self.actualizar_display_threshold()
 
+        
+        notifier.cell_selected.connect(self.mostrar_info_celda)
+
+
+
+    def mostrar_info_celda(self, cell_id, num_points, min_angle):
+        """Muestra información de la celda seleccionada"""
+        # Determinar color basado en el ángulo mínimo
+        if min_angle < 25:
+            color_angle = "#ff6b6b"  # Rojo - crítico
+            calidad = "Crítico"
+        elif min_angle < 45:
+            color_angle = "#ff9f43"  # Naranja - regular
+            calidad = "Regular"
+        else:
+            color_angle = "#4ecdc4"  # Verde - bueno
+            calidad = "Bueno"
+        
+        # Crear HTML para la información de la celda
+        celda_html = f"""
+        <div style='background-color: #3a3a3a; padding: 8px; border-radius: 4px; margin-top: 8px;'>
+            <b style='color: #ffd700;'>Celda seleccionada:</b><br>
+            ID: <span style='color:#4ecdc4;'>{cell_id}</span><br>
+            Puntos: <span style='color:#ff9f43;'>{num_points}</span><br>
+            Ángulo mínimo: <span style='color:{color_angle};'>{min_angle:.2f}°</span><br>
+            Calidad: <span style='color:{color_angle};'>{calidad}</span>
+        </div>
+        """
+        
+    
+        self.actualizar_metricas(self._contenido_base_sin_celda + celda_html)
 
     def actualizar_panel_derecho(self, ruta_archivo):
         try:
@@ -220,6 +252,8 @@ class PanelDerecho(QScrollArea):
 
             # Actualizar el panel derecho
             self.actualizar_metricas(contenido_html)
+            # Guardar como contenido base limpio (SIN información de celda)
+            self._contenido_base_sin_celda = contenido_html
 
         except Exception as e:
             error_html = f"""
@@ -432,7 +466,6 @@ class PanelDerecho(QScrollArea):
         stats_html = f"""
         <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; font-family: monospace;'>
             <b>Topología:</b><br>
-            • Vértices: <span style='color: #4ecdc4;'>N/A</span><br>
             • Caras: <span style='color: #4ecdc4;'>{total_caras}</span><br>
             • Triángulos: <span style='color: #ff9f43;'>{total_triangulos}</span> ({porc_triangulos:.1f}%)<br>
             • Cuadriláteros: <span style='color: #ff9f43;'>{total_cuadrilateros}</span> ({porc_cuadrilateros:.1f}%)<br><br>
