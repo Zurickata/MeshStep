@@ -479,7 +479,7 @@ class PanelDerecho(QScrollArea):
             stats_html += f"""
             <b>Triángulos:</b><br>
             • Relación aspecto: <span style='color: #4ecdc4;'>{triangulos.get('aspect_ratio_avg', 'N/A'):.3f}</span><br>
-            • Ángulo mínimo: <span style='color: #4ecdc4;'>{triangulos.get('min_angle_avg', 'N/A'):.1f}°</span><br>
+            • Ángulo mínimo: <span style='color: #4ecdc4;'>{triangulos.get('min_angle_min', 'N/A'):.1f}°</span><br>
             • Ángulo máximo: <span style='color: #ff6b6b;'>{triangulos.get('max_angle_avg', 'N/A'):.1f}°</span><br>
             • Área promedio: <span style='color: #4ecdc4;'>{triangulos.get('area_avg', 'N/A'):.6f}</span><br>
             """
