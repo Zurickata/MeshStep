@@ -1,9 +1,12 @@
 import os
 import re
 import glob
+import webbrowser
 import vtk
 import shutil
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMenu, QLabel, QListWidget, QListWidgetItem, QSplitter, QMessageBox, QSizePolicy, QStyle, QTabWidget, QDialog)
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMenu, QLabel, QListWidget,
+                             QListWidgetItem, QSplitter, QMessageBox,QSizePolicy, QStyle, QTabWidget, QDialog,
+                             QMenuBar, QAction)
 from PyQt5.QtCore import Qt
 from app.visualization.RefinementViewer import RefinementViewer
 from app.visualization.BaseViewer import BaseViewer
@@ -22,11 +25,33 @@ class MainWindow(QWidget):
 
         self.ignorar_limite_hardware = False
 
+        self.menubar = QMenuBar(self)
+        self.file_menu = self.menubar.addMenu("File")
+        self.edit_menu = self.menubar.addMenu("Edit")
+        self.help_menu = self.menubar.addMenu("Help")
+
+
+        icon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
         self.boton_opciones = QPushButton("Opciones", self)
         self.boton_opciones.clicked.connect(self.abrir_opciones_dialog)
 
-        self.boton_cargar = QPushButton("Cargar archivos", self)
+        self.boton_cargar = QPushButton(icon, "Cargar archivos", self)
         self.boton_cargar.clicked.connect(self.abrir_dialogo_carga)
+
+
+        # Acción "Cargar archivos" en File
+        self.action_cargar = QAction("Cargar archivos", self)
+        self.action_cargar.triggered.connect(self.abrir_dialogo_carga)
+        self.file_menu.addAction(self.action_cargar)
+
+        # Acción "Opciones" en Edit
+        self.action_opciones = QAction("Opciones", self)
+        self.action_opciones.triggered.connect(self.abrir_opciones_dialog)
+        self.edit_menu.addAction(self.action_opciones)
+
+        self.action_help = QAction("About", self)
+        self.action_help.triggered.connect(self.abrir_opciones_dialog)
+        self.help_menu.addAction(self.action_help)
 
         self.lista_archivos = QListWidget()
         self.lista_archivos.itemClicked.connect(self.mostrar_contenido)
@@ -68,6 +93,7 @@ class MainWindow(QWidget):
         splitter.setStretchFactor(2, 1)
 
         layout = QVBoxLayout()
+        layout.setMenuBar(self.menubar)
         layout.addWidget(splitter)
         self.setLayout(layout)
         self.setAcceptDrops(True)
@@ -394,6 +420,7 @@ class MainWindow(QWidget):
             self.vtk_player.vtk_widget.show()
             self.vtk_player.vtk_widget.GetRenderWindow().Render()
             self.vtk_player.run_script("a_output_3_quads.vtk", "historial_completo_new.txt")
+            self.vtk_player.load_overlay_poly("data/a.poly")
             try:
                 self.vtk_player.vtk_widget.GetRenderWindow().GetInteractor().Initialize()
             except Exception:

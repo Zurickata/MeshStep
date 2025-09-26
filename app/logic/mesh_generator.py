@@ -29,7 +29,7 @@ class MeshGeneratorController(QDialog):
         self.edge_refinement = QRadioButton("Refinamiento de borde")
         self.full_refinement = QRadioButton("Refinamiento completo")
         self.edge_refinement.setChecked(True)  # Por defecto refinamiento de borde
-        
+
         refinement_layout = QHBoxLayout()
         refinement_layout.addWidget(self.edge_refinement)
         refinement_layout.addWidget(self.full_refinement)
@@ -56,15 +56,15 @@ class MeshGeneratorController(QDialog):
         self.refinement_spinbox.setValue(3)
         self.refinement_spinbox.valueChanged.connect(self.verificar_refinamiento)
 
-        self.input_file_button = QPushButton("Seleccionar archivo .poly")
+        self.input_file_button = QPushButton("Seleccionar archivo")
         self.input_file_button.clicked.connect(self.select_input_file)
 
         # Botón para ejecutar
         self.run_button = QPushButton("Generar Mallas")
         self.run_button.clicked.connect(self.run_mesh_generation)
         
-        self.cargar_button = QPushButton("Cargar sin generar")
-        self.cargar_button.clicked.connect(self.cargar_sin_generar_accion)
+        # self.cargar_button = QPushButton("Cargar sin generar")
+        # self.cargar_button.clicked.connect(self.cargar_sin_generar_accion)
 
         # Área de estado
         self.status_label = QLabel("Presiona 'Generar Mallas' para comenzar")
@@ -81,13 +81,18 @@ class MeshGeneratorController(QDialog):
         layout.addWidget(self.refinement_spinbox)
         layout.addWidget(self.input_file_button)
         layout.addWidget(self.run_button)
-        layout.addWidget(self.cargar_button)
+        # layout.addWidget(self.cargar_button)
         layout.addWidget(self.ruta_archivos)
         layout.addSpacing(20)
         layout.addWidget(self.status_label)
         layout.addWidget(self.time_label)
 
         self.setLayout(layout)
+
+        # Ahora conecta las señales y llama a actualizar_estado_run_button
+        self.quadtree.toggled.connect(self.actualizar_estado_run_button)
+        self.octree.toggled.connect(self.actualizar_estado_run_button)
+        self.actualizar_estado_run_button()
 
     def select_input_file(self):
         # Determinar el filtro según el algoritmo seleccionado
@@ -106,9 +111,21 @@ class MeshGeneratorController(QDialog):
         )
         if archivos:
             self.archivos_seleccionados = archivos
-            self.ruta_archivos.setText(f"{len(archivos)} archivo(s) seleccionados")
+            self.ruta_archivos.setText(f"Archivo seleccionado: {os.path.basename(archivos[0])}")
+
+    def actualizar_estado_run_button(self):
+        if self.octree.isChecked():
+            self.run_button.setEnabled(False)
+            self.status_label.setText("La generación de mallas con Octree no está implementada aún.")
+        else:
+            self.run_button.setEnabled(True)
+            self.status_label.setText("Presiona 'Generar Mallas' para comenzar")
 
     def run_mesh_generation(self):
+        if self.octree.isChecked():
+            QMessageBox.warning(self, "No implementado", "La generación de mallas con Octree no está implementada aún.")
+            return
+        
         if not self.archivos_seleccionados:
             QMessageBox.critical(self, "Error", "Debes seleccionar al menos un archivo .poly antes de confirmar.")
             return

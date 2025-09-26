@@ -5,6 +5,86 @@ import sys
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
+overlay_visible = False
+#overlay
+def poly_to_vtk(filepath):
+
+    points = vtk.vtkPoints()
+    lines = vtk.vtkCellArray()
+
+    with open(filepath, 'r') as f:
+        lines_raw = f.readlines()
+
+    # Buscar la línea con el número de puntos
+    i = 0
+    num_points = 0
+    while i < len(lines_raw):
+        line = lines_raw[i].strip()
+        if line and not line.startswith('#'):
+            parts = line.split()
+            if len(parts) >= 2 and parts[0].isdigit():
+                num_points = int(parts[0])
+                i += 1
+                break
+        i += 1
+
+    # Leer los puntos
+    for _ in range(num_points):
+        while i < len(lines_raw) and (not lines_raw[i].strip() or lines_raw[i].strip().startswith('#')):
+            i += 1
+        parts = lines_raw[i].strip().split()
+        if len(parts) >= 3:
+            x, y = float(parts[1]), float(parts[2])
+            points.InsertNextPoint(x, y, 0)
+        i += 1
+
+    # Buscar la línea con el número de segmentos
+    num_segments = 0
+    while i < len(lines_raw):
+        line = lines_raw[i].strip()
+        if line and not line.startswith('#'):
+            parts = line.split()
+            if len(parts) >= 2 and parts[0].isdigit():
+                num_segments = int(parts[0])
+                i += 1
+                break
+        i += 1
+
+    # Leer los segmentos y detectar el mínimo índice
+    segment_indices = []
+    segment_lines = []
+    for _ in range(num_segments):
+        while i < len(lines_raw) and (not lines_raw[i].strip() or lines_raw[i].strip().startswith('#')):
+            i += 1
+        parts = lines_raw[i].strip().split()
+        if len(parts) >= 3:
+            start_id = int(parts[1])
+            end_id = int(parts[2])
+            segment_indices.append(start_id)
+            segment_indices.append(end_id)
+            segment_lines.append((start_id, end_id))
+        i += 1
+
+    # Detecta si los índices empiezan en 1 (caso a.poly) o en 0 (caso pie.poly)
+    min_index = min(segment_indices) if segment_indices else 0
+    index_offset = 1 if min_index == 1 else 0
+
+    # Agrega las líneas ajustando el offset
+    for start_id, end_id in segment_lines:
+        start_id_adj = start_id - index_offset
+        end_id_adj = end_id - index_offset
+        if 0 <= start_id_adj < points.GetNumberOfPoints() and 0 <= end_id_adj < points.GetNumberOfPoints():
+            vtk_line = vtk.vtkLine()
+            vtk_line.GetPointIds().SetId(0, start_id_adj)
+            vtk_line.GetPointIds().SetId(1, end_id_adj)
+            lines.InsertNextCell(vtk_line)
+
+    polydata = vtk.vtkPolyData()
+    polydata.SetPoints(points)
+    polydata.SetLines(lines)
+    return polydata
+
+
 
 # ------------------------------
 # FUNCIONES DE MANIPULACIÓN
@@ -336,10 +416,17 @@ class VTKPlayer(QWidget):
         self.vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
         self.actor = None
 
+        # Overlay
+        self.overlay_actor = None
+        self.overlay_visible = False
+        self.poly_path = "data/a.poly"
+
         # Botones de control
         self.boton_siguiente = QPushButton("Siguiente paso (n)")
         self.boton_reiniciar = QPushButton("Reiniciar (r)")
         self.boton_guardar = QPushButton("Guardar (s)")
+        self.boton_overlay = QPushButton("Mostrar overlay")
+        self.boton_overlay.clicked.connect(self.toggle_overlay)
 
         self.boton_siguiente.clicked.connect(self.siguiente_paso)
         self.boton_reiniciar.clicked.connect(self.reiniciar)
@@ -349,6 +436,7 @@ class VTKPlayer(QWidget):
         botones_layout.addWidget(self.boton_siguiente)
         botones_layout.addWidget(self.boton_reiniciar)
         botones_layout.addWidget(self.boton_guardar)
+        botones_layout.addWidget(self.boton_overlay)
 
         layout = QVBoxLayout()
         layout.addWidget(self.vtk_widget)
@@ -413,12 +501,18 @@ class VTKPlayer(QWidget):
             self.guardar()
 
     def _ejecutar_comando(self, comando):
+        global overlay_visible
         if comando == "n":
             if self.estado["i"] < len(self.comandos):
                 tokens = self.comandos[self.estado["i"]]
                 print(f"[{self.estado['i']+1}/{len(self.comandos)}] Ejecutando:", " ".join(tokens))
                 self.ugrid = ejecutar_comando(self.ugrid, tokens)
                 self._mostrar_ugrid(self.ugrid)
+                if self.poly_path:
+                    self.load_overlay_poly(self.poly_path)
+                    print(overlay_visible)
+                    if overlay_visible:
+                        self.toggle_overlay()
                 self.estado["i"] += 1
                 print(f"→ Puntos: {self.ugrid.GetNumberOfPoints()} | Celdas: {self.ugrid.GetNumberOfCells()}")
             else:
@@ -429,7 +523,48 @@ class VTKPlayer(QWidget):
             self.ugrid = cargar_ugrid(self.vtk_file)
             self.estado["i"] = 0
             self._mostrar_ugrid(self.ugrid)
+            if self.poly_path:
+                self.load_overlay_poly(self.poly_path)
+                self.toggle_overlay()
             print(f"→ Reiniciado: Puntos {self.ugrid.GetNumberOfPoints()} | Celdas {self.ugrid.GetNumberOfCells()}")
         elif comando == "s":
             print("Guardando a salida.vtk ...")
             guardar_ugrid(self.ugrid, "salida.vtk")
+    
+    def load_overlay_poly(self, poly_path):
+        global overlay_visible
+        self.poly_path = poly_path
+        self.overlay_visible = False
+        self.boton_overlay.setText("Mostrar overlay")
+        # Elimina el actor anterior si existe
+        if self.overlay_actor:
+            self.renderer.RemoveActor(self.overlay_actor)
+            self.overlay_actor = None
+        # Cargar el poly original como overlay
+        if self.poly_path and os.path.exists(self.poly_path):
+            polydata = poly_to_vtk(self.poly_path)
+            mapper = vtk.vtkPolyDataMapper()
+            mapper.SetInputData(polydata)
+            self.overlay_actor = vtk.vtkActor()
+            self.overlay_actor.SetMapper(mapper)
+            self.overlay_actor.GetProperty().SetColor(1, 1, 0)  # Amarillo
+            self.overlay_actor.GetProperty().SetLineWidth(2)
+            self.overlay_actor.GetProperty().SetOpacity(0.7)
+            self.overlay_actor.SetVisibility(False)
+            self.renderer.AddActor(self.overlay_actor)
+            self.renderer.GetRenderWindow().Render()
+        else:
+            print(f"[WARN] No se encontró el archivo poly: {self.poly_path}")
+    
+    def toggle_overlay(self):
+        global overlay_visible
+        print("toggle_overlay llamado")
+        if self.overlay_actor:
+            print("Overlay actor existe")
+            self.overlay_visible = not self.overlay_visible
+            self.overlay_actor.SetVisibility(self.overlay_visible)
+            self.boton_overlay.setText("Ocultar overlay" if self.overlay_visible else "Mostrar overlay")
+            self.renderer.GetRenderWindow().Render()
+        else:
+            print("No hay overlay actor")
+            QMessageBox.information(self, "Overlay", "No hay overlay cargado.")
