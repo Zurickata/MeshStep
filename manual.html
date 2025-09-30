@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang='es'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1'>
+<title>Tutorial Meshstep — HTML</title>
+<style>
+body{font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; line-height:1.5; padding:20px; max-width:900px; margin:auto; color:#111}
+h1,h2,h3{color:#0b5}
+pre{white-space:pre-wrap}
+.toc{background:#f7f7f7;padding:12px;border-radius:8px}
+.section{margin-top:28px}
+</style>
+</head>
+<body>
+
+<div class='section' id='page1'>
+<h2>Página 1</h2>
+<pre>
+Tutorial Meshstep  
+Índice  
+Cargar Archivos  ................................ ................................ ................................ .... 3 
+Formatos soportados  ................................ ................................ ........................  3 
+Método de carga  ................................ ................................ ...............................  3 
+Opciones avanzadas  ................................ ................................ ............................  3 
+Quitar límites de hardware  ................................ ................................ .................  3 
+Exportar historial de mallado  ................................ ................................ .............  3 
+Tipos de refinamiento  ................................ ................................ ...........................  3 
+Refinamiento por borde  ................................ ................................ .....................  3 
+Refinamiento completo  ................................ ................................ .....................  3 
+Algoritmos de subdivisión  ................................ ................................ .....................  4 
+Quadtree (2D)  ................................ ................................ ................................ ... 4 
+Octree (3D)  ................................ ................................ ................................ .......  4 
+Errores comunes  ................................ ................................ ................................ .. 4 
+Refinación de la malla ................................ ................................ ...........................  4 
+Niveles de refinación  ................................ ................................ .........................  4 
+Paso a paso  ................................ ................................ ................................ ......  4 
+Métricas de calidad  ................................ ................................ ..............................  5 
+Área  ................................ ................................ ................................ .................  5 
+Ángulo mínimo ................................ ................................ ................................ .. 5 
+Relación de aspecto (Aspect Ratio)  ................................ ................................ .... 5 
+Verde  ................................ ................................ ................................ ...............  5 
+Amarillo  ................................ ................................ ................................ ...........  5 
+Rojo  ................................ ................................ ................................ .................  5 
+Interactuar con el modelo  ................................ ................................ .....................  5 
+Anterior  ................................ ................................ ................................ ............  6 
+Siguiente  ................................ ................................ ................................ ..........  6 
+Play  ................................ ................................ ................................ ..................  6 
+</pre>
+</div>
+
+<div class='section' id='page2'>
+<h2>Página 2</h2>
+<pre>
+Reinicio  ................................ ................................ ................................ ............  6 
+Mostrar overlay  ................................ ................................ ................................ . 6 
+Acciones rápidas  ................................ ................................ ................................ .. 6 
+Limpiar  ................................ ................................ ................................ .............  6 
+Reset cámara  ................................ ................................ ................................ ... 6 
+Puntos críticos  ................................ ................................ ................................ .. 6 
+Reload  ................................ ................................ ................................ .............  6 
+Opciones de visualización  ................................ ................................ .....................  6 
+Wireframe  ................................ ................................ ................................ ........  6 
+Sólido  ................................ ................................ ................................ ..............  6 
+Exportación y guardado ................................ ................................ .........................  7 
+Formato de salida  ................................ ................................ .............................  7 
+Compatibilidad  ................................ ................................ ................................ . 7 
+Contenido exportado  ................................ ................................ .........................  7 
+Guardar  ................................ ................................ ................................ ............  7 
+</pre>
+</div>
+
+<div class='section' id='page3'>
+<h2>Página 3</h2>
+<pre>
+Cargar Archivos  
+
+Formatos soportados  
+
+MeshStep soporta formatos STL, OFF y PLY.  
+Los archivos deben estar en formato ASCII (texto) y no binario.  
+Archivos binarios no serán cargados correctamente.  
+
+Método de carga  
+
+El archivo puede cargarse:  
+- Arrastrando y soltando en la ventana principal  
+- Usando la opción del menú “Archivo → Abrir”  
+- Presionando CTRL + O  
+
+Opciones avanzadas  
+
+Quitar límites de hardware:  
+Permite saltar validaciones de límite de vértices.  
+Exportar historial de mallado:  
+Genera un archivo con las operaciones realizadas para reproducir el mallado.  
+</pre>
+</div>
+
+<div class='section' id='page4'>
+<h2>Página 4</h2>
+<pre>
+Tipos de refinamiento  
+
+Refinamiento por borde:  
+Permite subdividir solo los bordes seleccionados.  
+Refinamiento completo:  
+Subdivide todos los elementos de la malla.  
+
+Algoritmos de subdivisión  
+
+Quadtree (2D):  
+Subdivisión espacial recursiva en cuatro partes.  
+Octree (3D):  
+Subdivisión espacial recursiva en ocho partes.  
+
+Errores comunes  
+
+- Archivo vacío o malformado  
+- Archivo binario en lugar de ASCII  
+- Nodos repetidos  
+- Polígonos no orientados correctamente  
+
+Refinación de la malla  
+
+Niveles de refinación:  
+Permite especificar cuántas veces subdividir la malla.  
+Paso a paso:  
+La interfaz muestra cada refinamiento progresivo.  
+</pre>
+</div>
+
+<div class='section' id='page5'>
+<h2>Página 5</h2>
+<pre>
+Métricas de calidad  
+
+Área:  
+Evalúa el área de cada elemento.  
+
+Ángulo mínimo:  
+Mide el ángulo más pequeño de cada polígono.  
+
+Relación de aspecto (Aspect Ratio):  
+Relación entre longitudes de lados del elemento.  
+
+Colores de clasificación:  
+- Verde: calidad buena  
+- Amarillo: calidad media  
+- Rojo: calidad mala  
+
+Interactuar con el modelo  
+
+Controles básicos:  
+- Anterior: retrocede un paso en el historial  
+- Siguiente: avanza un paso en el historial  
+- Play: reproduce automáticamente los pasos  
+</pre>
+</div>
+
+<div class='section' id='page6'>
+<h2>Página 6</h2>
+<pre>
+Acciones rápidas  
+
+- Reinicio: reinicia la simulación  
+- Mostrar overlay: superpone información adicional  
+- Limpiar: elimina resultados temporales  
+- Reset cámara: devuelve la vista a la posición inicial  
+- Puntos críticos: resalta zonas problemáticas  
+- Reload: recarga el archivo original  
+
+Opciones de visualización  
+
+- Wireframe: muestra solo los bordes  
+- Sólido: muestra la superficie completa con relleno  
+</pre>
+</div>
+
+<div class='section' id='page7'>
+<h2>Página 7</h2>
+<pre>
+Exportación y guardado  
+
+Formato de salida:  
+El programa exporta en STL y PLY (ASCII).  
+
+Compatibilidad:  
+Los archivos exportados pueden abrirse en software CAD.  
+
+Contenido exportado:  
+Incluye geometría refinada y métricas de calidad.  
+
+Guardar:  
+Para guardar el archivo se debe presionar la tecla “s”,  
+también disponible en el menú “Archivo → Guardar”.  
+
+--- Fin del Tutorial Meshstep ---
+</pre>
+</div>
+
+
+</body>
+</html>

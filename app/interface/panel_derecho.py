@@ -10,6 +10,9 @@ import numpy as np
 import os
 import re
 from app.visualization.FeriaVTK import CustomInteractorStyle
+from app.logic.main_window_logic import (
+    accion_w, accion_s
+)
 
 class PanelDerecho(QScrollArea):
     def __init__(self, parent=None):
@@ -545,16 +548,16 @@ class PanelDerecho(QScrollArea):
         self.modo_visualizacion = "wireframe"
         self.actualizar_estado_botones_visualizacion()
         # Llamar a la función del parent si existe
-        if self.parent and hasattr(self.parent, 'accion_w'):
-            self.parent.accion_w()
+        main_window = self.parentWidget().parentWidget()
+        accion_w(main_window)
     
     def activar_solido(self):
         """Activa modo sólido"""
         self.modo_visualizacion = "solido"
         self.actualizar_estado_botones_visualizacion()
         # Llamar a la función del parent si existe
-        if self.parent and hasattr(self.parent, 'accion_s'):
-            self.parent.accion_s()
+        main_window = self.parentWidget().parentWidget()
+        accion_s(main_window)
     
     def actualizar_estado_botones_visualizacion(self):
         """Actualiza el aspecto visual de los botones según el modo activo"""
