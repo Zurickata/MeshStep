@@ -1,204 +1,205 @@
-<!doctype html>
-<html lang='es'>
+<!DOCTYPE html>
+<html lang="es">
 <head>
-<meta charset='utf-8'>
-<meta name='viewport' content='width=device-width,initial-scale=1'>
-<title>Tutorial Meshstep — HTML</title>
-<style>
-body{font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; line-height:1.5; padding:20px; max-width:900px; margin:auto; color:#111}
-h1,h2,h3{color:#0b5}
-pre{white-space:pre-wrap}
-.toc{background:#f7f7f7;padding:12px;border-radius:8px}
-.section{margin-top:28px}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manual MeshStep</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+      background: #b2f0d4;
+      color: #222;
+      display: flex;
+    }
+
+    nav {
+      width: 240px;
+      background: #8cd9b9;
+      color: #fff;
+      padding: 20px;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+
+    nav h2 {
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+
+    nav a {
+      display: block;
+      color: #fff;
+      text-decoration: none;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    .content {
+      margin-left: 260px;
+      padding: 30px;
+      max-width: 900px;
+    }
+
+    section {
+      margin-bottom: 40px;
+      background: #e6fcf3;
+      padding: 20px;
+      border-radius: 10px;
+      border-left: 6px solid #5cbf9b;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    section h3 {
+      color: #2a8c6e;
+      margin-top: 0;
+    }
+
+    section ul {
+      line-height: 1.6;
+    }
+  </style>
 </head>
 <body>
 
-<div class='section' id='page1'>
-<h2>Página 1</h2>
-<pre>
-Tutorial Meshstep  
-Índice  
-Cargar Archivos  ................................ ................................ ................................ .... 3 
-Formatos soportados  ................................ ................................ ........................  3 
-Método de carga  ................................ ................................ ...............................  3 
-Opciones avanzadas  ................................ ................................ ............................  3 
-Quitar límites de hardware  ................................ ................................ .................  3 
-Exportar historial de mallado  ................................ ................................ .............  3 
-Tipos de refinamiento  ................................ ................................ ...........................  3 
-Refinamiento por borde  ................................ ................................ .....................  3 
-Refinamiento completo  ................................ ................................ .....................  3 
-Algoritmos de subdivisión  ................................ ................................ .....................  4 
-Quadtree (2D)  ................................ ................................ ................................ ... 4 
-Octree (3D)  ................................ ................................ ................................ .......  4 
-Errores comunes  ................................ ................................ ................................ .. 4 
-Refinación de la malla ................................ ................................ ...........................  4 
-Niveles de refinación  ................................ ................................ .........................  4 
-Paso a paso  ................................ ................................ ................................ ......  4 
-Métricas de calidad  ................................ ................................ ..............................  5 
-Área  ................................ ................................ ................................ .................  5 
-Ángulo mínimo ................................ ................................ ................................ .. 5 
-Relación de aspecto (Aspect Ratio)  ................................ ................................ .... 5 
-Verde  ................................ ................................ ................................ ...............  5 
-Amarillo  ................................ ................................ ................................ ...........  5 
-Rojo  ................................ ................................ ................................ .................  5 
-Interactuar con el modelo  ................................ ................................ .....................  5 
-Anterior  ................................ ................................ ................................ ............  6 
-Siguiente  ................................ ................................ ................................ ..........  6 
-Play  ................................ ................................ ................................ ..................  6 
-</pre>
+<nav>
+  <h2>Manual de Uso</h2>
+  <a href="#intro">¿Qué es MeshStep?</a>
+  <a href="#subir-archivo">Cargar Archivo</a>
+  <a href="#opciones-avanzadas">Opciones Avanzadas</a>
+  <a href="#tipos">Tipos de refinamiento</a>
+  <a href="#algoritmos">Algoritmos de subdivisión</a>
+  <a href="#refinacion">Refinación de la malla</a>
+  <a href="#metricas">Métricas de calidad</a>
+  <a href="#interactuar">Interactuar con el modelo</a>
+  <a href="#acciones-rapidas">Acciones rápidas</a>
+  <a href="#opciones-visualizacion">Opciones de visualización</a>
+  <a href="#exportacion">Exportación y guardado</a>
+</nav>
+
+<div class="content">
+  <section id="intro">
+    <h3>¿Qué es MeshStep?</h3>
+    <p>MeshStep es una herramienta para refinamiento de mallas en 2D y 3D, con opciones avanzadas de subdivisión, visualización y exportación.</p>
+  </section>
+
+  <section id="subir-archivo">
+    <h3>Cargar Archivo</h3>
+    <ul>
+      <li><b>Formatos soportados:</b>
+        <ul>
+          <li>2D: .poly</li>
+          <li>3D: .poly, .mdl y .vtk</li>
+        </ul>
+      </li>
+      <li><b>Método de Cargar:</b>
+        <ul>
+          <li>Presionar el botón “Cargar Archivo” en el panel principal.</li>
+          <li>Seleccionar el archivo desde el explorador de su sistema operativo. </li>
+          <li>Confirmar la carga. El sistema validará automáticamente la integridad 
+del archivo y mostrará una vista previa. </li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <section id="opciones-avanzadas">
+    <h3>Opciones Avanzadas</h3>
+    <ul>
+      <li><b>Quitar límites de hardware:</b> permite utilizar más recursos de memoria y 
+procesamiento, mejorando el refinamiento y visualización en modelos 
+complejos. </li>
+      <li><b>Exportar historial de mallado:</b> guarda la secuencia de pasos aplicada 
+(niveles de refinación, métricas activadas, acciones rápidas utilizadas), útil 
+para reproducir o auditar el proceso de mallado. </li>
+    </ul>
+  </section>
+
+  <section id="tipos">
+    <h3>Tipos de refinamiento</h3>
+    <ul>
+      <li><b>Refinamiento por borde:</b> subdivide los elementos cercanos a los bordes 
+de la geometría. Se utiliza para capturar con mayor precisión la curvatura o los 
+contornos. </li>
+      <li><b>Refinamiento completo:</b> subdivide todos los elementos de la malla, 
+logrando una distribución homogénea en toda la figura. 
+</li>
+    </ul>
+  </section>
+
+  <section id="algoritmos">
+    <h3>Algoritmos de subdivisión</h3>
+    <ul>
+      <li><b>Quadtree (2D):</b> divide recursivamente la superficie en cuatro cuadrantes. Es útil 
+para el refinamiento adaptativo de mallas en superficies planas. </li>
+      <li><b>Octree (3D):</b> divide recursivamente el espacio en ocho cubos. Se aplica al 
+refinamiento de mallas volumétricas tridimensionales. </li>
+    </ul>
+  </section>
+
+  <section id="refinacion">
+    <h3>Refinación de la malla</h3>
+    <ul>
+      <li>Niveles de refinación</li>
+      <li>Modo paso a paso</li>
+    </ul>
+  </section>
+
+  <section id="metricas">
+    <h3>Métricas de calidad</h3>
+    <ul>
+      <li>Área</li>
+      <li>Ángulo mínimo</li>
+      <li>Aspect Ratio</li>
+      <li>Colores: Verde, Amarillo, Rojo</li>
+    </ul>
+  </section>
+
+  <section id="interactuar">
+    <h3>Interactuar con el modelo</h3>
+    <ul>
+      <li>Anterior</li>
+      <li>Siguiente</li>
+      <li>Play</li>
+    </ul>
+  </section>
+
+  <section id="acciones-rapidas">
+    <h3>Acciones rápidas</h3>
+    <ul>
+      <li>Reinicio</li>
+      <li>Mostrar overlay</li>
+      <li>Limpiar</li>
+      <li>Reset cámara</li>
+      <li>Puntos críticos</li>
+      <li>Reload</li>
+    </ul>
+  </section>
+
+  <section id="opciones-visualizacion">
+    <h3>Opciones de visualización</h3>
+    <ul>
+      <li>Wireframe</li>
+      <li>Sólido</li>
+    </ul>
+  </section>
+
+  <section id="exportacion">
+    <h3>Exportación y guardado</h3>
+    <ul>
+      <li>Formatos: STL, PLY (ASCII)</li>
+      <li>Compatibilidad con software CAD</li>
+      <li>Contenido: geometría refinada y métricas</li>
+      <li>Guardar: tecla “s” o menú “Archivo → Guardar”</li>
+    </ul>
+  </section>
 </div>
-
-<div class='section' id='page2'>
-<h2>Página 2</h2>
-<pre>
-Reinicio  ................................ ................................ ................................ ............  6 
-Mostrar overlay  ................................ ................................ ................................ . 6 
-Acciones rápidas  ................................ ................................ ................................ .. 6 
-Limpiar  ................................ ................................ ................................ .............  6 
-Reset cámara  ................................ ................................ ................................ ... 6 
-Puntos críticos  ................................ ................................ ................................ .. 6 
-Reload  ................................ ................................ ................................ .............  6 
-Opciones de visualización  ................................ ................................ .....................  6 
-Wireframe  ................................ ................................ ................................ ........  6 
-Sólido  ................................ ................................ ................................ ..............  6 
-Exportación y guardado ................................ ................................ .........................  7 
-Formato de salida  ................................ ................................ .............................  7 
-Compatibilidad  ................................ ................................ ................................ . 7 
-Contenido exportado  ................................ ................................ .........................  7 
-Guardar  ................................ ................................ ................................ ............  7 
-</pre>
-</div>
-
-<div class='section' id='page3'>
-<h2>Página 3</h2>
-<pre>
-Cargar Archivos  
-
-Formatos soportados  
-
-MeshStep soporta formatos STL, OFF y PLY.  
-Los archivos deben estar en formato ASCII (texto) y no binario.  
-Archivos binarios no serán cargados correctamente.  
-
-Método de carga  
-
-El archivo puede cargarse:  
-- Arrastrando y soltando en la ventana principal  
-- Usando la opción del menú “Archivo → Abrir”  
-- Presionando CTRL + O  
-
-Opciones avanzadas  
-
-Quitar límites de hardware:  
-Permite saltar validaciones de límite de vértices.  
-Exportar historial de mallado:  
-Genera un archivo con las operaciones realizadas para reproducir el mallado.  
-</pre>
-</div>
-
-<div class='section' id='page4'>
-<h2>Página 4</h2>
-<pre>
-Tipos de refinamiento  
-
-Refinamiento por borde:  
-Permite subdividir solo los bordes seleccionados.  
-Refinamiento completo:  
-Subdivide todos los elementos de la malla.  
-
-Algoritmos de subdivisión  
-
-Quadtree (2D):  
-Subdivisión espacial recursiva en cuatro partes.  
-Octree (3D):  
-Subdivisión espacial recursiva en ocho partes.  
-
-Errores comunes  
-
-- Archivo vacío o malformado  
-- Archivo binario en lugar de ASCII  
-- Nodos repetidos  
-- Polígonos no orientados correctamente  
-
-Refinación de la malla  
-
-Niveles de refinación:  
-Permite especificar cuántas veces subdividir la malla.  
-Paso a paso:  
-La interfaz muestra cada refinamiento progresivo.  
-</pre>
-</div>
-
-<div class='section' id='page5'>
-<h2>Página 5</h2>
-<pre>
-Métricas de calidad  
-
-Área:  
-Evalúa el área de cada elemento.  
-
-Ángulo mínimo:  
-Mide el ángulo más pequeño de cada polígono.  
-
-Relación de aspecto (Aspect Ratio):  
-Relación entre longitudes de lados del elemento.  
-
-Colores de clasificación:  
-- Verde: calidad buena  
-- Amarillo: calidad media  
-- Rojo: calidad mala  
-
-Interactuar con el modelo  
-
-Controles básicos:  
-- Anterior: retrocede un paso en el historial  
-- Siguiente: avanza un paso en el historial  
-- Play: reproduce automáticamente los pasos  
-</pre>
-</div>
-
-<div class='section' id='page6'>
-<h2>Página 6</h2>
-<pre>
-Acciones rápidas  
-
-- Reinicio: reinicia la simulación  
-- Mostrar overlay: superpone información adicional  
-- Limpiar: elimina resultados temporales  
-- Reset cámara: devuelve la vista a la posición inicial  
-- Puntos críticos: resalta zonas problemáticas  
-- Reload: recarga el archivo original  
-
-Opciones de visualización  
-
-- Wireframe: muestra solo los bordes  
-- Sólido: muestra la superficie completa con relleno  
-</pre>
-</div>
-
-<div class='section' id='page7'>
-<h2>Página 7</h2>
-<pre>
-Exportación y guardado  
-
-Formato de salida:  
-El programa exporta en STL y PLY (ASCII).  
-
-Compatibilidad:  
-Los archivos exportados pueden abrirse en software CAD.  
-
-Contenido exportado:  
-Incluye geometría refinada y métricas de calidad.  
-
-Guardar:  
-Para guardar el archivo se debe presionar la tecla “s”,  
-también disponible en el menú “Archivo → Guardar”.  
-
---- Fin del Tutorial Meshstep ---
-</pre>
-</div>
-
 
 </body>
 </html>
