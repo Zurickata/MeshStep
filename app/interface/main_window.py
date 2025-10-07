@@ -2,7 +2,6 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLi
                              QSplitter, QStyle, QTabWidget,
                              QMenuBar, QAction)
 from PyQt5.QtCore import Qt
-from PyQt5.QtWebEngineWidgets import QWebEngineView
 from app.visualization.RefinementViewer import RefinementViewer
 from app.interface.panel_derecho import PanelDerecho
 from app.visualization.vtkplayer import VTKPlayer
@@ -11,7 +10,6 @@ from app.logic.main_window_logic import (
     abrir_dialogo_carga, mostrar_contenido, mostrar_menu_contextual,
     abrir_opciones_dialog, cambiar_visualizador, closeEvent, abrir_manual
 )
-import webbrowser
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -22,9 +20,9 @@ class MainWindow(QWidget):
         self.ignorar_limite_hardware = False
 
         self.menubar = QMenuBar(self)
-        self.file_menu = self.menubar.addMenu("File")
-        self.edit_menu = self.menubar.addMenu("Edit")
-        self.help_menu = self.menubar.addMenu("Help")
+        self.file_menu = self.menubar.addMenu("Archivo")
+        self.edit_menu = self.menubar.addMenu("Editar")
+        self.help_menu = self.menubar.addMenu("Ayuda")
 
         # Iconos estándar
         icon_cargar = self.style().standardIcon(QStyle.SP_DirOpenIcon)
@@ -52,7 +50,7 @@ class MainWindow(QWidget):
         self.action_opciones.triggered.connect(lambda: abrir_opciones_dialog(self))
         self.edit_menu.addAction(self.action_opciones)
 
-        self.action_help = QAction("About", self)
+        self.action_help = QAction("Manual", self)
         self.action_help.triggered.connect(lambda: abrir_manual(self))
         self.help_menu.addAction(self.action_help)
 
