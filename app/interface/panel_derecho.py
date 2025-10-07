@@ -83,7 +83,10 @@ class PanelDerecho(QScrollArea):
         self.actualizar_metricas(self._contenido_base_sin_celda + celda_html)
 
     def actualizar_panel_derecho(self, ruta_archivo):
+        
         try:
+            
+            """
             # Cambiar extensión del archivo de .vtk a _histo.txt
             base, _ = os.path.splitext(ruta_archivo)
             ruta_modificada = f"{base}_histo.txt"
@@ -205,12 +208,8 @@ class PanelDerecho(QScrollArea):
                 color_calidad = "#ff0000"
 
             # Construir el contenido HTML con el estilo deseado
-            contenido_html = f"""
-            <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px;'>
-                <b style='color: #ffd700;'>Nivel de Refinamiento: {numero}</b><br><br>
-                
-                <b style='color: #ffd700;'>Ángulos Críticos (Umbral: <span style='color: {color_threshold};'>{threshold_actual}°</span>)</b><br><br>
-            """
+            contenido_html = f
+           
 
             # Agregar información de triángulos si está disponible
             if min_triangulo and max_triangulo:
@@ -219,12 +218,12 @@ class PanelDerecho(QScrollArea):
                 color_min_tri = color_por_angulo(min_triangulo)
                 color_max_tri = color_por_angulo(max_triangulo)
                 
-                contenido_html += f"""
+                contenido_html += f
                 <b>Triángulos:</b><br>
                 <span style='color: {color_min_tri};'>Mín: {min_tri_formatted}</span> | 
                 <span style='color: {color_max_tri};'>Máx: {max_tri_formatted}</span><br>
                 <span style='color: #ff6b6b;'>⚠️ {criticos_triangulos} ángulos &lt; {threshold_actual}°</span><br><br>
-                """
+                
 
             # Agregar información de cuadriláteros si está disponible
             if min_cuadrado and max_cuadrado:
@@ -233,23 +232,27 @@ class PanelDerecho(QScrollArea):
                 color_min_cuad = color_por_angulo(min_cuadrado)
                 color_max_cuad = color_por_angulo(max_cuadrado)
                 
-                contenido_html += f"""
+                contenido_html += f
                 <b>Cuadriláteros:</b><br>
                 <span style='color: {color_min_cuad};'>Mín: {min_cuad_formatted}</span> | 
                 <span style='color: {color_max_cuad};'>Máx: {max_cuad_formatted}</span><br>
                 <span style='color: #ff6b6b;'>⚠️ {criticos_cuadrados} ángulos &lt; {threshold_actual}°</span><br>
-                """
+                
 
             # Agregar calidad general
-            contenido_html += f"""
-                <div style='margin-top: 10px; padding: 8px; background-color: #3a3a3a; border-radius: 4px;'>
-                    <b style='color: {color_calidad};'>Calidad General:</b> 
-                    <span style='color: {color_calidad};'>{calidad_general}</span> 
-                    <span style='color: #cccccc; font-size: 12px;'>({total_criticos} ángulos críticos)</span>
-                </div>
-            </div>
-            """
+            
 
+            """
+            print("hola")
+            print(ruta_archivo)
+            base, _ = os.path.splitext(ruta_archivo)
+            numero = base.split('_')[-1]
+            contenido_html = f"""
+                <div style='margin-top: 10px; padding: 8px; background-color: #3a3a3a; border-radius: 4px;'>
+                    <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px;'>
+                    <b style='color: #ffd700;'>Nivel de Refinamiento: {numero}</b><br><br>
+                </div>
+            """
             # Actualizar el panel derecho
             self.actualizar_metricas(contenido_html)
             # Guardar como contenido base limpio (SIN información de celda)
@@ -259,10 +262,10 @@ class PanelDerecho(QScrollArea):
             error_html = f"""
             <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; color: #ff6b6b;'>
                 <b>Error al leer el archivo:</b><br>{str(e)}<br><br>
-                <span style='font-size: 12px; color: #cccccc;'>Ruta: {ruta_modificada}</span>
+                <span style='font-size: 12px; color: #cccccc;'>Ruta:</span>
             </div>
             """
-            self.panel_derecho.actualizar_metricas(error_html)    
+            self.actualizar_metricas(error_html)
     
     def crear_seccion_metricas(self):
         """Sección de métricas de calidad (ahora dinámica)"""
@@ -490,6 +493,8 @@ class PanelDerecho(QScrollArea):
             stats_html += f"""
             <b>Cuadriláteros:</b><br>
             • Relación aspecto: <span style='color: #4ecdc4;'>{cuadrilateros.get('aspect_ratio_avg', 'N/A'):.3f}</span><br>
+            • Ángulo mínimo: <span style='color: #4ecdc4;'>{cuadrilateros.get('min_angle_min', 'N/A'):.1f}°</span><br>
+            • Ángulo máximo: <span style='color: #ff6b6b;'>{cuadrilateros.get('max_angle_avg', 'N/A'):.1f}°</span><br>
             • Distorsión: <span style='color: #ff6b6b;'>{cuadrilateros.get('skew_avg', 'N/A'):.3f}</span><br>
             • Relación aristas: <span style='color: #4ecdc4;'>{cuadrilateros.get('edge_ratio_avg', 'N/A'):.3f}</span><br>
             """

@@ -258,7 +258,13 @@ class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera): #chatgpt
     def on_key_press(self, obj, event):
         key = self.GetInteractor().GetKeySym()
         if key.lower() == "e":
-            click_pos = self.GetInteractor().GetEventPosition()
+            # Si no hubo click previo, obtener siempre la posición actual del mouse
+            mouse_pos = self.GetInteractor().GetEventPosition()
+            if not mouse_pos:  
+                # fallback: centro de la ventana
+                size = self.GetInteractor().GetRenderWindow().GetSize()
+                mouse_pos = (size[0] // 2, size[1] // 2)
+            click_pos = mouse_pos
             if self.picker.Pick(click_pos[0], click_pos[1], 0, self.renderer):
                 actor = self.picker.GetActor()
                 cell_id = self.picker.GetCellId()
@@ -266,6 +272,20 @@ class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera): #chatgpt
                     self._handle_selection(actor, cell_id)
 
     def _handle_selection(self, actor, cell_id):
+        # Caso: deseleccionar si ya estaba seleccionada la misma cara
+        if self.last_selected_cell and self.last_selected_cell[1] == cell_id:
+            print(f"❌ Cara (ID={cell_id}) deseleccionada.")
+            if hasattr(self, "highlight_actor") and self.highlight_actor:
+                self.renderer.RemoveActor(self.highlight_actor)
+                self.highlight_actor = None                           ### aca se elimina el selecionado
+                self.renderer.GetRenderWindow().Render()
+            self.last_selected_cell = None
+            return
+
+        # Si había otra seleccionada, eliminar highlight previo
+        if hasattr(self, "highlight_actor") and self.highlight_actor:
+            self.renderer.RemoveActor(self.highlight_actor)
+
         dataset = actor.GetMapper().GetInput()
         cell = dataset.GetCell(cell_id)
 
@@ -275,27 +295,20 @@ class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera): #chatgpt
             print(f"   {p}")
 
         # Calcular ángulo mínimo de la celda
+
         angulos = []
         n = len(puntos)
         for i in range(n):
             p1 = puntos[i-1]  # Punto anterior
             p2 = puntos[i]    # Punto actual
             p3 = puntos[(i+1) % n]  # Punto siguiente
-            
-            # Importar la función de cálculo de ángulo
-            from .mesh_metrics import calcular_angulo
             angulo = calcular_angulo(p1, p2, p3)
             angulos.append(angulo)
-        
         min_angle_rad = min(angulos)
         min_angle_deg = math.degrees(min_angle_rad)
-        
         print(f"🔢 Ángulo mínimo de la celda: {min_angle_deg:.2f}°")
 
-        # ...existing highlight code...
-        if hasattr(self, "highlight_actor") and self.highlight_actor:
-            self.renderer.RemoveActor(self.highlight_actor)
-
+        # Crear highlight para la nueva selección
         poly = vtk.vtkPolyData()
         points = vtk.vtkPoints()
         ids = vtk.vtkIdList()
@@ -315,7 +328,7 @@ class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera): #chatgpt
 
         highlight_actor = vtk.vtkActor()
         highlight_actor.SetMapper(mapper)
-        highlight_actor.GetProperty().SetColor(1, 1, 0)  
+        highlight_actor.GetProperty().SetColor(1, 1, 0)
         highlight_actor.GetProperty().SetLineWidth(3)
         highlight_actor.GetProperty().EdgeVisibilityOn()
 

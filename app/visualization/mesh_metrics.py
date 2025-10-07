@@ -116,40 +116,6 @@ def _calcular_metricas_triangulos(grid, triangulo_indices):
     min_angle_filter.SetTriangleQualityMeasureToMinAngle()
     min_angle_filter.Update()
     min_angle_array = min_angle_filter.GetOutput().GetCellData().GetArray("Quality")
-
-     # DESPUÉS de calcular min_angle_array, agrega esto para debug:
-    print("=== DEBUG MESH METRICS ===")
-    for i in range(min(5, len(triangulo_indices))):  # Solo los primeros 5
-        cell_id = triangulo_indices[i]
-        min_angle_vtk = min_angle_array.GetValue(i)
-        
-        # Calcular manualmente con tu función
-        cell = grid.GetCell(cell_id)
-        puntos = [cell.GetPoints().GetPoint(j) for j in range(cell.GetNumberOfPoints())]
-        
-        angulos_manuales = []
-        n = len(puntos)
-        for j in range(n):
-            from .mesh_metrics import calcular_angulo
-            angulo = calcular_angulo(puntos[j-1], puntos[j], puntos[(j+1) % n])
-            angulos_manuales.append(math.degrees(angulo))
-        
-        min_manual = min(angulos_manuales)
-        
-        print(f"Celda {cell_id}:")
-        print(f"  VTK min_angle: {min_angle_vtk:.2f}")
-        print(f"  Manual min: {min_manual:.2f}")
-        print(f"  Diferencia: {abs(min_angle_vtk - min_manual):.2f}")
-        print(f"  Todos los ángulos manuales: {[f'{a:.1f}°' for a in angulos_manuales]}")
-    print("=========================")
-
-    # Probar si VTK está en radianes
-    print("=== PRUEBA RADIANES ===")
-    min_angle_vtk_rad = min_angle_array.GetValue(0)
-    min_angle_vtk_deg = math.degrees(min_angle_vtk_rad)
-    print(f"VTK valor original: {min_angle_vtk_rad:.6f}")
-    print(f"VTK convertido a grados: {min_angle_vtk_deg:.2f}")
-    print("======================")
     
     max_angle_filter = vtk.vtkMeshQuality()
     max_angle_filter.SetInputData(triangle_grid)
@@ -242,13 +208,32 @@ def _calcular_metricas_cuadrilateros(grid, quad_indices):
     edge_ratio_filter.Update()
     edge_ratio_array = edge_ratio_filter.GetOutput().GetCellData().GetArray("Quality")
     
-    # Almacenar todas las métricas
-    for i in range(len(quad_indices)):
+    # Calcular ángulos mínimos y máximos manualmente para cada cuadrilátero
+    for i, cell_id in enumerate(quad_indices):
+        cell = grid.GetCell(cell_id)
+        puntos = [cell.GetPoints().GetPoint(j) for j in range(cell.GetNumberOfPoints())]
+        
+        # Calcular los 4 ángulos del cuadrilátero
+        angulos = []
+        n = len(puntos)  # debería ser 4 para cuadriláteros
+        for j in range(n):
+            p1 = puntos[j-1]  # Punto anterior
+            p2 = puntos[j]    # Punto actual
+            p3 = puntos[(j+1) % n]  # Punto siguiente
+            
+            angulo_rad = calcular_angulo(p1, p2, p3)
+            angulo_deg = math.degrees(angulo_rad)
+            angulos.append(angulo_deg)
+        
+        # Almacenar ángulo mínimo y máximo
+        metrics['min_angle'].append(min(angulos))
+        metrics['max_angle'].append(max(angulos))
+        
+        # Almacenar las otras métricas VTK
         metrics['area'].append(area_array.GetValue(i))
         metrics['aspect_ratio'].append(aspect_array.GetValue(i))
         metrics['skew'].append(skew_array.GetValue(i))
         metrics['edge_ratio'].append(edge_ratio_array.GetValue(i))
-    
     # Calcular estadísticas
     stats = {}
     for metric_name, values in metrics.items():
