@@ -207,8 +207,28 @@ def _calcular_metricas_cuadrilateros(grid, quad_indices):
     edge_ratio_filter.Update()
     edge_ratio_array = edge_ratio_filter.GetOutput().GetCellData().GetArray("Quality")
     
-    # Almacenar todas las métricas
-    for i in range(len(quad_indices)):
+        # Calcular ángulos mínimos y máximos manualmente para cada cuadrilátero
+    for i, cell_id in enumerate(quad_indices):
+        cell = grid.GetCell(cell_id)
+        puntos = [cell.GetPoints().GetPoint(j) for j in range(cell.GetNumberOfPoints())]
+        
+        # Calcular los 4 ángulos del cuadrilátero
+        angulos = []
+        n = len(puntos)  # debería ser 4 para cuadriláteros
+        for j in range(n):
+            p1 = puntos[j-1]  # Punto anterior
+            p2 = puntos[j]    # Punto actual
+            p3 = puntos[(j+1) % n]  # Punto siguiente
+            
+            angulo_rad = calcular_angulo(p1, p2, p3)
+            angulo_deg = math.degrees(angulo_rad)
+            angulos.append(angulo_deg)
+        
+        # Almacenar ángulo mínimo y máximo
+        metrics['min_angle'].append(min(angulos))
+        metrics['max_angle'].append(max(angulos))
+        
+        # Almacenar las otras métricas VTK
         metrics['area'].append(area_array.GetValue(i))
         metrics['aspect_ratio'].append(aspect_array.GetValue(i))
         metrics['skew'].append(skew_array.GetValue(i))

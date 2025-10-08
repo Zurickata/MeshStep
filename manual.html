@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manual MeshStep</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+      background: #b2f0d4;
+      color: #222;
+      display: flex;
+    }
+
+    nav {
+      width: 240px;
+      background: #8cd9b9;
+      color: #fff;
+      padding: 20px;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+
+    nav h2 {
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+
+    nav a {
+      display: block;
+      color: #fff;
+      text-decoration: none;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    .content {
+      margin-left: 260px;
+      padding: 30px;
+      max-width: 900px;
+    }
+
+    section {
+      margin-bottom: 40px;
+      background: #e6fcf3;
+      padding: 20px;
+      border-radius: 10px;
+      border-left: 6px solid #5cbf9b;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    section h3 {
+      color: #2a8c6e;
+      margin-top: 0;
+    }
+
+    section ul {
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <h2>Manual de Uso</h2>
+  <a href="#intro">¿Qué es MeshStep?</a>
+  <a href="#subir-archivo">Cargar Archivo</a>
+  <a href="#opciones-avanzadas">Opciones Avanzadas</a>
+  <a href="#tipos">Tipos de refinamiento</a>
+  <a href="#algoritmos">Algoritmos de subdivisión</a>
+  <a href="#refinacion">Refinación de la malla</a>
+  <a href="#metricas">Métricas de calidad</a>
+  <a href="#interactuar">Interactuar con el modelo</a>
+  <a href="#acciones-rapidas">Acciones rápidas</a>
+  <a href="#opciones-visualizacion">Opciones de visualización</a>
+  <a href="#exportacion">Exportación y guardado</a>
+</nav>
+
+<div class="content">
+  <section id="intro">
+    <h3>¿Qué es MeshStep?</h3>
+    <p>MeshStep es una herramienta para refinamiento de mallas en 2D y 3D, con opciones avanzadas de subdivisión, visualización y exportación.</p>
+  </section>
+
+  <section id="subir-archivo">
+    <h3>Cargar Archivo</h3>
+    <ul>
+      <li><b>Formatos soportados:</b>
+        <ul>
+          <li>2D: .poly</li>
+          <li>3D: .poly, .mdl y .vtk</li>
+        </ul>
+      </li>
+      <li><b>Método de Cargar:</b>
+        <ul>
+          <li>Presionar el botón “Cargar Archivo” en el panel principal.</li>
+          <li>Seleccionar el archivo desde el explorador de su sistema operativo. </li>
+          <li>Confirmar la carga. El sistema validará automáticamente la integridad 
+del archivo y mostrará una vista previa. </li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <section id="opciones-avanzadas">
+    <h3>Opciones Avanzadas</h3>
+    <ul>
+      <li><b>Quitar límites de hardware:</b> permite utilizar más recursos de memoria y 
+procesamiento, mejorando el refinamiento y visualización en modelos 
+complejos. </li>
+      <li><b>Exportar historial de mallado:</b> guarda la secuencia de pasos aplicada 
+(niveles de refinación, métricas activadas, acciones rápidas utilizadas), útil 
+para reproducir o auditar el proceso de mallado. </li>
+    </ul>
+  </section>
+
+  <section id="tipos">
+    <h3>Tipos de refinamiento</h3>
+    <ul>
+      <li><b>Refinamiento por borde:</b> subdivide los elementos cercanos a los bordes 
+de la geometría. Se utiliza para capturar con mayor precisión la curvatura o los 
+contornos. </li>
+      <li><b>Refinamiento completo:</b> subdivide todos los elementos de la malla, 
+logrando una distribución homogénea en toda la figura. 
+</li>
+    </ul>
+  </section>
+
+  <section id="algoritmos">
+    <h3>Algoritmos de subdivisión</h3>
+    <ul>
+      <li><b>Quadtree (2D):</b> divide recursivamente la superficie en cuatro cuadrantes. Es útil 
+para el refinamiento adaptativo de mallas en superficies planas. </li>
+      <li><b>Octree (3D):</b> divide recursivamente el espacio en ocho cubos. Se aplica al 
+refinamiento de mallas volumétricas tridimensionales. </li>
+    </ul>
+  </section>
+
+  <section id="refinacion">
+    <h3>Refinación de la malla</h3>
+    <ul>
+      <li>Niveles de refinación</li>
+      <li>Modo paso a paso</li>
+    </ul>
+  </section>
+
+  <section id="metricas">
+    <h3>Métricas de calidad</h3>
+    <ul>
+      <li>Área</li>
+      <li>Ángulo mínimo</li>
+      <li>Aspect Ratio</li>
+      <li>Colores: Verde, Amarillo, Rojo</li>
+    </ul>
+  </section>
+
+  <section id="interactuar">
+    <h3>Interactuar con el modelo</h3>
+    <ul>
+      <li>Anterior</li>
+      <li>Siguiente</li>
+      <li>Play</li>
+    </ul>
+  </section>
+
+  <section id="acciones-rapidas">
+    <h3>Acciones rápidas</h3>
+    <ul>
+      <li>Reinicio</li>
+      <li>Mostrar overlay</li>
+      <li>Limpiar</li>
+      <li>Reset cámara</li>
+      <li>Puntos críticos</li>
+      <li>Reload</li>
+    </ul>
+  </section>
+
+  <section id="opciones-visualizacion">
+    <h3>Opciones de visualización</h3>
+    <ul>
+      <li>Wireframe</li>
+      <li>Sólido</li>
+    </ul>
+  </section>
+
+  <section id="exportacion">
+    <h3>Exportación y guardado</h3>
+    <ul>
+      <li>Formatos: STL, PLY (ASCII)</li>
+      <li>Compatibilidad con software CAD</li>
+      <li>Contenido: geometría refinada y métricas</li>
+      <li>Guardar: tecla “s” o menú “Archivo → Guardar”</li>
+    </ul>
+  </section>
+</div>
+
+</body>
+</html>

@@ -22,6 +22,8 @@
     ```bash
    git clone https://github.com/Zurickata/MeshStep.git
    cd MeshStep
+   git submodule init
+   git submodule update
 
 2. Ejecutar el script de configuración:
     ```bash

@@ -89,7 +89,7 @@ class MeshGeneratorController(QDialog):
         if self.quadtree.isChecked():
             file_filter = "Archivos POLY (*.poly)"
         elif self.octree.isChecked():
-            file_filter = "Archivos VTK (*.vtk);;Archivos POLY (*.poly);;Archivos MDL (*.mdl)"
+            file_filter = "Archivos MDL (*.mdl);;Archivos POLY (*.poly);;Archivos VTK (*.vtk)"
         else:
             file_filter = "Archivos POLY (*.poly)"  
 
