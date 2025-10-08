@@ -9,6 +9,7 @@ from PyQt5.QtCore import pyqtSignal, QObject
 # Crear el notificador al inicio del archivo
 class CellSelectionNotifier(QObject):
     cell_selected = pyqtSignal(int, int, float)  # cell_id, num_points, min_angle
+    cell_deselected = pyqtSignal()  # Nueva señal para deselección
 
 notifier = CellSelectionNotifier()
 
@@ -280,6 +281,7 @@ class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera): #chatgpt
                 self.highlight_actor = None                           ### aca se elimina el selecionado
                 self.renderer.GetRenderWindow().Render()
             self.last_selected_cell = None
+            notifier.cell_deselected.emit()
             return
 
         # Si había otra seleccionada, eliminar highlight previo
