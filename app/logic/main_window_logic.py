@@ -156,6 +156,8 @@ def abrir_dialogo_carga(main_window):
         item_text = f"{nombre_poly} ({tipo})"
         if nombre_poly not in diccionario:
             diccionario[nombre_poly] = dialogo.generated_files
+            #  GUARDAR LA RUTA DEL POLY TAMBIÉN
+            diccionario[nombre_poly + "_path"] = ruta_poly
             item = QListWidgetItem(item_text)
             item.setData(Qt.UserRole, tipo)
             main_window.lista_archivos.addItem(item)
@@ -170,11 +172,15 @@ def abrir_dialogo_carga(main_window):
         else:
             main_window.switcher.file_dict[nombre_poly] = dialogo.generated_files
             main_window.refinement_viewer.poly_path = ruta_poly
-            main_window.refinement_viewer._load_overlay_poly()
+            #update overlay
+            main_window.refinement_viewer.update_overlay_poly(ruta_poly)
+
 
         main_window.switcher.current_poly = nombre_poly
         main_window.switcher.current_index = 0
         main_window.switcher._load_current()
+        #Intento asegurar el update
+        main_window.refinement_viewer.update_overlay_poly(ruta_poly)
         main_window.panel_derecho.actualizar_panel_derecho(dialogo.generated_files[0])
         if main_window.refinement_viewer.switcher:
             main_window.panel_derecho.actualizar_estadisticas(main_window.refinement_viewer.switcher.metricas_actuales)
@@ -199,6 +205,10 @@ def mostrar_contenido(main_window, item):
         main_window.switcher.current_poly = nombre_poly
         main_window.switcher.current_index = 0
         main_window.switcher._load_current()
+        #prueba con overlay
+        if poly_path:
+            main_window.refinement_viewer.update_overlay_poly(poly_path)
+
         main_window.panel_derecho.actualizar_panel_derecho(archivos_vtk[0])
         if main_window.refinement_viewer.switcher:
             main_window.panel_derecho.actualizar_estadisticas(main_window.refinement_viewer.switcher.metricas_actuales)
@@ -310,6 +320,19 @@ def cambiar_visualizador(main_window, index):
 
         ruta_vtk = f"{nombre_base}.vtk"
         ruta_historial = f"{nombre_base}_historial.txt"
+
+        #  VALIDAR QUE EXISTE EL ARCHIVO DE HISTORIAL
+        historial_path = os.path.join("../../outputs", ruta_historial)
+        if not os.path.exists(historial_path):
+            QMessageBox.warning(
+                main_window, 
+                "Historial no disponible", 
+                f"El modo paso a paso aún no está implementado para mallas 3D.\n\n"
+                f"Archivo de historial no encontrado:\n{ruta_historial}\n\n"
+                f"Esta funcionalidad estará disponible próximamente."
+            )
+            main_window.tab_widget.setCurrentIndex(0)
+            return
 
         main_window.vtk_player.run_script(ruta_vtk, ruta_historial)
         try:

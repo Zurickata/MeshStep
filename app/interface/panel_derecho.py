@@ -24,8 +24,8 @@ class PanelDerecho(QScrollArea):
     def setup_ui(self):
         """Configura la interfaz del panel derecho"""
         self.setWidgetResizable(True)
-        self.setMaximumWidth(320)
-        self.setMinimumWidth(280)
+        self.setMaximumWidth(480)
+        self.setMinimumWidth(320)
         
         # Widget contenedor principal
         self.contenido = QWidget()
