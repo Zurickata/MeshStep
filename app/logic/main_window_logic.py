@@ -270,9 +270,40 @@ def cambiar_visualizador(main_window, index):
         main_window.vtk_player.vtk_widget.show()
         main_window.vtk_player.vtk_widget.GetRenderWindow().Render()
 
-    archivos = main_window.switcher.file_dict.get(main_window.switcher.current_poly, [])
-    print(archivos[-1])
-    if archivos:
+        # VALIDAR que switcher existe y tiene archivos cargados
+        if not main_window.switcher:
+            QMessageBox.warning(
+                main_window, 
+                "Sin archivos cargados", 
+                "No hay archivos cargados.\nPrimero carga un archivo .poly para generar una malla."
+            )
+            # Regresar al tab de refinamiento
+            main_window.tab_widget.setCurrentIndex(0)
+            return
+
+        
+        if not main_window.switcher.current_poly:
+            QMessageBox.warning(
+                main_window, 
+                "Sin malla seleccionada", 
+                "No hay una malla seleccionada.\nSelecciona una malla de la lista para visualizar el paso a paso."
+            )
+            # Regresar al tab de refinamiento
+            main_window.tab_widget.setCurrentIndex(0)
+            return
+
+        archivos = main_window.switcher.file_dict.get(main_window.switcher.current_poly, [])
+        if not archivos:
+            QMessageBox.warning(
+                main_window, 
+                "Sin archivos generados", 
+                "No hay archivos generados para la malla seleccionada.\nGenera la malla primero."
+            )
+            # Regresar al tab de refinamiento
+            main_window.tab_widget.setCurrentIndex(0)
+            return
+
+        print(archivos[-1])
         item = archivos[-1]  # Path completo del último archivo generado
         filename = os.path.basename(item)  # Ejemplo: a_output_3.vtk
         nombre_base = os.path.splitext(filename)[0]  # Resultado: "a_output_3"
@@ -285,8 +316,6 @@ def cambiar_visualizador(main_window, index):
             main_window.vtk_player.vtk_widget.GetRenderWindow().GetInteractor().Initialize()
         except Exception:
             pass
-    else:
-        QMessageBox.warning(main_window, "Archivo no seleccionado", "Selecciona una malla en la lista para visualizar el paso a paso.")
 
 def closeEvent(main_window, event):
     reply = QMessageBox.question(
