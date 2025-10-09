@@ -32,7 +32,7 @@ class BaseWrapper:
         Genera una malla y devuelve la ruta del archivo VTK.
         """
         try:
-            abs_input = str((self.algo_dir / "data" / Path(input_file).name).resolve())
+            abs_input = str(Path(input_file).resolve())
             abs_output = str((self.outputs_dir / f"{self.algo_name}_{output_file}").resolve())
 
             # 🚩 Aquí usamos el flag dinámico (puede ser -p o -d)

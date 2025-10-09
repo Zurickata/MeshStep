@@ -314,27 +314,48 @@ def cambiar_visualizador(main_window, index):
             return
 
         print(archivos[-1])
-        item = archivos[-1]  # Path completo del último archivo generado
-        filename = os.path.basename(item)  # Ejemplo: a_output_3.vtk
-        nombre_base = os.path.splitext(filename)[0]  # Resultado: "a_output_3"
+        item = archivos[-1]
+        filename = os.path.basename(item)
+        nombre_base = os.path.splitext(filename)[0]
 
         ruta_vtk = f"{nombre_base}.vtk"
-        ruta_historial = f"{nombre_base}_historial.txt"
 
-        #  VALIDAR QUE EXISTE EL ARCHIVO DE HISTORIAL
-        historial_path = os.path.join("../../outputs", ruta_historial)
-        if not os.path.exists(historial_path):
+        # Ruta base del proyecto (según ubicación de este archivo)
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        outputs_dir = os.path.abspath(os.path.join(BASE_DIR, "../../outputs"))
+
+        # Evitar duplicar prefijos
+        if nombre_base.startswith("quadtree_") or nombre_base.startswith("octree_"):
+            historial_quadtree = f"{nombre_base}_historial.txt"
+            historial_octree = f"{nombre_base}_historial.txt"
+        else:
+            historial_quadtree = f"quadtree_{nombre_base}_historial.txt"
+            historial_octree = f"octree_{nombre_base}_historial.txt"
+
+        # Rutas completas
+        ruta_quadtree = os.path.join(outputs_dir, historial_quadtree)
+        ruta_octree = os.path.join(outputs_dir, historial_octree)
+
+        # Verificar existencia
+        if os.path.exists(ruta_quadtree):
+            historial_path = ruta_quadtree
+        elif os.path.exists(ruta_octree):
+            historial_path = ruta_octree
+        else:
+            # ⚠️ Mensaje original restaurado
             QMessageBox.warning(
                 main_window, 
                 "Historial no disponible", 
                 f"El modo paso a paso aún no está implementado para mallas 3D.\n\n"
-                f"Archivo de historial no encontrado:\n{ruta_historial}\n\n"
+                f"Archivo de historial no encontrado:\n{historial_quadtree} / {historial_octree}\n\n"
                 f"Esta funcionalidad estará disponible próximamente."
             )
             main_window.tab_widget.setCurrentIndex(0)
             return
 
-        main_window.vtk_player.run_script(ruta_vtk, ruta_historial)
+        # Ejecutar normalmente
+        main_window.vtk_player.run_script(ruta_vtk, historial_path)
+
         try:
             main_window.vtk_player.vtk_widget.GetRenderWindow().GetInteractor().Initialize()
         except Exception:
