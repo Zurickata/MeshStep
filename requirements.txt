@@ -18,3 +18,4 @@ six==1.17.0
 vtk==9.4.2
 qdarkstyle==3.2.3
 scipy==1.15.3
+pygame==2.6.1

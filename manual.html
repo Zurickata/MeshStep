@@ -13,21 +13,44 @@
       display: flex;
     }
 
+    .nav-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .logo {
+      width: 60px;
+      height: auto;
+      background-color: #ffffff; /* Fondo blanco, puedes cambiarlo */
+      padding: 6px; /* Espacio interno para que el fondo se note */
+      border-radius: 6px; /* Bordes redondeados opcionales */
+      box-shadow: 0 0 4px rgba(0,0,0,0.2); /* Sombra suave opcional */
+    }
+
+
+
+
     nav {
       width: 240px;
       background: #8cd9b9;
-      color: #fff;
+      color: #2a8c6e;
       padding: 20px;
       position: fixed;
       height: 100vh;
       overflow-y: auto;
       box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      box-sizing: border-box;
     }
 
     nav h2 {
-      font-size: 18px;
-      margin-bottom: 20px;
-    }
+      font-size: 18px; /* Más grande que el original */
+      margin-bottom: 16px;
+      color: #2a8c6e;
+      text-shadow: 1px 1px 2px #ffffff; /* Contorno claro */
+      font-weight: bold;
+}
 
     nav a {
       display: block;
@@ -35,6 +58,11 @@
       text-decoration: none;
       margin-bottom: 12px;
       font-weight: 500;
+      background-color: #2a8c6e;
+      padding: 10px 15px; /* Opcional: mejora el espacio interno */
+      border-radius: 4px; /* Opcional: bordes redondeados */
+      font-size: 14px;
+
     }
 
     nav a:hover {
@@ -69,7 +97,10 @@
 <body>
 
 <nav>
-  <h2>Manual de Uso</h2>
+   <div class="nav-header">
+    <img src="imagenes/logo.png" alt="Logo MeshStep" class="logo" />
+    <h2>Manual de uso</h2>
+  </div>
   <a href="#intro">¿Qué es MeshStep?</a>
   <a href="#subir-archivo">Cargar Archivo</a>
   <a href="#opciones-avanzadas">Opciones Avanzadas</a>
@@ -87,6 +118,7 @@
   <section id="intro">
     <h3>¿Qué es MeshStep?</h3>
     <p>MeshStep es una herramienta para refinamiento de mallas en 2D y 3D, con opciones avanzadas de subdivisión, visualización y exportación.</p>
+    <p> Visita nuestra página web: meshstep.feriadesoftware.cl</p>
   </section>
 
   <section id="subir-archivo">
@@ -107,6 +139,7 @@ del archivo y mostrará una vista previa. </li>
         </ul>
       </li>
     </ul>
+    <img src="imagenes/CargarArchivoCompleto.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:100%; max-width:600px; border-radius:8px; margin-top:10px;" />
   </section>
 
   <section id="opciones-avanzadas">
@@ -119,6 +152,7 @@ complejos. </li>
 (niveles de refinación, métricas activadas, acciones rápidas utilizadas), útil 
 para reproducir o auditar el proceso de mallado. </li>
     </ul>
+    <img src="imagenes/OpcionesAvanzadas.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:100%; max-width:600px; border-radius:8px; margin-top:10px;" />
   </section>
 
   <section id="tipos">
@@ -131,6 +165,7 @@ contornos. </li>
 logrando una distribución homogénea en toda la figura. 
 </li>
     </ul>
+    <img src="imagenes/TiposRefinamientos.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:100%; max-width:600px; border-radius:8px; margin-top:10px;" />
   </section>
 
   <section id="algoritmos">
@@ -141,64 +176,94 @@ para el refinamiento adaptativo de mallas en superficies planas. </li>
       <li><b>Octree (3D):</b> divide recursivamente el espacio en ocho cubos. Se aplica al 
 refinamiento de mallas volumétricas tridimensionales. </li>
     </ul>
+    <img src="imagenes/SeleccionarArchivo.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:100%; max-width:600px; border-radius:8px; margin-top:10px;" />
   </section>
 
   <section id="refinacion">
     <h3>Refinación de la malla</h3>
+    <p>Al cargar el archivo, MeshStep permite controlar el nivel de detalle a través de 
+refinamiento: </p>
     <ul>
-      <li>Niveles de refinación</li>
-      <li>Modo paso a paso</li>
+      <li><b>Niveles de refinación:</b> Número de veces que los elementos de la malla se 
+subdividen. A mayor nivel, mayor densidad de elementos. </li>
+      <li><b>Modo paso a paso:</b> Opción que permite ejecutar el refinamiento de manera progresiva, 
+observando cada etapa de subdivisión. </li>
     </ul>
+    <img src="imagenes/TiposRefinamientos.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:100%; max-width:600px; border-radius:8px; margin-top:10px;" />
   </section>
 
   <section id="metricas">
     <h3>Métricas de calidad</h3>
+    <img src="imagenes/MericasCalidad.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:60%; max-width:600px; border-radius:8px; margin-top:10px;" />
+    <img src="imagenes/MetricasCalidad2.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:60%; max-width:600px; border-radius:8px; margin-top:10px;" />
+    <p>MeshStep permite evaluar la calidad de la malla aplicando un coloreo automático sobre los elementos según tres métricas: </p>
     <ul>
-      <li>Área</li>
-      <li>Ángulo mínimo</li>
-      <li>Aspect Ratio</li>
-      <li>Colores: Verde, Amarillo, Rojo</li>
+      <li><b>Área:</b> Colorea los elementos según su tamaño relativo, ayudando a identificar 
+celdas demasiado grandes o pequeñas.  </li>
+      <li><b>Ángulo mínimo:</b> Resalta triángulos con ángulos muy agudos, que suelen 
+producir inestabilidad en simulaciones.  </li>
+      <li><b>Aspect Ratio:</b> Mide la proporción de los lados de los 
+elementos; valores altos indican deformaciones. </li>
     </ul>
+    <p>Cada métrica se puede activar desde el panel lateral y el sistema aplica un rango de 
+colores: </p>
+    <ul>
+      <li>Verde: Valores aceptables.</li>
+      <li>Amarillo: Valores que requieren revisión.</li>
+      <li>Rojo: Valores fuera del rango recomendado. </li>
+    </ul>
+    <img src="imagenes/coloreo.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:80%; max-width:600px; border-radius:8px; margin-top:10px;" />
   </section>
 
   <section id="interactuar">
     <h3>Interactuar con el modelo</h3>
+    <p>Controles inferiores </p>
     <ul>
-      <li>Anterior</li>
-      <li>Siguiente</li>
-      <li>Play</li>
+      <li><b>Anterior:</b>Retrocede un paso en la animación o visualización. </li>
+      <li><b>Siguiente:</b>Avanza un paso en el modelo.</li>
+      <li><b>Play:</b>Inicia la animación automática de avance.</li>
+      <li><b>Reinicio:</b>Vuelve al paso inicial (Nivel 1). </li>
+      <li><b>Mostrar overlay:</b>Muestra la silueta de la figura para compararla con el modelo 
+actual. </li>
     </ul>
+     <img src="imagenes/MoverVisual.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:100%; max-width:600px; border-radius:8px; margin-top:10px;" />
   </section>
 
   <section id="acciones-rapidas">
     <h3>Acciones rápidas</h3>
     <ul>
-      <li>Reinicio</li>
-      <li>Mostrar overlay</li>
-      <li>Limpiar</li>
-      <li>Reset cámara</li>
-      <li>Puntos críticos</li>
-      <li>Reload</li>
+      <li><b>Puntos Críticos:</b>Marca visualmente los puntos de mayor importancia o 
+conflicto en la malla.</li>
+      <li><b>Reset cámara:</b> Centra y ajusta la vista de la cámara.</li>
+      <li><b>Recargar:</b>Elimina el coloreo aplicado a la malla, volviendo a la vista neutra.</li>
+      
     </ul>
+    <img src="imagenes/opcionesRapidas.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:100%; max-width:600px; border-radius:8px; margin-top:10px;" />
   </section>
 
   <section id="opciones-visualizacion">
     <h3>Opciones de visualización</h3>
     <ul>
-      <li>Wireframe</li>
-      <li>Sólido</li>
+      <li><b>Wireframe:</b> Muestra únicamente las aristas de la malla. </li>
+      <img src="imagenes/WireFrameVista.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:100%; max-width:600px; border-radius:8px; margin-top:10px;" />
+      <li><b>Sólido:</b> Muestra la malla con las caras rellenas.</li>
+      <img src="imagenes/SolidaVista.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:100%; max-width:600px; border-radius:8px; margin-top:10px;" />
     </ul>
   </section>
 
   <section id="exportacion">
     <h3>Exportación y guardado</h3>
     <ul>
-      <li>Formatos: STL, PLY (ASCII)</li>
-      <li>Compatibilidad con software CAD</li>
-      <li>Contenido: geometría refinada y métricas</li>
-      <li>Guardar: tecla “s” o menú “Archivo → Guardar”</li>
+      <li><b>Formatos:</b> .vtk</li>
+      <li><b>Compatibilidad:</b> los archivos exportados pueden cargarse en simuladores o en visualizadores externos que soporten este formato.</li>
+      <li><b>Contenido exportado:</b> la malla refinada con la configuración y algoritmo aplicados durante el proceso en MeshStep.</li>
+      <li><b>Guardar:</b> Para guardar el archivo se debe presionar la tecla “s”, también en la pestaña de paso a paso se encuentra el botón de guardar.</li>
+      <li><b>Al momento de cerrar la aplicación:</b> estará la opción de borrar todos los outputs generados en el computador.</li>
     </ul>
+     <img src="imagenes/GuardarMalla.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:100%; max-width:600px; border-radius:8px; margin-top:10px;" />
+  <img src="imagenes/EliminarOutputs.png" alt="Ejemplo de carga de archivo en MeshStep" style="width:100%; max-width:600px; border-radius:8px; margin-top:10px;" />
   </section>
+ 
 </div>
 
 </body>
