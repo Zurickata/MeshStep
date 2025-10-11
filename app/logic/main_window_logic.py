@@ -156,6 +156,8 @@ def abrir_dialogo_carga(main_window):
         item_text = f"{nombre_poly} ({tipo})"
         if nombre_poly not in diccionario:
             diccionario[nombre_poly] = dialogo.generated_files
+            #  GUARDAR LA RUTA DEL POLY TAMBIÉN
+            diccionario[nombre_poly + "_path"] = ruta_poly
             item = QListWidgetItem(item_text)
             item.setData(Qt.UserRole, tipo)
             main_window.lista_archivos.addItem(item)
@@ -170,11 +172,15 @@ def abrir_dialogo_carga(main_window):
         else:
             main_window.switcher.file_dict[nombre_poly] = dialogo.generated_files
             main_window.refinement_viewer.poly_path = ruta_poly
-            main_window.refinement_viewer._load_overlay_poly()
+            #update overlay
+            main_window.refinement_viewer.update_overlay_poly(ruta_poly)
+
 
         main_window.switcher.current_poly = nombre_poly
         main_window.switcher.current_index = 0
         main_window.switcher._load_current()
+        #Intento asegurar el update
+        main_window.refinement_viewer.update_overlay_poly(ruta_poly)
         main_window.panel_derecho.actualizar_panel_derecho(dialogo.generated_files[0])
         if main_window.refinement_viewer.switcher:
             main_window.panel_derecho.actualizar_estadisticas(main_window.refinement_viewer.switcher.metricas_actuales)
@@ -199,6 +205,10 @@ def mostrar_contenido(main_window, item):
         main_window.switcher.current_poly = nombre_poly
         main_window.switcher.current_index = 0
         main_window.switcher._load_current()
+        #prueba con overlay
+        if poly_path:
+            main_window.refinement_viewer.update_overlay_poly(poly_path)
+
         main_window.panel_derecho.actualizar_panel_derecho(archivos_vtk[0])
         if main_window.refinement_viewer.switcher:
             main_window.panel_derecho.actualizar_estadisticas(main_window.refinement_viewer.switcher.metricas_actuales)
@@ -270,23 +280,86 @@ def cambiar_visualizador(main_window, index):
         main_window.vtk_player.vtk_widget.show()
         main_window.vtk_player.vtk_widget.GetRenderWindow().Render()
 
-    archivos = main_window.switcher.file_dict.get(main_window.switcher.current_poly, [])
-    print(archivos[-1])
-    if archivos:
-        item = archivos[-1]  # Path completo del último archivo generado
-        filename = os.path.basename(item)  # Ejemplo: a_output_3.vtk
-        nombre_base = os.path.splitext(filename)[0]  # Resultado: "a_output_3"
+        # VALIDAR que switcher existe y tiene archivos cargados
+        if not main_window.switcher:
+            QMessageBox.warning(
+                main_window, 
+                "Sin archivos cargados", 
+                "No hay archivos cargados.\nPrimero carga un archivo .poly para generar una malla."
+            )
+            # Regresar al tab de refinamiento
+            main_window.tab_widget.setCurrentIndex(0)
+            return
+
+        
+        if not main_window.switcher.current_poly:
+            QMessageBox.warning(
+                main_window, 
+                "Sin malla seleccionada", 
+                "No hay una malla seleccionada.\nSelecciona una malla de la lista para visualizar el paso a paso."
+            )
+            # Regresar al tab de refinamiento
+            main_window.tab_widget.setCurrentIndex(0)
+            return
+
+        archivos = main_window.switcher.file_dict.get(main_window.switcher.current_poly, [])
+        if not archivos:
+            QMessageBox.warning(
+                main_window, 
+                "Sin archivos generados", 
+                "No hay archivos generados para la malla seleccionada.\nGenera la malla primero."
+            )
+            # Regresar al tab de refinamiento
+            main_window.tab_widget.setCurrentIndex(0)
+            return
+
+        print(archivos[-1])
+        item = archivos[-1]
+        filename = os.path.basename(item)
+        nombre_base = os.path.splitext(filename)[0]
 
         ruta_vtk = f"{nombre_base}.vtk"
-        ruta_historial = f"{nombre_base}_historial.txt"
 
-        main_window.vtk_player.run_script(ruta_vtk, ruta_historial)
+        # Ruta base del proyecto (según ubicación de este archivo)
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        outputs_dir = os.path.abspath(os.path.join(BASE_DIR, "../../outputs"))
+
+        # Evitar duplicar prefijos
+        if nombre_base.startswith("quadtree_") or nombre_base.startswith("octree_"):
+            historial_quadtree = f"{nombre_base}_historial.txt"
+            historial_octree = f"{nombre_base}_historial.txt"
+        else:
+            historial_quadtree = f"quadtree_{nombre_base}_historial.txt"
+            historial_octree = f"octree_{nombre_base}_historial.txt"
+
+        # Rutas completas
+        ruta_quadtree = os.path.join(outputs_dir, historial_quadtree)
+        ruta_octree = os.path.join(outputs_dir, historial_octree)
+
+        # Verificar existencia
+        if os.path.exists(ruta_quadtree):
+            historial_path = ruta_quadtree
+        elif os.path.exists(ruta_octree):
+            historial_path = ruta_octree
+        else:
+            # ⚠️ Mensaje original restaurado
+            QMessageBox.warning(
+                main_window, 
+                "Historial no disponible", 
+                f"El modo paso a paso aún no está implementado para mallas 3D.\n\n"
+                f"Archivo de historial no encontrado:\n{historial_quadtree} / {historial_octree}\n\n"
+                f"Esta funcionalidad estará disponible próximamente."
+            )
+            main_window.tab_widget.setCurrentIndex(0)
+            return
+
+        # Ejecutar normalmente
+        main_window.vtk_player.run_script(ruta_vtk, historial_path)
+
         try:
             main_window.vtk_player.vtk_widget.GetRenderWindow().GetInteractor().Initialize()
         except Exception:
             pass
-    else:
-        QMessageBox.warning(main_window, "Archivo no seleccionado", "Selecciona una malla en la lista para visualizar el paso a paso.")
 
 def closeEvent(main_window, event):
     reply = QMessageBox.question(

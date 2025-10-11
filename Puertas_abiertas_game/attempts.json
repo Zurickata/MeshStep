@@ -1,0 +1,96 @@
+{
+    "0": [
+        {
+            "timestamp": "2025-10-09 00:05:17",
+            "level": 0,
+            "score": 100,
+            "solution_name": "Mario Caso Borde",
+            "time_elapsed": 124.51,
+            "cells_colored": 62,
+            "total_area": 357318,
+            "colored_area": 199492,
+            "percentage_colored": 55
+        },
+        {
+            "timestamp": "2025-10-09 00:07:08",
+            "level": 0,
+            "score": 100,
+            "solution_name": "Mario Caso Completo",
+            "time_elapsed": 235.91,
+            "cells_colored": 143,
+            "total_area": 353593,
+            "colored_area": 195767,
+            "percentage_colored": 55
+        }
+    ],
+    "1": [
+        {
+            "timestamp": "2025-10-09 00:08:23",
+            "level": 1,
+            "score": 100,
+            "solution_name": "Steve Caso Completo",
+            "time_elapsed": 63.96,
+            "cells_colored": 72,
+            "total_area": 357020,
+            "colored_area": 98568,
+            "percentage_colored": 27
+        },
+        {
+            "timestamp": "2025-10-09 00:09:42",
+            "level": 1,
+            "score": 100,
+            "solution_name": "Steve Optimizado",
+            "time_elapsed": 142.23,
+            "cells_colored": 24,
+            "total_area": 359404,
+            "colored_area": 100952,
+            "percentage_colored": 28
+        },
+        {
+            "timestamp": "2025-10-09 00:10:02",
+            "level": 1,
+            "score": 89,
+            "solution_name": "Steve Optimizado",
+            "time_elapsed": 162.3,
+            "cells_colored": 20,
+            "total_area": 360000,
+            "colored_area": 112500,
+            "percentage_colored": 31
+        },
+        {
+            "timestamp": "2025-10-09 00:30:04",
+            "level": 1,
+            "score": 0,
+            "solution_name": "Steve Caso Completo",
+            "time_elapsed": 2.26,
+            "cells_colored": 1,
+            "total_area": 360000,
+            "colored_area": 360000,
+            "percentage_colored": 100
+        }
+    ],
+    "2": [
+        {
+            "timestamp": "2025-10-09 00:23:03",
+            "level": 2,
+            "score": 100,
+            "solution_name": "AMONGUSS Completo",
+            "time_elapsed": 320.51,
+            "cells_colored": 141,
+            "total_area": 353891,
+            "colored_area": 193029,
+            "percentage_colored": 54
+        },
+        {
+            "timestamp": "2025-10-09 00:23:11",
+            "level": 2,
+            "score": 100,
+            "solution_name": "AMONGUSS Completo",
+            "time_elapsed": 328.35,
+            "cells_colored": 141,
+            "total_area": 353891,
+            "colored_area": 193029,
+            "percentage_colored": 54
+        }
+    ]
+}

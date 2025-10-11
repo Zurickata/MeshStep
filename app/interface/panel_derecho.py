@@ -24,8 +24,8 @@ class PanelDerecho(QScrollArea):
     def setup_ui(self):
         """Configura la interfaz del panel derecho"""
         self.setWidgetResizable(True)
-        self.setMaximumWidth(320)
-        self.setMinimumWidth(280)
+        self.setMaximumWidth(480)
+        self.setMinimumWidth(320)
         
         # Widget contenedor principal
         self.contenido = QWidget()
@@ -39,7 +39,7 @@ class PanelDerecho(QScrollArea):
         self.crear_seccion_coloreos()
         self.crear_seccion_acciones()
         self.crear_seccion_estadisticas()
-        self.crear_seccion_threshold()
+        #self.crear_seccion_threshold()
         self.crear_seccion_animacion()
         
         # Espaciador final
@@ -48,9 +48,10 @@ class PanelDerecho(QScrollArea):
         self.setWidget(self.contenido)
         self.aplicar_estilo_botones()
         self.actualizar_estado_botones_visualizacion()
-        self.actualizar_display_threshold()
+        #self.actualizar_display_threshold()
 
         notifier.cell_selected.connect(self.mostrar_info_celda)
+        notifier.cell_deselected.connect(self.limpiar_info_celda)
 
     def mostrar_info_celda(self, cell_id, num_points, min_angle):
         """Muestra información de la celda seleccionada"""
@@ -79,6 +80,24 @@ class PanelDerecho(QScrollArea):
     
         self.actualizar_metricas(self._contenido_base_sin_celda + celda_html)
 
+    def limpiar_info_celda(self):
+        
+        if hasattr(self, '_contenido_base_sin_celda') and self._contenido_base_sin_celda:
+            self.actualizar_metricas(self._contenido_base_sin_celda)
+        else:
+            # Fallback: mostrar solo el número de refinamiento
+            base_path = getattr(self, '_archivo_actual', '')
+            if base_path:
+                base, _ = os.path.splitext(base_path)
+                numero = base.split('_')[-1] if '_' in base else "?"
+                contenido_html = f"""
+                <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px;'>
+                    <b style='color: #ffd700;'>Nivel de Refinamiento: {numero}</b><br><br>
+                    <i style='color: #888;'>No hay celda seleccionada</i>
+                </div>
+                """
+                self.actualizar_metricas(contenido_html)
+                self._contenido_base_sin_celda = contenido_html
 
 
     def actualizar_panel_derecho_custom(self, ruta_archivo):
@@ -422,8 +441,7 @@ class PanelDerecho(QScrollArea):
             
 
             """
-            print("hola")
-            print(ruta_archivo)
+            
             base, _ = os.path.splitext(ruta_archivo)
             numero = base.split('_')[-1]
             contenido_html = f"""
@@ -596,26 +614,22 @@ class PanelDerecho(QScrollArea):
         layout.setSpacing(6)
         
         # Botones esenciales
-        self.boton_limpiar = QPushButton("Limpiar")
         self.boton_puntos_criticos = QPushButton("Puntos Críticos")
         self.boton_reset_camara = QPushButton("Reset Cámara")
-        self.boton_reload = QPushButton("Reload") 
+        self.boton_reload = QPushButton("Recargar") 
 
-        self.boton_limpiar.setToolTip("Shortcut: B")
         self.boton_puntos_criticos.setToolTip("Shortcut: A")
         self.boton_reset_camara.setToolTip("Shortcut: R")
         self.boton_reload.setToolTip("Shortcut: L")
 
-        self.boton_limpiar.clicked.connect(self.limpiar_modelos)
         self.boton_puntos_criticos.clicked.connect(self.toggle_puntos_criticos)
         self.boton_reset_camara.clicked.connect(self.resetear_camara)
         self.boton_reload.clicked.connect(self.reload_modelo)
 
         # Agregar al layout
-        layout.addWidget(self.boton_limpiar, 0, 0)
+        layout.addWidget(self.boton_puntos_criticos, 0, 0)
         layout.addWidget(self.boton_reset_camara, 0, 1)
-        layout.addWidget(self.boton_puntos_criticos, 1 , 0)
-        layout.addWidget(self.boton_reload, 1, 1)
+        layout.addWidget(self.boton_reload, 1, 0, 1, 2)
         grupo.setLayout(layout)
         self.layout_principal.addWidget(grupo)
 
@@ -846,9 +860,7 @@ class PanelDerecho(QScrollArea):
         for btn in self.findChildren(QPushButton):
             btn.setStyleSheet(estilo_base)
 
-    def limpiar_modelos(self):
-        if self.refinement_viewer and self.refinement_viewer.switcher:
-            self.refinement_viewer.switcher.clear_extra_models()
+    
 
     def toggle_puntos_criticos(self):
         if self.refinement_viewer and self.refinement_viewer.switcher:
@@ -887,6 +899,17 @@ class PanelDerecho(QScrollArea):
             if archivos and 0 <= switcher.current_index < len(archivos):
                 archivo_actual = archivos[switcher.current_index]
                 print(f"Recargando modelo: {archivo_actual}")
+
+                # LIMPIAR HIGHLIGHTER
+                style = switcher.interactor.GetInteractorStyle()
+                if isinstance(style, CustomInteractorStyle):
+                    if hasattr(style, "highlight_actor") and style.highlight_actor:
+                        switcher.renderer.RemoveActor(style.highlight_actor)
+                        style.highlight_actor = None
+                    style.last_selected_cell = None
+                
+                # Emitir deselección para limpiar panel
+                notifier.cell_deselected.emit()
                 
                 # Forzar recarga del modelo
                 switcher.load_model(archivo_actual)
