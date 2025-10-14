@@ -4,4 +4,4 @@
 
 [submodule "core/octree"]
 	path = core/octree
-	url = https://github.com/jaillet/MixedOcTree.git
+	url = https://github.com/floraciendo/MixedOcTree.git

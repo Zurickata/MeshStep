@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel, QSpinBo
                             QGroupBox, QRadioButton)
 from core.wrapper import QuadtreeWrapper, OctreeWrapper
 from app.logic.scripts_historial.crear_historial import crear_historial
+from app.logic.scripts_historial.historial_octree import crear_historial_octree
 
 class MeshGeneratorController(QDialog):
     def __init__(self, parent=None, ignorar_limite=False):
@@ -166,21 +167,23 @@ class MeshGeneratorController(QDialog):
             print(self.generated_files)
 
             try:
-                if algoritmo == "Quadtree":
-                    last_output_path = self.generated_files[-1] if self.generated_files else result_file
-                    input_dir = os.path.dirname(last_output_path)
-                    name = os.path.splitext(os.path.basename(last_output_path))[0]
-                    tipo = "borde" if self.edge_refinement.isChecked() else "completo"
+                last_output_path = self.generated_files[-1] if self.generated_files else result_file
+                input_dir = os.path.dirname(last_output_path)
+                name = os.path.splitext(os.path.basename(last_output_path))[0]
+                tipo = "borde" if self.edge_refinement.isChecked() else "completo"
 
-                    _cwd = os.getcwd()
-                    try:
-                        os.chdir(input_dir)
+                _cwd = os.getcwd()
+                try:
+                    os.chdir(input_dir)
+                    if algoritmo == "Quadtree":
                         crear_historial(name, max_refinement, tipo)
-                        self.historial_status = True
-                        self.ruta_quads = f"{input_dir}/{name}_quads.vtk"
-                        self.ruta_historial = f"{input_dir}/{name}_historial.txt"
-                    finally:
-                        os.chdir(_cwd)
+                    else:
+                        crear_historial_octree(name, max_refinement, tipo)
+                    self.historial_status = True
+                    self.ruta_quads = f"{input_dir}/{name}_quads.vtk"
+                    self.ruta_historial = f"{input_dir}/{name}_historial.txt"
+                finally:
+                    os.chdir(_cwd)
 
                 print(f"[Historial] Generado en {self.ruta_historial}")
                 self.status_label.setText(self.status_label.text() + "\nEl historial se generó correctamente")
