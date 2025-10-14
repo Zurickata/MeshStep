@@ -75,3 +75,28 @@ error: exception occurred: Subprocess aborted
 
     ```bash
         sudo apt install libxcb-xinput0
+
+
+## 🚀 Pasos para Cambiar Submódulo
+
+### 1) Sincronizar la configuración del submódulo con la nueva URL
+
+    git submodule sync --recursive
+    git config -f .gitmodules submodule.core/octree.url https://github.com/floraciendo/MixedOcTree.git
+    git submodule sync core/octree
+
+### 2) Eliminar por completo el submódulo antiguo
+
+    git submodule deinit -f core/octree
+    rm -rf core/octree
+
+### 3) Reinstalar/recuperar el submódulo desde el fork nuevo
+
+    git submodule update --init --recursive
+
+### 4) Cambiar a la rama correcta y traer últimos cambios
+
+    cd core/octree
+    git checkout master
+    git pull origin master
+    cd ../..
