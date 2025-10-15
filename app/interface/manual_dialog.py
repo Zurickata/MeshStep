@@ -1,6 +1,9 @@
 from PyQt5.QtWidgets import QDialog, QVBoxLayout
 from PyQt5.QtCore import QUrl
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+try:
+    from PyQt5.QtWebEngineWidgets import QWebEngineView
+except Exception:
+    QWebEngineView = None
 import os
 
 class ManualDialog(QDialog):

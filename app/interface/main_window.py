@@ -1,7 +1,8 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QListWidget,
                              QSplitter, QStyle, QTabWidget,
-                             QMenuBar, QAction)
+                             QMenuBar, QAction, QLabel)
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
 from app.visualization.RefinementViewer import RefinementViewer
 from app.interface.panel_derecho import PanelDerecho
 from app.visualization.vtkplayer import VTKPlayer
@@ -18,6 +19,10 @@ class MainWindow(QWidget):
         self.resize(1280, 720)
 
         self.ignorar_limite_hardware = False
+
+        logo_label = QLabel()
+        icono_svg = QPixmap("meshsteppng.svg")
+        logo_label.setPixmap(icono_svg.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
         self.menubar = QMenuBar(self)
         self.file_menu = self.menubar.addMenu("Archivo")
@@ -82,7 +87,9 @@ class MainWindow(QWidget):
         panel_izquierdo = QWidget()
         layout_izquierdo = QVBoxLayout()
         layout_izquierdo.addWidget(self.lista_archivos)
+        layout_izquierdo.addWidget(logo_label)
         panel_izquierdo.setLayout(layout_izquierdo)
+
 
         splitter.addWidget(panel_izquierdo)
         splitter.addWidget(self.panel_central)

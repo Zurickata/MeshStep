@@ -2,8 +2,11 @@ import vtk
 import numpy as np
 import os
 import sys
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QFileDialog
+from PyQt5.QtCore import QStandardPaths
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+
+OUTPUTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../outputs")
 
 overlay_visible = False
 #overlay
@@ -99,6 +102,34 @@ def mover_vertice(ugrid, vid, new_pos):
     ugrid.Modified()
     return ugrid
 
+def eliminar_colores(ugrid):
+    """
+    Elimina cualquier array de colores (scalars) de un vtkUnstructuredGrid.
+    Esto quita los colores tanto de puntos como de celdas.
+    """
+    # Borrar arrays asociados a puntos
+    point_data = ugrid.GetPointData()
+    if point_data:
+        for i in reversed(range(point_data.GetNumberOfArrays())):
+            name = point_data.GetArrayName(i)
+            if name and ("color" in name.lower() or "scalars" in name.lower()):
+                print(f"[INFO] Eliminando array de puntos: {name}")
+                point_data.RemoveArray(name)
+        point_data.SetScalars(None)
+
+    # Borrar arrays asociados a celdas
+    cell_data = ugrid.GetCellData()
+    if cell_data:
+        for i in reversed(range(cell_data.GetNumberOfArrays())):
+            name = cell_data.GetArrayName(i)
+            if name and ("color" in name.lower() or "scalars" in name.lower()):
+                print(f"[INFO] Eliminando array de celdas: {name}")
+                cell_data.RemoveArray(name)
+        cell_data.SetScalars(None)
+
+    ugrid.Modified()
+    return ugrid
+
 def borrar_carascid(ugrid, cantidad):
     """
     Elimina 'cantidad' de caras/celdas desde la posición 0 de un vtkUnstructuredGrid.
@@ -177,8 +208,13 @@ def borrar_vertices(ugrid, vids_a_borrar):
     return borrar_caras(ugrid, cids)
 
 
-def change_model(name):
+def change_model(name, outputs_dir=OUTPUTS_DIR):
     # Caso 2: archivo .vtk
+    if not os.path.isfile(name):
+        alt_path = os.path.join(outputs_dir, name)
+        if os.path.isfile(alt_path):
+            name = alt_path
+
     if os.path.isfile(name):
         print(f"[INFO] change_model: cargando archivo '{name}'")
         reader = vtk.vtkUnstructuredGridReader()
@@ -186,7 +222,7 @@ def change_model(name):
         reader.Update()
         ugrid = vtk.vtkUnstructuredGrid()
         ugrid.DeepCopy(reader.GetOutput())
-        return ugrid
+        return eliminar_colores(ugrid)
 
     raise ValueError(f"[ERROR] change_model: modelo o archivo no encontrado → {name}")
 
@@ -216,40 +252,70 @@ def encontrar_celdas_por_vertices(ugrid, verts):
 # ------------------------------
 # GUARDADO CLÁSICO ASCII
 # ------------------------------
-def guardar_ugrid(ugrid, filename, precision=8, puntos_por_linea=2):
-    out = []
-    out.append("# vtk DataFile Version 3.0\n")
-    out.append("VTK file formatted in classic ASCII\n")
-    out.append("ASCII\n")
-    out.append("DATASET UNSTRUCTURED_GRID\n")
+def guardar_ugrid(ugrid, filename=None, parent=None, precision=8, puntos_por_linea=2):
+    default_name = filename or "salida.vtk"
+    # Determinar si es necesario pedir ruta al usuario
+    need_dialog = True
+    if filename:
+        # Si filename contiene un directorio o es ruta absoluta, no pedir diálogo
+        if os.path.isabs(filename) or os.path.dirname(filename):
+            need_dialog = False
 
-    npoints = ugrid.GetNumberOfPoints()
-    out.append(f"POINTS {npoints} float\n")
-    for i in range(0, npoints, puntos_por_linea):
-        line_coords = []
-        for j in range(puntos_por_linea):
-            idx = i + j
-            if idx >= npoints:
-                break
-            x, y, z = ugrid.GetPoint(idx)
-            line_coords.extend([f"{c:+.{precision}E}" for c in (x, y, z)])
-        out.append(" ".join(line_coords) + "\n")
+    if need_dialog:
+        default_dir = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
+        suggested = os.path.join(default_dir, default_name)
+        file_path, _ = QFileDialog.getSaveFileName(parent, "Guardar VTK", suggested, "VTK files (*.vtk);;Todos los archivos (*)")
+        if not file_path:
+            print("[INFO] Guardado cancelado por el usuario.")
+            return False, "cancelled"
+        filename = file_path
 
-    ncells = ugrid.GetNumberOfCells()
-    total_indices = sum(ugrid.GetCell(i).GetNumberOfPoints() + 1 for i in range(ncells))
-    out.append(f"CELLS {ncells} {total_indices}\n")
-    for i in range(ncells):
-        cell = ugrid.GetCell(i)
-        ids = [str(cell.GetNumberOfPoints())] + [str(cell.GetPointId(j)) for j in range(cell.GetNumberOfPoints())]
-        out.append(" ".join(ids) + "\n")
+    try:
+        out = []
+        out.append("# vtk DataFile Version 3.0\n")
+        out.append("VTK file formatted in classic ASCII\n")
+        out.append("ASCII\n")
+        out.append("DATASET UNSTRUCTURED_GRID\n")
 
-    out.append(f"CELL_TYPES {ncells}\n")
-    for i in range(ncells):
-        out.append(str(ugrid.GetCellType(i)) + "\n")
+        npoints = ugrid.GetNumberOfPoints()
+        out.append(f"POINTS {npoints} float\n")
+        for i in range(0, npoints, puntos_por_linea):
+            line_coords = []
+            for j in range(puntos_por_linea):
+                idx = i + j
+                if idx >= npoints:
+                    break
+                x, y, z = ugrid.GetPoint(idx)
+                line_coords.extend([f"{c:+.{precision}E}" for c in (x, y, z)])
+            out.append(" ".join(line_coords) + "\n")
 
-    with open(filename, "w") as f:
-        f.writelines(out)
+        ncells = ugrid.GetNumberOfCells()
+        total_indices = sum(ugrid.GetCell(i).GetNumberOfPoints() + 1 for i in range(ncells))
+        out.append(f"CELLS {ncells} {total_indices}\n")
+        for i in range(ncells):
+            cell = ugrid.GetCell(i)
+            ids = [str(cell.GetNumberOfPoints())] + [str(cell.GetPointId(j)) for j in range(cell.GetNumberOfPoints())]
+            out.append(" ".join(ids) + "\n")
 
+        out.append(f"CELL_TYPES {ncells}\n")
+        for i in range(ncells):
+            out.append(str(ugrid.GetCellType(i)) + "\n")
+
+        with open(filename, "w") as f:
+            f.writelines(out)
+
+        msg = f"Archivo guardado en: {filename}"
+        print(f"[INFO] {msg}")
+        if parent:
+            QMessageBox.information(parent, "Guardado", msg)
+        return True, filename
+
+    except Exception as e:
+        err = f"Error al guardar VTK: {e}"
+        print(f"[ERROR] {err}")
+        if parent:
+            QMessageBox.critical(parent, "Error al guardar", err)
+        return False, str(e)
 # ------------------------------
 # PARSE + EJECUCIÓN DE COMANDOS
 # ------------------------------
@@ -450,16 +516,18 @@ class VTKPlayer(QWidget):
         self.script_file = None
         self.vtk_file = None
 
-    def run_script(self, vtk_file, script_file):
+    def run_script(self, vtk_file, script_file, outputs_dir=OUTPUTS_DIR):
+        alt_path_vtk = os.path.join(outputs_dir, vtk_file)
+        alt_path_script = os.path.join(outputs_dir, script_file)
         self.renderer.RemoveAllViewProps()
-        self.vtk_file = vtk_file
-        self.script_file = script_file
-        self.ugrid = cargar_ugrid(vtk_file)
+        self.vtk_file = alt_path_vtk
+        self.script_file = alt_path_script
+        self.ugrid = cargar_ugrid(alt_path_vtk)
         self.comandos = []
         self.estado = {"i": 0}
 
         # Leer comandos
-        with open(script_file, "r") as f:
+        with open(alt_path_script, "r") as f:
             lineas = [ln for ln in f if ln.strip()]
         self.comandos = [parse_line(ln) for ln in lineas if parse_line(ln) is not None]
 
@@ -529,7 +597,7 @@ class VTKPlayer(QWidget):
             print(f"→ Reiniciado: Puntos {self.ugrid.GetNumberOfPoints()} | Celdas {self.ugrid.GetNumberOfCells()}")
         elif comando == "s":
             print("Guardando a salida.vtk ...")
-            guardar_ugrid(self.ugrid, "salida.vtk")
+            guardar_ugrid(self.ugrid, "salida.vtk", parent=self)
     
     def load_overlay_poly(self, poly_path):
         global overlay_visible

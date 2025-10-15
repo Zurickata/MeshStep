@@ -3,8 +3,7 @@ import re
 import glob
 import shutil
 from PyQt5.QtWidgets import QMenu, QListWidgetItem, QMessageBox, QDialog
-from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtCore import Qt
 from app.interface.manual_dialog import ManualDialog
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.logic.mesh_generator import MeshGeneratorController
@@ -157,6 +156,8 @@ def abrir_dialogo_carga(main_window):
         item_text = f"{nombre_poly} ({tipo})"
         if nombre_poly not in diccionario:
             diccionario[nombre_poly] = dialogo.generated_files
+            #  GUARDAR LA RUTA DEL POLY TAMBIÉN
+            diccionario[nombre_poly + "_path"] = ruta_poly
             item = QListWidgetItem(item_text)
             item.setData(Qt.UserRole, tipo)
             main_window.lista_archivos.addItem(item)
@@ -171,11 +172,14 @@ def abrir_dialogo_carga(main_window):
         else:
             main_window.switcher.file_dict[nombre_poly] = dialogo.generated_files
             main_window.refinement_viewer.poly_path = ruta_poly
-            main_window.refinement_viewer._load_overlay_poly()
+            #update overlay
+            main_window.refinement_viewer.update_overlay_poly(ruta_poly)
 
         main_window.switcher.current_poly = nombre_poly
         main_window.switcher.current_index = 0
         main_window.switcher._load_current()
+        #Intento asegurar el update
+        main_window.refinement_viewer.update_overlay_poly(ruta_poly)
         main_window.panel_derecho.actualizar_panel_derecho(dialogo.generated_files[0])
         if main_window.refinement_viewer.switcher:
             main_window.panel_derecho.actualizar_estadisticas(main_window.refinement_viewer.switcher.metricas_actuales)
@@ -200,6 +204,9 @@ def mostrar_contenido(main_window, item):
         main_window.switcher.current_poly = nombre_poly
         main_window.switcher.current_index = 0
         main_window.switcher._load_current()
+        #prueba con overlay
+        if poly_path:
+            main_window.refinement_viewer.update_overlay_poly(poly_path)
         main_window.panel_derecho.actualizar_panel_derecho(archivos_vtk[0])
         if main_window.refinement_viewer.switcher:
             main_window.panel_derecho.actualizar_estadisticas(main_window.refinement_viewer.switcher.metricas_actuales)
@@ -217,20 +224,135 @@ def mostrar_menu_contextual(main_window, posicion):
             main_window.lista_archivos.takeItem(main_window.lista_archivos.row(item))
 
 def abrir_opciones_dialog(main_window):
-    dialog = OpcionesDialog(main_window)
+    # Obtener el nombre del poly y nivel de refinamiento actual
+    poly_name = None
+    refinement_level = None
+    if main_window.switcher and main_window.switcher.current_poly:
+        poly_name = main_window.switcher.current_poly
+        # Intentar extraer el nivel de refinamiento del nombre del archivo
+        archivos = main_window.switcher.file_dict.get(poly_name, [])
+        if archivos:
+            # Ejemplo: a_output_5.vtk -> 5
+            import re
+            m = re.search(r'_output_(\d+)', archivos[-1])
+            if m:
+                refinement_level = int(m.group(1))
+    dialog = OpcionesDialog(main_window, poly_name=poly_name, refinement_level=refinement_level)
     dialog.checkbox.setChecked(main_window.ignorar_limite_hardware)
     if dialog.exec_() == QDialog.Accepted:
         main_window.ignorar_limite_hardware = dialog.checkbox.isChecked()
 
+def exportar_registro(main_window):
+    """Exporta el archivo de registro del mallado"""
+    success, message = main_window.export_manager.export_log_file()
+    
+    if not success:
+        if message == "no_log_file":
+            QMessageBox.information(
+                main_window,
+                "Información", 
+                "No hay registro de mallado disponible.\n"
+                "Ejecute el algoritmo de mallado primero para generar un registro."
+            )
+        elif message == "export_cancelled":
+            pass
+        else:
+            QMessageBox.warning(
+                main_window,
+                "Error al exportar",
+                f"No se pudo exportar el registro:\n{message}"
+            )
+
 def cambiar_visualizador(main_window, index):
-    if index == 0:
+    if index == 0: # Tab de refinamiento
         main_window.refinement_viewer.vtk_widget.show()
         main_window.refinement_viewer.vtk_widget.GetRenderWindow().Render()
-    else:
+        # HABILITAR panel derecho
+        if hasattr(main_window, 'panel_derecho'):
+            main_window.panel_derecho.show()  # Quitar estilo de deshabilitado
+
+    else:  # Tab de paso a paso
+        # DESHABILITAR panel derecho
+        if hasattr(main_window, 'panel_derecho'):
+            main_window.panel_derecho.hide()
         main_window.vtk_player.vtk_widget.show()
         main_window.vtk_player.vtk_widget.GetRenderWindow().Render()
-        main_window.vtk_player.run_script("a_output_3_quads.vtk", "historial_completo_new.txt")
-        main_window.vtk_player.load_overlay_poly("data/a.poly")
+        # VALIDAR que switcher existe y tiene archivos cargados
+        if not main_window.switcher:
+            QMessageBox.warning(
+                main_window, 
+                "Sin archivos cargados", 
+                "No hay archivos cargados.\nPrimero carga un archivo .poly para generar una malla."
+            )
+            # Regresar al tab de refinamiento
+            main_window.tab_widget.setCurrentIndex(0)
+            return
+
+        
+        if not main_window.switcher.current_poly:
+            QMessageBox.warning(
+                main_window, 
+                "Sin malla seleccionada", 
+                "No hay una malla seleccionada.\nSelecciona una malla de la lista para visualizar el paso a paso."
+            )
+            # Regresar al tab de refinamiento
+            main_window.tab_widget.setCurrentIndex(0)
+            return
+
+        archivos = main_window.switcher.file_dict.get(main_window.switcher.current_poly, [])
+        if not archivos:
+            QMessageBox.warning(
+                main_window, 
+                "Sin archivos generados", 
+                "No hay archivos generados para la malla seleccionada.\nGenera la malla primero."
+            )
+            # Regresar al tab de refinamiento
+            main_window.tab_widget.setCurrentIndex(0)
+            return
+
+        print(archivos[-1])
+        item = archivos[-1]
+        filename = os.path.basename(item)
+        nombre_base = os.path.splitext(filename)[0]
+
+        ruta_vtk = f"{nombre_base}.vtk"
+
+        # Ruta base del proyecto (según ubicación de este archivo)
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        outputs_dir = os.path.abspath(os.path.join(BASE_DIR, "../../outputs"))
+
+        # Evitar duplicar prefijos
+        if nombre_base.startswith("quadtree_") or nombre_base.startswith("octree_"):
+            historial_quadtree = f"{nombre_base}_historial.txt"
+            historial_octree = f"{nombre_base}_historial.txt"
+        else:
+            historial_quadtree = f"quadtree_{nombre_base}_historial.txt"
+            historial_octree = f"octree_{nombre_base}_historial.txt"
+
+        # Rutas completas
+        ruta_quadtree = os.path.join(outputs_dir, historial_quadtree)
+        ruta_octree = os.path.join(outputs_dir, historial_octree)
+
+        # Verificar existencia
+        if os.path.exists(ruta_quadtree):
+            historial_path = ruta_quadtree
+        elif os.path.exists(ruta_octree):
+            historial_path = ruta_octree
+        else:
+            # ⚠️ Mensaje original restaurado
+            QMessageBox.warning(
+                main_window, 
+                "Historial no disponible", 
+                f"El modo paso a paso aún no está implementado para mallas 3D.\n\n"
+                f"Archivo de historial no encontrado:\n{historial_quadtree} / {historial_octree}\n\n"
+                f"Esta funcionalidad estará disponible próximamente."
+            )
+            main_window.tab_widget.setCurrentIndex(0)
+            return
+
+        # Ejecutar normalmente
+        main_window.vtk_player.run_script(ruta_vtk, historial_path)
+
         try:
             main_window.vtk_player.vtk_widget.GetRenderWindow().GetInteractor().Initialize()
         except Exception:
@@ -251,11 +373,17 @@ def closeEvent(main_window, event):
             if os.path.exists(outputs_path):
                 shutil.rmtree(outputs_path)
                 os.makedirs(outputs_path)
-                print("✓ Outputs limpiados exitosamente.")
+                msg = "Outputs limpiados exitosamente."
+                print(msg)
+                QMessageBox.information(main_window, "Outputs limpiados", msg)
             else:
-                print("⚠ La carpeta 'outputs' no se encontró. No se necesita limpieza.")
+                msg = "La carpeta 'outputs' no se encontró. No se necesita limpieza."
+                print(msg)
+                QMessageBox.information(main_window, "Outputs no encontrados", msg)
         except Exception as e:
-            print(f"✗ Error al limpiar outputs: {e}")
+            msg = f"Error al limpiar outputs: {e}"
+            print(msg)
+            QMessageBox.critical(main_window, "Error al limpiar outputs", msg)
     event.accept()
 
 def abrir_manual(main_window):

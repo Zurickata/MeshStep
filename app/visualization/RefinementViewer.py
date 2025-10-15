@@ -165,6 +165,7 @@ class RefinementViewer(QWidget):
                 self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
+            self.panel_derecho.reload_modelo()
         else:
             QMessageBox.information(self, "Inicio", "Ya estás en el primer modelo.")
 
@@ -181,6 +182,7 @@ class RefinementViewer(QWidget):
                 self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
+            self.panel_derecho.reload_modelo()
         else:
             QMessageBox.information(self, "Fin", "Ya estás en el último modelo.")
 
@@ -220,6 +222,7 @@ class RefinementViewer(QWidget):
                 self.panel_derecho.actualizar_estadisticas(self.switcher.metricas_actuales)
             self.switcher.toggle_load = False
             self.switcher.clear_extra_models()
+            self.panel_derecho.reload_modelo()
 
     def toggle_overlay(self):
         if self.overlay_actor:
