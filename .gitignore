@@ -3,7 +3,13 @@ core/quadtree/build/
 core/quadtree/**/*.so
 core/quadtree/**/*.o
 
+core/octree/build/
+core/octree/**/*.so
+core/octree/**/*.o
+
 outputs/
+.flatpak-builder/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -16,6 +22,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+build-dir/
 develop-eggs/
 dist/
 downloads/
@@ -199,4 +206,3 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
-/core

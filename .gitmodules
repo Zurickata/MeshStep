@@ -1,3 +1,7 @@
 [submodule "core/quadtree"]
 	path = core/quadtree
 	url = https://github.com/clobosmesher/MixedQuadTree.git
+
+[submodule "core/octree"]
+	path = core/octree
+	url = https://github.com/floraciendo/MixedOcTree.git

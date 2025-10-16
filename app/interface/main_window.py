@@ -1,15 +1,16 @@
-import sys
-import os
-import re
-import glob
-import vtk
-from PyQt5.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout,
-                            QPushButton, QMenu, QLabel, QListWidget, QSplitter,
-                            QMessageBox, QSizePolicy, QStyle)
-from PyQt5.QtCore import (Qt, QTimer)
-from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
-from app.logic.mesh_generator import MeshGeneratorController
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QListWidget,
+                             QSplitter, QStyle, QTabWidget,
+                             QMenuBar, QAction, QLabel)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
+from app.visualization.RefinementViewer import RefinementViewer
+from app.interface.panel_derecho import PanelDerecho
+from app.visualization.vtkplayer import VTKPlayer
+from app.logic.main_window_logic import (
+    dragEnterEvent, dropEvent,
+    abrir_dialogo_carga, mostrar_contenido, mostrar_menu_contextual,
+    abrir_opciones_dialog, cambiar_visualizador, closeEvent, abrir_manual
+)
 
 from .panel_derecho import PanelDerecho
 
@@ -19,128 +20,79 @@ class MainWindow(QWidget):
         self.setWindowTitle("MeshStep")
         self.resize(1280, 720)
 
-        self.boton_cargar = QPushButton("Cargar archivos", self)
-        self.boton_cargar.clicked.connect(self.abrir_dialogo_carga)
+        self.ignorar_limite_hardware = False
+
+        logo_label = QLabel()
+        icono_svg = QPixmap("meshsteppng.svg")
+        logo_label.setPixmap(icono_svg.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+        self.menubar = QMenuBar(self)
+        self.file_menu = self.menubar.addMenu("Archivo")
+        self.edit_menu = self.menubar.addMenu("Editar")
+        self.help_menu = self.menubar.addMenu("Ayuda")
+
+        # Iconos estándar
+        icon_cargar = self.style().standardIcon(QStyle.SP_DirOpenIcon)
+        icon_opciones = self.style().standardIcon(QStyle.SP_FileDialogDetailedView)
+
+        # Botones en barra horizontal
+        self.boton_cargar = QPushButton(icon_cargar, "Cargar archivos", self)
+        self.boton_cargar.clicked.connect(lambda: abrir_dialogo_carga(self))
+
+        self.boton_opciones = QPushButton(icon_opciones, "Opciones", self)
+        self.boton_opciones.clicked.connect(lambda: abrir_opciones_dialog(self))
+
+        # Barra horizontal de botones
+        barra_botones = QHBoxLayout()
+        barra_botones.addWidget(self.boton_cargar)
+        barra_botones.addWidget(self.boton_opciones)
+        barra_botones.addStretch(1)  # Para que los botones queden a la izquierda
+
+        # Acciones del menú
+        self.action_cargar = QAction("Cargar archivos", self)
+        self.action_cargar.triggered.connect(lambda: abrir_dialogo_carga(self))
+        self.file_menu.addAction(self.action_cargar)
+
+        self.action_opciones = QAction("Opciones", self)
+        self.action_opciones.triggered.connect(lambda: abrir_opciones_dialog(self))
+        self.edit_menu.addAction(self.action_opciones)
+
+        self.action_help = QAction("Manual", self)
+        self.action_help.triggered.connect(lambda: abrir_manual(self))
+        self.help_menu.addAction(self.action_help)
 
         self.lista_archivos = QListWidget()
-        self.lista_archivos.itemClicked.connect(self.mostrar_contenido)
+        self.lista_archivos.itemClicked.connect(lambda item: mostrar_contenido(self, item))
         self.lista_archivos.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.lista_archivos.customContextMenuRequested.connect(self.mostrar_menu_contextual)
+        self.lista_archivos.customContextMenuRequested.connect(lambda pos: mostrar_menu_contextual(self, pos))
 
-        # NUEVOS BOTONES PARA ACCIONES
-        self.boton_n = QPushButton("Siguiente modelo (n)", self)
-        self.boton_n.clicked.connect(self.accion_n)
-
-        self.boton_a = QPushButton("Toggle puntos críticos (a)", self)
-        self.boton_a.clicked.connect(self.accion_a)
-
-        # self.boton_b = QPushButton("Borrar extras (b)", self)
-        # self.boton_b.clicked.connect(self.accion_b)
-
-        self.boton_r = QPushButton("Reset cámara/modelo (r)", self)
-        self.boton_r.clicked.connect(self.accion_r)
-
-        self.boton_w = QPushButton("Wireframe (w)", self)
-        self.boton_w.clicked.connect(self.accion_w)
-
-        self.boton_s = QPushButton("Sólido (s)", self)
-        self.boton_s.clicked.connect(self.accion_s)
+        self.refinement_viewer = RefinementViewer(self)
+        self.panel_derecho = PanelDerecho(parent=self)
+        self.refinement_viewer.panel_derecho = self.panel_derecho
+        self.panel_derecho.refinement_viewer = self.refinement_viewer
 
         self.rutas_archivos = {}
+        self.rutas_octree = {}
 
-        self.vtk_widget = QVTKRenderWindowInteractor(self)
-        self.renderer = vtk.vtkRenderer()
-        self.vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
-        self.interactor = self.vtk_widget.GetRenderWindow().GetInteractor()
-        self.interactor.SetInteractorStyle(CustomInteractorStyle(self.renderer))
-        self.interactor.Initialize()
+        self.vtk_player = VTKPlayer(self)
+        self.tab_widget = QTabWidget()
+        self.tab_widget.addTab(self.refinement_viewer, "Niveles de refinación")
+        self.tab_widget.addTab(self.vtk_player, "Paso a paso")
+        self.tab_widget.currentChanged.connect(lambda idx: cambiar_visualizador(self, idx))
 
-        # Crear botones de navegación
-        
-        self.boton_anterior = QPushButton()
-        self.boton_anterior.setIcon(self.style().standardIcon(QStyle.SP_ArrowLeft))
-        self.boton_anterior.setText("Anterior")
-
-        self.boton_siguiente = QPushButton()
-        self.boton_siguiente.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
-        self.boton_siguiente.setText("Siguiente")
-
-        # Conectar botones a funciones
-        self.boton_anterior.clicked.connect(self.navegar_anterior)
-        self.boton_siguiente.clicked.connect(self.navegar_siguiente)
-
-
-
-        # Nuevos botones para control de animación
-        self.boton_play = QPushButton()
-        self.boton_play.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
-        self.boton_play.setText("Play")
-
-        self.boton_pausa = QPushButton()
-        self.boton_pausa.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
-        self.boton_pausa.setText("Pausa")
-
-        self.boton_reinicio = QPushButton()
-        self.boton_reinicio.setIcon(self.style().standardIcon(QStyle.SP_MediaSkipBackward))
-        self.boton_reinicio.setText("Reinicio")
-        
-        # Configurar timer para animación automática
-        self.timer_animacion = QTimer(self)
-        self.timer_animacion.setInterval(1500)  # 1.5 segundos
-        self.timer_animacion.timeout.connect(self.avance_automatico)
-        
-        # Conectar botones
-        self.boton_play.clicked.connect(self.iniciar_animacion)
-        self.boton_pausa.clicked.connect(self.detener_animacion)
-        self.boton_reinicio.clicked.connect(self.reiniciar_secuencia)
-        
-        # Estilo para los nuevos botones
-        estilo_botones = """
-            QPushButton {
-                background-color: #4a4a4a;
-                color: white;
-                border: none;
-                padding: 8px;
-                font-size: 14px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #5a5a5a;
-            }
-        """
-        # Aplicar a todos los botones
-        for btn in [self.boton_anterior, self.boton_siguiente, 
-                    self.boton_play, self.boton_pausa, self.boton_reinicio]:
-            btn.setStyleSheet(estilo_botones)
-
-        
-        self.boton_pausa.setEnabled(False)
-
-        # Crear layout para los botones de navegación
-        nav_layout = QHBoxLayout()
-        nav_layout.addWidget(self.boton_anterior)
-        nav_layout.addWidget(self.boton_siguiente)
-        nav_layout.addWidget(self.boton_play)
-        nav_layout.addWidget(self.boton_pausa)
-        nav_layout.addWidget(self.boton_reinicio)
-        nav_layout.setContentsMargins(0, 0, 0, 0)
-        nav_layout.setSpacing(5)
-        
-        # Widget contenedor para los botones de navegación
-        nav_widget = QWidget()
-        nav_widget.setLayout(nav_layout)
-        nav_widget.setFixedHeight(40)
-
-        self.switcher = None
+        self.panel_central = QWidget()
+        central_layout = QVBoxLayout()
+        central_layout.addWidget(self.tab_widget)
+        self.panel_central.setLayout(central_layout)
 
         splitter = QSplitter(Qt.Horizontal)
-
         panel_izquierdo = QWidget()
         layout_izquierdo = QVBoxLayout()
-        layout_izquierdo.addWidget(self.boton_cargar)
         layout_izquierdo.addWidget(self.lista_archivos)
+        layout_izquierdo.addWidget(logo_label)
         panel_izquierdo.setLayout(layout_izquierdo)
 
+<<<<<<< HEAD
         # Layout principal del panel central
         central_layout = QVBoxLayout()
         central_layout.addWidget(self.vtk_widget, 1)  # El widget VTK ocupa la mayor parte
@@ -188,15 +140,23 @@ class MainWindow(QWidget):
         splitter.addWidget(panel_izquierdo)
         splitter.addWidget(panel_central)
         splitter.addWidget(self.panel_derecho)  # Nuevo panel derecho
+=======
+        splitter.addWidget(panel_izquierdo)
+        splitter.addWidget(self.panel_central)
+        splitter.addWidget(self.panel_derecho)
+>>>>>>> 0e18fd0544ffd6977e098ebd3592d57a4e8f298d
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
         splitter.setStretchFactor(2, 1)
 
         layout = QVBoxLayout()
+        layout.setMenuBar(self.menubar)
+        layout.addLayout(barra_botones)
         layout.addWidget(splitter)
         self.setLayout(layout)
         self.setAcceptDrops(True)
 
+<<<<<<< HEAD
     def _conectar_señales_panel_derecho(self):
         """Conecta las señales del panel derecho con las funciones existentes"""
        
@@ -390,24 +350,18 @@ class MainWindow(QWidget):
                     del self.rutas_archivos[nombre]
                 self.lista_archivos.takeItem(self.lista_archivos.row(item))
                 
+=======
+        self.switcher = None
+>>>>>>> 0e18fd0544ffd6977e098ebd3592d57a4e8f298d
 
+    # Eventos de drag & drop
     def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            # Acepta solo si todos los archivos son .poly
-            if all(url.toLocalFile().endswith('.poly') for url in urls):
-                event.acceptProposedAction()
+        dragEnterEvent(self, event)
 
     def dropEvent(self, event):
-        archivos = [url.toLocalFile() for url in event.mimeData().urls()]
-        for archivo in archivos:
-            self.procesar_archivo_arrastrado(archivo)
-    
-    def procesar_archivo_arrastrado(self, ruta_archivo):
-        dialogo = MeshGeneratorController(self)
-        dialogo.archivos_seleccionados = [ruta_archivo]
-        dialogo.ruta_archivos.setText(ruta_archivo)
+        dropEvent(self, event)
 
+<<<<<<< HEAD
         if not ruta_archivo.endswith('.poly'):
             QMessageBox.critical(self, "Error", "El archivo no es un archivo .poly válido.")
             return
@@ -602,3 +556,7 @@ class MainWindow(QWidget):
                 self.renderer.GetRenderWindow().Render()
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo cargar el archivo:\n{str(e)}")
+=======
+    def closeEvent(self, event):
+        closeEvent(self, event)
+>>>>>>> 0e18fd0544ffd6977e098ebd3592d57a4e8f298d
