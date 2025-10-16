@@ -208,7 +208,7 @@ class MeshGeneratorController(QDialog):
             QMessageBox.information(
                 self, 
                 "Proceso completado", 
-                f"Se generaron {max_refinement} mallas con {algoritmo} en {total_time:.2f} segundos"
+                f"Se generaron {max_refinement} mallas con {algoritmo} en {total_time:.2f} segundos\nSe generó el historial exitosamente" if self.historial_status else "No se generó el historial"
             )
             self.accept()
             
