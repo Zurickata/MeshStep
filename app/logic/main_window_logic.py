@@ -357,7 +357,10 @@ def cambiar_visualizador(main_window, index):
         main_window.vtk_player.run_script(ruta_vtk, historial_path)
 
         try:
-            main_window.vtk_player.vtk_widget.GetRenderWindow().GetInteractor().Initialize()
+            interactor = main_window.vtk_player.vtk_widget.GetRenderWindow().GetInteractor()
+            interactor.Initialize()
+            # Reaplicar el estilo personalizado después del Initialize
+            main_window.vtk_player.apply_custom_style()
         except Exception:
             pass
 

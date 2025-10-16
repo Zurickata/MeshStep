@@ -1,14 +1,5 @@
 import sys
-<<<<<<< HEAD
-
 import os
-
-# Añadir la ruta del proyecto al path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-=======
-import os
->>>>>>> 0e18fd0544ffd6977e098ebd3592d57a4e8f298d
 import qdarkstyle
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt

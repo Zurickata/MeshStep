@@ -393,6 +393,62 @@ if __name__ == "__main__":
     print("Celdas iniciales:", ugrid.GetNumberOfCells())
     visualizar_con_script(ugrid, "historial_completo_new.txt")
 
+class CustomVTKPlayerStyle(vtk.vtkInteractorStyleTrackballCamera):
+    """InteractorStyle personalizado con controles como FeriaVTK"""
+    
+    def __init__(self, vtk_player):
+        super().__init__()
+        self.vtk_player = vtk_player
+        self.AddObserver("KeyPressEvent", self.on_key_press)
+        self.AddObserver("LeftButtonPressEvent", self._left_down, 1.0)
+        self.AddObserver("LeftButtonReleaseEvent", self._left_up, 1.0)
+        self.AddObserver("MiddleButtonPressEvent", self._middle_down, 1.0)
+        self.AddObserver("MiddleButtonReleaseEvent", self._middle_up, 1.0)
+
+    # Click izquierdo => PAN (equivalente a botón medio por defecto)
+    def _left_down(self, obj, evt):
+        print("[VTKPlayerStyle] LeftButtonDown -> PAN")
+        if hasattr(obj, "AbortFlagOn"):
+            obj.AbortFlagOn()  # aborta el evento original
+        vtk.vtkInteractorStyleTrackballCamera.OnMiddleButtonDown(self)
+
+    def _left_up(self, obj, evt):
+        if hasattr(obj, "AbortFlagOn"):
+            obj.AbortFlagOn()
+        vtk.vtkInteractorStyleTrackballCamera.OnMiddleButtonUp(self)
+
+    # Botón medio => ROTACIÓN (equivalente a botón izquierdo por defecto)
+    def _middle_down(self, obj, evt):
+        print("[VTKPlayerStyle] MiddleButtonDown -> ROTATE")
+        if hasattr(obj, "AbortFlagOn"):
+            obj.AbortFlagOn()
+        vtk.vtkInteractorStyleTrackballCamera.OnLeftButtonDown(self)
+
+    def _middle_up(self, obj, evt):
+        if hasattr(obj, "AbortFlagOn"):
+            obj.AbortFlagOn()
+        vtk.vtkInteractorStyleTrackballCamera.OnLeftButtonUp(self)
+
+    def OnRightButtonDown(self):
+        vtk.vtkInteractorStyleTrackballCamera.OnRightButtonDown(self)
+
+    def OnRightButtonUp(self):
+        vtk.vtkInteractorStyleTrackballCamera.OnRightButtonUp(self)
+
+    def on_key_press(self, obj, event):
+        key = self.GetInteractor().GetKeySym()
+        if key == "n":
+            self.vtk_player.siguiente_paso()
+        elif key == "r" and self.GetInteractor().GetControlKey():
+            self.vtk_player.reiniciar()
+        elif key == "r":
+            print("🔁 Reseteando cámara")
+            self.vtk_player.reset_camera()
+        elif key == "s":
+            self.vtk_player.guardar()
+        else:
+            self.OnKeyPress()
+
 
 class VTKPlayer(QWidget):
     def __init__(self, parent=None):
@@ -401,6 +457,7 @@ class VTKPlayer(QWidget):
         self.renderer = vtk.vtkRenderer()
         self.vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
         self.actor = None
+        self._custom_style = None
 
         # Botones de control
         self.boton_siguiente = QPushButton("Siguiente paso (n)")
@@ -428,6 +485,16 @@ class VTKPlayer(QWidget):
         self.script_file = None
         self.vtk_file = None
 
+    def apply_custom_style(self):
+        """Reaplica el estilo personalizado y mantiene referencia para evitar GC."""
+        interactor = self.vtk_widget.GetRenderWindow().GetInteractor()
+        # Crear y guardar referencia
+        self._custom_style = CustomVTKPlayerStyle(self)
+        self._custom_style.SetDefaultRenderer(self.renderer)
+        interactor.SetInteractorStyle(self._custom_style)
+        # Debug para confirmar
+        print("[VTKPlayer] Style aplicado:", type(interactor.GetInteractorStyle()).__name__)
+
     def run_script(self, vtk_file, script_file, outputs_dir=OUTPUTS_DIR):
         alt_path_vtk = os.path.join(outputs_dir, vtk_file)
         alt_path_script = os.path.join(outputs_dir, script_file)
@@ -446,10 +513,11 @@ class VTKPlayer(QWidget):
 
         self._mostrar_ugrid(self.ugrid)
 
-        # Conectar eventos de teclado
-        interactor = self.vtk_widget.GetRenderWindow().GetInteractor()
-        interactor.RemoveObservers("KeyPressEvent")  # Evita duplicados
-        interactor.AddObserver("KeyPressEvent", self.keypress)
+        # Asegurar interactor inicializado y aplicar estilo 
+        iren = self.vtk_widget.GetRenderWindow().GetInteractor()
+        if not iren.GetInitialized():
+            iren.Initialize()
+        self.apply_custom_style()
 
     def _mostrar_ugrid(self, ugrid):
         self.renderer.RemoveAllViewProps()
