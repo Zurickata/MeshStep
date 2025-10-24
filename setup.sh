@@ -16,6 +16,10 @@ cd core/octree/build
 cmake ../src
 make
 cd ../../..
+cd core/octree
+git checkout master
+git pull origin master
+cd ../..
 echo "¡Octree Compilado!"
 
 # Crear y activar entorno virtual
