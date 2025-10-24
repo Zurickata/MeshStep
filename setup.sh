@@ -27,7 +27,7 @@ python3 -m venv venv
 source venv/bin/activate  # Linux/macOS
 # source venv/Scripts/activate  # Windows (Git Bash)
 
-echo "¡Entorno Virtual Listo!"
+echo "¡El entorno Virtual Listo!"
 
 # Instalar dependencias
 pip install -r requirements.txt
