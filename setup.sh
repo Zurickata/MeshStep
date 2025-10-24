@@ -1,6 +1,10 @@
 #!/bin/bash
 
 # Compilar el algoritmo Quadtree 
+cd core/quadtree
+git checkout master
+git pull origin master
+cd ../..
 rm -rf core/quadtree/build
 mkdir -p core/quadtree/build
 cd core/quadtree/build
@@ -9,17 +13,17 @@ make
 cd ../../..
 echo "¡Quadtree Compilado!"
 
-# Compilar el algoritmo Octree 
+# Compilar el algoritmo Octree
+cd core/octree
+git checkout master
+git pull origin master
+cd ../..
 rm -rf core/octree/build
 mkdir -p core/octree/build
 cd core/octree/build
 cmake ../src
 make
 cd ../../..
-cd core/octree
-git checkout master
-git pull origin master
-cd ../..
 echo "¡Octree Compilado!"
 
 # Crear y activar entorno virtual
