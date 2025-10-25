@@ -283,7 +283,6 @@ class PanelDerecho(QScrollArea):
     def actualizar_panel_derecho(self, ruta_archivo):
         
         try:
-            
             """
             # Cambiar extensión del archivo de .vtk a _histo.txt
             base, _ = os.path.splitext(ruta_archivo)
