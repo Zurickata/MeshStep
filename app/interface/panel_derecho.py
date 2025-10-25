@@ -443,10 +443,16 @@ class PanelDerecho(QScrollArea):
             
             base, _ = os.path.splitext(ruta_archivo)
             numero = base.split('_')[-1]
+            if self.refinement_viewer and self.refinement_viewer.switcher:
+                switcher = self.refinement_viewer.switcher
+                archivos = switcher.file_dict.get(switcher.current_poly, [])
+                ultimo_archivo = archivos[-1] if archivos else "N/A"
+                ultimo_archivo = ultimo_archivo.split('_')[-1] if '_' in ultimo_archivo else "N/A"
+                ultimo_level_refinement = ultimo_archivo.split('.')[0] if '.' in ultimo_archivo else "N/A"
             contenido_html = f"""
                 <div style='margin-top: 10px; padding: 8px; background-color: #3a3a3a; border-radius: 4px;'>
                     <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px;'>
-                    <b style='color: #ffd700;'>Nivel de Refinamiento: {numero}</b><br><br>
+                    <b style='color: #ffd700;'>Nivel de Refinamiento: {numero}/{ultimo_level_refinement}<br><br>
                 </div>
             """
             # Actualizar el panel derecho
