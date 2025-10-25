@@ -5,6 +5,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 from app.visualization.RefinementViewer import RefinementViewer
 from app.interface.panel_derecho import PanelDerecho
+from app.interface.panel_pap import PanelPAP
 from app.visualization.vtkplayer import VTKPlayer
 from app.logic.main_window_logic import (
     dragEnterEvent, dropEvent,
@@ -68,8 +69,13 @@ class MainWindow(QWidget):
 
         self.refinement_viewer = RefinementViewer(self)
         self.panel_derecho = PanelDerecho(parent=self)
+        self.panel_pap = PanelPAP(parent=self)
+
+        # Integrar los panels derecho en un contenedor para poder alternarlos
         self.refinement_viewer.panel_derecho = self.panel_derecho
         self.panel_derecho.refinement_viewer = self.refinement_viewer
+        # panel_pap quedará oculto hasta que se entre en Paso a Paso
+        self.panel_pap.hide()
 
         self.rutas_archivos = {}
         self.rutas_octree = {}
@@ -94,7 +100,15 @@ class MainWindow(QWidget):
 
         splitter.addWidget(panel_izquierdo)
         splitter.addWidget(self.panel_central)
-        splitter.addWidget(self.panel_derecho)
+        # Añadimos ambos panels al splitter dentro de un contenedor derecho
+        right_container = QWidget()
+        right_layout = QVBoxLayout()
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(0)
+        right_layout.addWidget(self.panel_derecho)
+        right_layout.addWidget(self.panel_pap)
+        right_container.setLayout(right_layout)
+        splitter.addWidget(right_container)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
         splitter.setStretchFactor(2, 1)

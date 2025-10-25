@@ -269,14 +269,26 @@ def cambiar_visualizador(main_window, index):
     if index == 0:  # Tab de refinamiento
         main_window.refinement_viewer.vtk_widget.show()
         main_window.refinement_viewer.vtk_widget.GetRenderWindow().Render()
-        # HABILITAR panel derecho
+        # HABILITAR panel derecho y ocultar panel_pap si existe
         if hasattr(main_window, 'panel_derecho'):
-            main_window.panel_derecho.show()  # Quitar estilo de deshabilitado
-
+            main_window.panel_derecho.show()
+        if hasattr(main_window, 'panel_pap'):
+            main_window.panel_pap.hide()
     else:  # Tab de paso a paso
-        # DESHABILITAR panel derecho
+        # DESHABILITAR panel derecho y mostrar panel_pap
         if hasattr(main_window, 'panel_derecho'):
             main_window.panel_derecho.hide()
+        # panel_pap fue creado en MainWindow; si no existe, crear uno (defensivo)
+        if not hasattr(main_window, 'panel_pap'):
+            try:
+                from app.interface.panel_pap import PanelPAP
+                main_window.panel_pap = PanelPAP(parent=main_window)
+                # intentar insertarlo en la UI si el contenedor existe
+                # Si MainWindow creó un contenedor right_container en su layout, el panel ya fue añadido.
+            except Exception:
+                main_window.panel_pap = None
+        if hasattr(main_window, 'panel_pap') and main_window.panel_pap:
+            main_window.panel_pap.show()
         main_window.vtk_player.vtk_widget.show()
         main_window.vtk_player.vtk_widget.GetRenderWindow().Render()
 
