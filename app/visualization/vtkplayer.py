@@ -3,7 +3,7 @@ import numpy as np
 import os
 import sys
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QFileDialog
-from PyQt5.QtCore import QStandardPaths
+from PyQt5.QtCore import QStandardPaths, pyqtSignal
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 OUTPUTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../outputs")
@@ -485,6 +485,15 @@ class VTKPlayer(QWidget):
         self.script_file = None
         self.vtk_file = None
 
+    # Helpers públicos para consultar estado
+    def current_step(self) -> int:
+        """Devuelve el índice actual del estado (i)."""
+        return int(self.estado.get("i", 0))
+
+    def total_steps(self) -> int:
+        """Devuelve el total de comandos/pasos cargados."""
+        return len(self.comandos) if self.comandos is not None else 0
+
     def apply_custom_style(self):
         """Reaplica el estilo personalizado y mantiene referencia para evitar GC."""
         interactor = self.vtk_widget.GetRenderWindow().GetInteractor()
@@ -518,6 +527,12 @@ class VTKPlayer(QWidget):
         if not iren.GetInitialized():
             iren.Initialize()
         self.apply_custom_style()
+
+        # Intentar actualizar directamente el panel PAP (más robusto: buscar en ancestros)
+        try:
+            self._update_panel_pap()
+        except Exception:
+            pass
 
     def _mostrar_ugrid(self, ugrid):
         self.renderer.RemoveAllViewProps()
@@ -558,6 +573,11 @@ class VTKPlayer(QWidget):
                 self._mostrar_ugrid(self.ugrid)
                 self.estado["i"] += 1
                 print(f"→ Puntos: {self.ugrid.GetNumberOfPoints()} | Celdas: {self.ugrid.GetNumberOfCells()}")
+                # Actualizar el panel PAP de forma robusta (buscando en ancestros y ventana)
+                try:
+                    self._update_panel_pap()
+                except Exception:
+                    pass
             else:
                 print("No quedan más comandos.")
                 QMessageBox.information(self, "Fin", "Ya estás en el último paso.")
@@ -567,6 +587,47 @@ class VTKPlayer(QWidget):
             self.estado["i"] = 0
             self._mostrar_ugrid(self.ugrid)
             print(f"→ Reiniciado: Puntos {self.ugrid.GetNumberOfPoints()} | Celdas {self.ugrid.GetNumberOfCells()}")
+            try:
+                self._update_panel_pap()
+            except Exception:
+                pass
         elif comando == "s":
             print("Guardando a salida.vtk ...")
             guardar_ugrid(self.ugrid, "salida.vtk", parent=self)
+
+    def _update_panel_pap(self):
+        """Buscar en ancestros el atributo panel_pap y, si existe, actualizar su estado.
+
+        Esto es más robusto que depender de self.parent() porque el widget puede
+        haber sido reparentado (por ejemplo dentro de un QTabWidget).
+        """
+        try:
+            # first try window() (top-level widget)
+            candidates = []
+            top = None
+            try:
+                top = self.window()
+            except Exception:
+                top = None
+            # include direct parent and top-level window
+            candidates.append(self.parent())
+            if top is not None:
+                candidates.append(top)
+
+            for start in candidates:
+                anc = start
+                while anc:
+                    if hasattr(anc, 'panel_pap') and getattr(anc, 'panel_pap'):
+                        try:
+                            anc.panel_pap.actualizar_estado_pasos(self.current_step(), self.total_steps())
+                        except Exception:
+                            pass
+                        return True
+                    # subir un nivel
+                    try:
+                        anc = anc.parent()
+                    except Exception:
+                        break
+            return False
+        except Exception:
+            return False

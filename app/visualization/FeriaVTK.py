@@ -293,8 +293,7 @@ class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera): #chatgpt
 
         puntos = [cell.GetPoints().GetPoint(i) for i in range(cell.GetNumberOfPoints())]
         print(f"📌 Cara seleccionada (ID={cell_id}):")
-        for p in puntos:
-            print(f"   {p}")
+        
 
         # Calcular ángulo mínimo de la celda
 
