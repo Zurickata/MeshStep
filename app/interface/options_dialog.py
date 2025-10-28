@@ -86,7 +86,6 @@ class OpcionesDialog(QDialog):
         if translator.load(path) or translator.load(alt_path):
             self.app.translator = translator # Guardamos el nuevo como el "actual"
             self.app.installTranslator(self.app.translator)
-            print(f"Idioma cambiado a: {lang_code}")
         else:
             print(f"Error: No se pudo cargar la traducción para {lang_code}")
             # Si falla, reinstalamos el viejo
