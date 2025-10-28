@@ -1,14 +1,13 @@
 import os
 import vtk
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QStyle
-# --- CAMBIO: Importar QEvent y QTranslator ---
-from PyQt5.QtCore import Qt, QTimer, QSize, QEvent, QTranslator
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox
+from PyQt5.QtCore import Qt, QTimer
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.visualization.coloreo_metricas import colorear_celdas
 
 def poly_to_vtk(filepath):
-    # --- (Esta función no tiene texto visible, se deja igual) ---
+
     points = vtk.vtkPoints()
     lines = vtk.vtkCellArray()
 
@@ -96,22 +95,26 @@ class RefinementViewer(QWidget):
         self.interactor.Initialize()
         self.switcher = None
 
-        # --- CAMBIO: Texto de botones puesto a "" ---
-        icon_size = QSize(20, 20)
-        self.boton_anterior = QPushButton(self.style().standardIcon(QStyle.SP_ArrowBack), "")
-        self.boton_siguiente = QPushButton(self.style().standardIcon(QStyle.SP_ArrowForward), "")
-        self.boton_play = QPushButton(self.style().standardIcon(QStyle.SP_MediaPlay), "")
-        self.boton_pausa = QPushButton(self.style().standardIcon(QStyle.SP_MediaPause), "")
-        self.boton_reinicio = QPushButton(self.style().standardIcon(QStyle.SP_MediaSkipBackward), "")
-        self.boton_overlay = QPushButton(self.style().standardIcon(QStyle.SP_FileDialogInfoView), "")
+                # ---- Agregar ejes 3D ----
+        self.axes = vtk.vtkAxesActor()
+        self.axes.SetTotalLength(0.2, 0.2, 0.2)  # Tamaño de los ejes
 
-        self.boton_anterior.setIconSize(icon_size)
-        self.boton_siguiente.setIconSize(icon_size)
-        self.boton_play.setIconSize(icon_size)
-        self.boton_pausa.setIconSize(icon_size)
-        self.boton_reinicio.setIconSize(icon_size)
-        self.boton_overlay.setIconSize(icon_size)
+        # Widget para los ejes en la esquina
+        self.axes_widget = vtk.vtkOrientationMarkerWidget()
+        self.axes_widget.SetOrientationMarker(self.axes)
+        self.axes_widget.SetInteractor(self.interactor)
+        self.axes_widget.SetViewport(0.0, 0.0, 0.2, 0.2)  # esquina inferior izquierda
+        self.axes_widget.SetEnabled(True)
+        self.axes_widget.InteractiveOff()
 
+
+        # Botones de navegación
+        self.boton_anterior = QPushButton("Anterior")
+        self.boton_siguiente = QPushButton("Siguiente")
+        self.boton_play = QPushButton("Play")
+        self.boton_pausa = QPushButton("Pausa")
+        self.boton_reinicio = QPushButton("Reinicio")
+        self.boton_overlay = QPushButton("Mostrar overlay")
         self.overlay_visible = False
         self.overlay_actor = None
         self.poly_path = None
@@ -139,9 +142,9 @@ class RefinementViewer(QWidget):
         self.boton_pausa.clicked.connect(self.detener_animacion)
         self.boton_reinicio.clicked.connect(self.reiniciar_secuencia)
         self.boton_overlay.clicked.connect(self.toggle_overlay)
-        
-        # --- CAMBIO: Llamar a retranslateUi al final ---
-        self.retranslateUi()
+
+    # def set_panel_derecho(self, panel):
+    #     self.panel_derecho = panel
 
     def set_switcher(self, switcher, poly_path=None):
         self.switcher = switcher
@@ -177,8 +180,7 @@ class RefinementViewer(QWidget):
             self.switcher.clear_extra_models()
             self.panel_derecho.reload_modelo()
         else:
-            # --- CAMBIO: Texto de QMessageBox traducido ---
-            QMessageBox.information(self, self.tr("Inicio"), self.tr("Ya estás en el primer modelo."))
+            QMessageBox.information(self, "Inicio", "Ya estás en el primer modelo.")
 
     def navegar_siguiente(self):
         if not self.switcher:
@@ -195,8 +197,7 @@ class RefinementViewer(QWidget):
             self.switcher.clear_extra_models()
             self.panel_derecho.reload_modelo()
         else:
-            # --- CAMBIO: Texto de QMessageBox traducido ---
-            QMessageBox.information(self, self.tr("Fin"), self.tr("Ya estás en el último modelo."))
+            QMessageBox.information(self, "Fin", "Ya estás en el último modelo.")
 
     def iniciar_animacion(self):
         if self.switcher and self.switcher.file_dict:
@@ -240,8 +241,7 @@ class RefinementViewer(QWidget):
         if self.overlay_actor:
             self.overlay_visible = not self.overlay_visible
             self.overlay_actor.SetVisibility(self.overlay_visible)
-            # --- CAMBIO: Llamar a retranslateUi para actualizar el texto ---
-            self.retranslateUi()
+            self.boton_overlay.setText("Ocultar overlay" if self.overlay_visible else "Mostrar overlay")
             self.renderer.GetRenderWindow().Render()
 
     def update_overlay_poly(self, poly_path):
@@ -252,8 +252,7 @@ class RefinementViewer(QWidget):
             self.overlay_actor = None
         self._load_overlay_poly()
         self.overlay_visible = False
-        # --- CAMBIO: Llamar a retranslateUi para actualizar el texto ---
-        self.retranslateUi()
+        self.boton_overlay.setText("Mostrar overlay")
         self.renderer.GetRenderWindow().Render()
 
     def accion_area(self):
@@ -266,7 +265,6 @@ class RefinementViewer(QWidget):
             nombre = os.path.basename(archivos[self.switcher.current_index])
         else:
             print("No hay archivo actual.")
-            return # <-- Buena práctica
     # Métodos para cada acción
         input_path = "outputs/" + nombre
         output_path = "outputs/" + "color_" +nombre
@@ -289,7 +287,6 @@ class RefinementViewer(QWidget):
             nombre = os.path.basename(archivos[self.switcher.current_index])
         else:
             print("No hay archivo actual.")
-            return # <-- Buena práctica
     # Métodos para cada acción
         input_path = "outputs/" +  nombre
         output_path = "outputs/" + "color_" + nombre
@@ -312,7 +309,6 @@ class RefinementViewer(QWidget):
             nombre = os.path.basename(archivos[self.switcher.current_index])
         else:
             print("No hay archivo actual.")
-            return # <-- Buena práctica
     # Métodos para cada acción
         input_path = "outputs/" + nombre
         output_path = "outputs/" + "color_" +nombre
@@ -329,32 +325,4 @@ class RefinementViewer(QWidget):
         """Ajusta la velocidad de la animación"""
         segundos = valor / 1000.0
         self.timer_animacion.setInterval(valor)
-        if self.panel_derecho: # El panel derecho es responsable de traducir su propio label
-            self.panel_derecho.label_velocidad_valor.setText(f"{segundos:.1f}s")
-            
-    # --- CAMBIO: Métodos retranslateUi y changeEvent AÑADIDOS ---
-    
-    def retranslateUi(self):
-        """
-        Actualiza todos los textos de la UI.
-        """
-        self.boton_anterior.setText(self.tr("Anterior"))
-        self.boton_siguiente.setText(self.tr("Siguiente"))
-        self.boton_play.setText(self.tr("Play"))
-        self.boton_pausa.setText(self.tr("Pausa"))
-        self.boton_reinicio.setText(self.tr("Reinicio"))
-        
-        # Texto dinámico para el botón de overlay
-        if self.overlay_visible:
-            self.boton_overlay.setText(self.tr("Ocultar overlay"))
-        else:
-            self.boton_overlay.setText(self.tr("Mostrar overlay"))
-
-    def changeEvent(self, event):
-        """
-        Escucha el evento de cambio de idioma.
-        """
-        if event.type() == QEvent.LanguageChange:
-            self.retranslateUi() # Llama a nuestro método de traducción
-        else:
-            super().changeEvent(event)
+        self.panel_derecho.label_velocidad_valor.setText(f"{segundos:.1f}s")

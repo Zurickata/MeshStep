@@ -3,35 +3,38 @@ import time
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel, QSpinBox, 
                             QPushButton, QMessageBox, QFileDialog, QDialog, QHBoxLayout,
                             QGroupBox, QRadioButton)
-from PyQt5.QtCore import QEvent # <-- 1. IMPORTA QEVENT
+# --- CAMBIO: Importar QEvent ---
+from PyQt5.QtCore import Qt, QEvent
 from core.wrapper import QuadtreeWrapper, OctreeWrapper
 from app.logic.scripts_historial.crear_historial import crear_historial
 from app.logic.scripts_historial.historial_octree import crear_historial_octree
 
+# --- CAMBIO: Definir Contexto ---
+CONTEXTO = "MeshGeneratorController"
+
 class MeshGeneratorController(QDialog):
     def __init__(self, parent=None, ignorar_limite=False):
         super().__init__(parent)
-        self.mesher = None  
+        self.mesher = None
         self.generated_files = []
         self.historial_status = False
         self.ruta_historial = ""
         self.ignorar_limite = ignorar_limite
         self.cargar_sin_generar = False
         self.setup_ui()
-        self.retranslateUi() # <-- Tu llamada existente (¡perfecto!)
+        self.retranslateUi() # Esta llamada ya estaba aquí, ¡perfecto!
 
     def setup_ui(self):
-        self.setWindowTitle("")
+        self.setWindowTitle("") # Se establece en retranslateUi
         self.resize(400, 350)  
         
         self.archivos_seleccionados = []
-        # 2. Mover texto inicial a retranslateUi
-        self.ruta_archivos = QLabel("") 
+        self.ruta_archivos = QLabel("") # Se establece en retranslateUi
 
         # Grupo para selección de tipo de refinamiento
-        self.refinement_type_group = QGroupBox("")
-        self.edge_refinement = QRadioButton("")
-        self.full_refinement = QRadioButton("")
+        self.refinement_type_group = QGroupBox("") # Se establece en retranslateUi
+        self.edge_refinement = QRadioButton("") # Se establece en retranslateUi
+        self.full_refinement = QRadioButton("") # Se establece en retranslateUi
         self.edge_refinement.setChecked(True)  
         
         refinement_layout = QHBoxLayout()
@@ -40,9 +43,9 @@ class MeshGeneratorController(QDialog):
         self.refinement_type_group.setLayout(refinement_layout)
 
         # Grupo para selección de algoritmo
-        self.algorithm_type_group = QGroupBox("")
-        self.quadtree = QRadioButton("")
-        self.octree = QRadioButton("")
+        self.algorithm_type_group = QGroupBox("") # Se establece en retranslateUi
+        self.quadtree = QRadioButton("") # Se establece en retranslateUi
+        self.octree = QRadioButton("") # Se establece en retranslateUi
         self.quadtree.setChecked(True)  
         
         algorithm_layout = QHBoxLayout()
@@ -51,28 +54,28 @@ class MeshGeneratorController(QDialog):
         self.algorithm_type_group.setLayout(algorithm_layout)
 
         # Controles de generación
-        self.refinement_label = QLabel("") # 2. Mover texto
+        self.refinement_label = QLabel("") # Se establece en retranslateUi
         self.refinement_spinbox = QSpinBox()
         self.refinement_spinbox.setRange(1, 6)
         if self.ignorar_limite:
-            self.refinement_label = QLabel("") # 2. Mover texto
+            self.refinement_label = QLabel("") # Se establece en retranslateUi
             self.refinement_spinbox.setRange(1, 102)
         self.refinement_spinbox.setValue(3)
         self.refinement_spinbox.valueChanged.connect(self.verificar_refinamiento)
 
-        self.input_file_button = QPushButton("")
+        self.input_file_button = QPushButton("") # Se establece en retranslateUi
         self.input_file_button.clicked.connect(self.select_input_file)
 
         # Botón para ejecutar
-        self.run_button = QPushButton("")
+        self.run_button = QPushButton("") # Se establece en retranslateUi
         self.run_button.clicked.connect(self.run_mesh_generation)
 
         # Área de estado
-        self.status_label = QLabel("") # 2. Mover texto
+        self.status_label = QLabel("") # Se establece en retranslateUi
         self.status_label.setWordWrap(True)
         
         # Etiqueta para mostrar tiempos
-        self.time_label = QLabel("") # 2. Mover texto
+        self.time_label = QLabel("") # Se establece en retranslateUi
         self.time_label.setStyleSheet("font-weight: bold; color: #2E86C1;")
 
         layout = QVBoxLayout(self)
@@ -90,31 +93,33 @@ class MeshGeneratorController(QDialog):
         self.setLayout(layout)
 
     def select_input_file(self):
-        # 3. TRADUCIR TEXTOS DINÁMICOS
+        # --- CAMBIO: Usar QApplication.translate ---
         if self.quadtree.isChecked():
-            file_filter = self.tr("Archivos POLY (*.poly)")
+            file_filter = QApplication.translate(CONTEXTO, "Archivos POLY (*.poly)")
         elif self.octree.isChecked():
-            file_filter = self.tr("Archivos MDL (*.mdl);;Archivos POLY (*.poly);;Archivos VTK (*.vtk)")
+            file_filter = QApplication.translate(CONTEXTO, "Archivos MDL (*.mdl);;Archivos POLY (*.poly);;Archivos VTK (*.vtk)")
         else:
-            file_filter = self.tr("Archivos POLY (*.poly)")  
+            file_filter = QApplication.translate(CONTEXTO, "Archivos POLY (*.poly)")  
 
         archivos, _ = QFileDialog.getOpenFileNames(
             self,
-            self.tr("Seleccionar archivo"), # <-- Título del diálogo
+            QApplication.translate(CONTEXTO, "Seleccionar archivo"),
             "",
             file_filter
         )
         if archivos:
             self.archivos_seleccionados = archivos
-            # 3. TRADUCIR F-STRINGS (estilo Python)
-            self.ruta_archivos.setText(f"{self.tr('Archivo seleccionado')}: {os.path.basename(archivos[0])}")
+            self.ruta_archivos.setText(f"{QApplication.translate(CONTEXTO, 'Archivo seleccionado')}: {os.path.basename(archivos[0])}")
 
     def run_mesh_generation(self):
         if not self.archivos_seleccionados:
-            # 3. TRADUCIR QMESSAGEBOX
-            QMessageBox.critical(self, self.tr("Error"), self.tr("Debes seleccionar al menos un archivo antes de confirmar."))
+            # --- CAMBIO: Usar QApplication.translate ---
+            QMessageBox.critical(self, 
+                                 QApplication.translate(CONTEXTO, "Error"), 
+                                 QApplication.translate(CONTEXTO, "Debes seleccionar al menos un archivo antes de confirmar."))
             return
         
+        # Instanciar el wrapper según algoritmo seleccionado
         if self.quadtree.isChecked():
             self.mesher = QuadtreeWrapper()
             algoritmo = "Quadtree"
@@ -122,7 +127,10 @@ class MeshGeneratorController(QDialog):
             self.mesher = OctreeWrapper()
             algoritmo = "Octree"
         else:
-            QMessageBox.critical(self, self.tr("Error"), self.tr("Debes seleccionar un algoritmo de mallado."))
+            # --- CAMBIO: Usar QApplication.translate ---
+            QMessageBox.critical(self, 
+                                 QApplication.translate(CONTEXTO, "Error"), 
+                                 QApplication.translate(CONTEXTO, "Debes seleccionar un algoritmo de mallado."))
             return
 
         max_refinement = self.refinement_spinbox.value()
@@ -133,87 +141,124 @@ class MeshGeneratorController(QDialog):
         level_times = []
         self.generated_files = []
         
-        # 3. TRADUCIR F-STRINGS
-        self.status_label.setText(f"[{algoritmo}] {self.tr('Generando mallas desde nivel 1 hasta')} {max_refinement}...")
-        self.time_label.setText(f"{self.tr('Tiempo de ejecución')}: {self.tr('calculando')}...")
+        # --- CAMBIO: Usar QApplication.translate ---
+        self.status_label.setText(f"[{algoritmo}] {QApplication.translate(CONTEXTO, 'Generando mallas desde nivel 1 hasta')} {max_refinement}...")
+        self.time_label.setText(f"{QApplication.translate(CONTEXTO, 'Tiempo de ejecución')}: {QApplication.translate(CONTEXTO, 'calculando')}...")
         QApplication.processEvents()
 
         try:
             for level in range(1, max_refinement + 1):
                 level_start = time.time()
-                # ... (lógica) ...
-                result_file = self.mesher.generate_mesh(...)
-                # ... (lógica) ...
+
+                base_name = os.path.splitext(os.path.basename(input_file))[0]
+                output_name = f"{base_name}_output_{level}"
+                
+                result_file = self.mesher.generate_mesh(
+                    input_file=input_file,
+                    output_file=output_name,
+                    refinement_level=level,
+                    refinement_type=refinement_type,
+                    show_quality_metrics=True
+                )
+                
+                level_time = time.time() - level_start
+                level_times.append(level_time)
+                self.generated_files.append(result_file)
             
                 print(f"[{algoritmo}] Nivel {level} completado en {level_time:.2f} segundos")
+                # --- CAMBIO: Usar QApplication.translate ---
                 self.status_label.setText(
-                    f"{self.tr('Nivel')} {level}/{max_refinement} {self.tr('completado en')} {level_time:.2f}s\n"
-                    f"{self.tr('Archivo')}: {os.path.basename(result_file)}"
+                    f"{QApplication.translate(CONTEXTO, 'Nivel')} {level}/{max_refinement} {QApplication.translate(CONTEXTO, 'completado en')} {level_time:.2f}s\n"
+                    f"{QApplication.translate(CONTEXTO, 'Archivo')}: {os.path.basename(result_file)}"
                 )
                 QApplication.processEvents()
 
+            # Tiempo total de generación de mallas
             mesh_time = time.time() - start_time
+
+            # Medir también la creación del historial
             historial_start = time.time()
 
+            print(self.generated_files)
+
             try:
-                # ... (lógica historial) ...
-                if algoritmo == "Quadtree":
-                    crear_historial(name, max_refinement, tipo)
-                else:
-                    crear_historial_octree(name, max_refinement, tipo)
-                
+                last_output_path = self.generated_files[-1] if self.generated_files else result_file
+                input_dir = os.path.dirname(last_output_path)
+                name = os.path.splitext(os.path.basename(last_output_path))[0]
+                tipo = "borde" if self.edge_refinement.isChecked() else "completo"
+
+                _cwd = os.getcwd()
+                try:
+                    os.chdir(input_dir)
+                    if algoritmo == "Quadtree":
+                        crear_historial(name, max_refinement, tipo)
+                    else:
+                        crear_historial_octree(name, max_refinement, tipo)
+                    self.historial_status = True
+                    self.ruta_quads = f"{input_dir}/{name}_quads.vtk"
+                    self.ruta_historial = f"{input_dir}/{name}_historial.txt"
+                finally:
+                    os.chdir(_cwd)
+
                 print(f"[Historial] Generado en {self.ruta_historial}")
-                # 3. TRADUCIR TEXTOS CONCATENADOS
-                self.status_label.setText(self.status_label.text() + f"\n{self.tr('El historial se generó correctamente')}")
+                # --- CAMBIO: Usar QApplication.translate ---
+                self.status_label.setText(self.status_label.text() + f"\n{QApplication.translate(CONTEXTO, 'El historial se generó correctamente')}")
             except Exception as e_hist:
                 print(f"[Historial] Error al generar historial: {e_hist}")
-                self.status_label.setText(self.status_label.text() + f"\n{self.tr('Ocurrió un error al generar el historial')}")
+                # --- CAMBIO: Usar QApplication.translate ---
+                self.status_label.setText(self.status_label.text() + f"\n{QApplication.translate(CONTEXTO, 'Ocurrió un error al generar el historial')}")
             historial_time = time.time() - historial_start
 
+            # 🔹 Tiempo total (mallado + historial)
             total_time = mesh_time + historial_time
             avg_time = total_time / max_refinement
 
+            # --- CAMBIO: Usar QApplication.translate ---
             time_report = (
-                f"{self.tr('Tiempo total')}: {total_time:.2f} {self.tr('segundos')}\n"
-                f"{self.tr('Tiempo promedio por nivel')}: {avg_time:.2f} {self.tr('segundos')}\n"
-                f"{self.tr('Tiempo del Historial')}: {historial_time:.2f} {self.tr('segundos')}"
+                f"{QApplication.translate(CONTEXTO, 'Tiempo total')}: {total_time:.2f} {QApplication.translate(CONTEXTO, 'segundos')}\n"
+                f"{QApplication.translate(CONTEXTO, 'Tiempo promedio por nivel')}: {avg_time:.2f} {QApplication.translate(CONTEXTO, 'segundos')}\n"
+                f"{QApplication.translate(CONTEXTO, 'Tiempo del Historial')}: {historial_time:.2f} {QApplication.translate(CONTEXTO, 'segundos')}"
             )
 
             self.time_label.setText(time_report)
-            self.status_label.setText(f"{self.tr('Generación completada')}!\n{time_report}")
+            self.status_label.setText(f"{QApplication.translate(CONTEXTO, 'Generación completada')}!\n{time_report}")
 
-            msg_historial = self.tr('Se generó el historial exitosamente') if self.historial_status else self.tr('No se generó el historial')
+            # --- CAMBIO: Usar QApplication.translate ---
+            msg_historial = QApplication.translate(CONTEXTO, 'Se generó el historial exitosamente') if self.historial_status else QApplication.translate(CONTEXTO, 'No se generó el historial')
             QMessageBox.information(
                 self, 
-                self.tr("Proceso completado"), 
-                f"{self.tr('Se generaron')} {max_refinement} {self.tr('mallas con')} {algoritmo} {self.tr('en')} {total_time:.2f} {self.tr('segundos')}\n{msg_historial}"
+                QApplication.translate(CONTEXTO, "Proceso completado"), 
+                f"{QApplication.translate(CONTEXTO, 'Se generaron')} {max_refinement} {QApplication.translate(CONTEXTO, 'mallas con')} {algoritmo} {QApplication.translate(CONTEXTO, 'en')} {total_time:.2f} {QApplication.translate(CONTEXTO, 'segundos')}\n{msg_historial}"
             )
             self.accept()
             
         except Exception as e:
             elapsed_time = time.time() - start_time
+            # --- CAMBIO: Usar QApplication.translate ---
             error_msg = (
-                f"{self.tr('Error después de')} {elapsed_time:.2f} {self.tr('segundos')}:\n"
+                f"{QApplication.translate(CONTEXTO, 'Error después de')} {elapsed_time:.2f} {QApplication.translate(CONTEXTO, 'segundos')}:\n"
                 f"{str(e)}"
             )
             
             print(f"ERROR: {error_msg}")
-            self.time_label.setText(f"{self.tr('Error después de')} {elapsed_time:.2f}s")
+            self.time_label.setText(f"{QApplication.translate(CONTEXTO, 'Error después de')} {elapsed_time:.2f}s")
             self.status_label.setText(error_msg)
             
+            # --- CAMBIO: Usar QApplication.translate ---
             QMessageBox.critical(
                 self,
-                self.tr("Error"),
+                QApplication.translate(CONTEXTO, "Error"),
                 error_msg
             )
 
     def verificar_refinamiento(self):
         valor = self.refinement_spinbox.value()
         if valor > 10:
+            # --- CAMBIO: Usar QApplication.translate ---
             QMessageBox.warning(
                 self,
-                self.tr("Advertencia"),
-                self.tr("Los niveles altos de refinamiento (>10) pueden requerir mucha memoria RAM.")
+                QApplication.translate(CONTEXTO, "Advertencia"),
+                QApplication.translate(CONTEXTO, "Los niveles altos de refinamiento (>10) pueden requerir mucha memoria RAM.")
             )
     
     def cargar_sin_generar_accion(self):
@@ -221,32 +266,30 @@ class MeshGeneratorController(QDialog):
         self.accept()
 
     def retranslateUi(self):
-        # 2. MOVER TODO EL TEXTO ESTÁTICO E INICIAL AQUÍ
-        self.setWindowTitle(self.tr("Cargar archivos"))
-        
-        self.refinement_type_group.setTitle(self.tr("Tipo de refinamiento"))
-        self.edge_refinement.setText(self.tr("Refinamiento de borde"))
-        self.full_refinement.setText(self.tr("Refinamiento completo"))
-        
-        self.algorithm_type_group.setTitle(self.tr("Algoritmo"))
-        self.quadtree.setText(self.tr("Quadtree (2D)"))
-        self.octree.setText(self.tr("Octree (3D)"))
+        # --- CAMBIO: Usar QApplication.translate y mover texto de setup_ui aquí ---
+        self.setWindowTitle(QApplication.translate(CONTEXTO, "Cargar archivos"))
+        self.refinement_type_group.setTitle(QApplication.translate(CONTEXTO, "Tipo de refinamiento"))
+        self.edge_refinement.setText(QApplication.translate(CONTEXTO, "Refinamiento de borde"))
+        self.full_refinement.setText(QApplication.translate(CONTEXTO, "Refinamiento completo"))
+        self.algorithm_type_group.setTitle(QApplication.translate(CONTEXTO, "Algoritmo"))
+        self.quadtree.setText(QApplication.translate(CONTEXTO, "Quadtree (2D)"))
+        self.octree.setText(QApplication.translate(CONTEXTO, "Octree (3D)"))
         
         if self.ignorar_limite:
-            self.refinement_label.setText(self.tr("Nivel máximo (sin límite):"))
+            self.refinement_label.setText(QApplication.translate(CONTEXTO, "Nivel máximo (sin límite):"))
         else:
-            self.refinement_label.setText(self.tr("Nivel máximo de refinamiento (1-6):"))
-        
-        self.input_file_button.setText(self.tr("Seleccionar archivo"))
-        self.run_button.setText(self.tr("Generar Mallas"))
+            self.refinement_label.setText(QApplication.translate(CONTEXTO, "Nivel máximo de refinamiento (1-6):"))
+            
+        self.input_file_button.setText(QApplication.translate(CONTEXTO, "Seleccionar archivo"))
+        self.run_button.setText(QApplication.translate(CONTEXTO, "Generar Mallas"))
         
         # Textos iniciales
         if not self.archivos_seleccionados:
-            self.ruta_archivos.setText(self.tr("Ningún archivo seleccionado"))
-        self.status_label.setText(self.tr("Presiona 'Generar Mallas' para comenzar"))
-        self.time_label.setText(f"{self.tr('Tiempo de ejecución')}: -")
+             self.ruta_archivos.setText(QApplication.translate(CONTEXTO, "Ningún archivo seleccionado"))
+        self.status_label.setText(QApplication.translate(CONTEXTO, "Presiona 'Generar Mallas' para comenzar"))
+        self.time_label.setText(f"{QApplication.translate(CONTEXTO, 'Tiempo de ejecución')}: -")
 
-    # 1. AÑADIR CHANGEEVENT
+    # --- CAMBIO: Añadir changeEvent ---
     def changeEvent(self, event):
         """
         Escucha el evento de cambio de idioma para traducir este diálogo

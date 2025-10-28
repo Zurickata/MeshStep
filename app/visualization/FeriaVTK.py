@@ -235,170 +235,315 @@ class ModelSwitcher:
             time.sleep(delay / 1000.0)
 
 
-# ---------------------------------------------------------------------------Cambio en el estilo para el control de la camara!
-class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera): #chatgpt
+class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
     def __init__(self, renderer, parent=None):
         super().__init__()
+        self.renderer = renderer
+        self.left_mouse_down = False
+        self.last_pos = (0, 0)
         self.AddObserver("MouseMoveEvent", self.mouse_move_event)
         self.AddObserver("LeftButtonPressEvent", self.left_button_press_event)
         self.AddObserver("LeftButtonReleaseEvent", self.left_button_release_event)
         self.AddObserver("MiddleButtonPressEvent", self.middle_button_press_event)
         self.AddObserver("MiddleButtonReleaseEvent", self.middle_button_release_event)
-        self.renderer = renderer
-        self.left_mouse_down = False
-        self.last_pos = (0, 0)
         self.AddObserver("KeyPressEvent", self.on_key_press)
-        self.renderer = renderer
+
         self.picker = vtk.vtkCellPicker()
-        self.selected_actor = None
-        self.selected_cell_id = None
-        self.original_property = None
-        self.focused = False  
         self.last_selected_cell = None
 
+        # Actors
+        self._original_actor = None
+        self._clip_actor = None
+        self.highlight_actor = None
+        self.edge_actor = None
+
+        # Estado de visualización
+        self.modo_visualizacion = "solido"  # "solido", "wireframe", "rayosX"
+        self.cut_enabled = False
+
+    # -------------------- Interacción con teclado --------------------
     def on_key_press(self, obj, event):
         key = self.GetInteractor().GetKeySym()
         if key.lower() == "e":
-            # Si no hubo click previo, obtener siempre la posición actual del mouse
-            mouse_pos = self.GetInteractor().GetEventPosition()
-            if not mouse_pos:  
-                # fallback: centro de la ventana
-                size = self.GetInteractor().GetRenderWindow().GetSize()
-                mouse_pos = (size[0] // 2, size[1] // 2)
-            click_pos = mouse_pos
-            if self.picker.Pick(click_pos[0], click_pos[1], 0, self.renderer):
-                actor = self.picker.GetActor()
-                cell_id = self.picker.GetCellId()
-                if actor and cell_id >= 0:
-                    self._handle_selection(actor, cell_id)
+            self.seleccionar_celda_mouse()
+        elif key.lower() == "c":
+            self.cut_enabled = not self.cut_enabled
+            self.toggle_cut_plane(self.cut_enabled)
+            # Aplicar el modo visual actual al nuevo actor
+            self.aplicar_modo_visualizacion()
+        elif key.lower() == "w":
+            self.modo_visualizacion = "wireframe"
+            self.aplicar_modo_visualizacion()
+        elif key.lower() == "s":
+            self.modo_visualizacion = "solido"
+            self.aplicar_modo_visualizacion()
+        elif key.lower() == "x":
+            self.modo_visualizacion = "rayosX"
+            self.aplicar_modo_visualizacion()
+
+    # -------------------- Selección de celdas --------------------
+    def seleccionar_celda_mouse(self):
+        mouse_pos = self.GetInteractor().GetEventPosition()
+        if self.picker.Pick(mouse_pos[0], mouse_pos[1], 0, self.renderer):
+            actor = self.picker.GetActor()
+            cell_id = self.picker.GetCellId()
+            if actor and cell_id >= 0:
+                self._handle_selection(actor, cell_id)
 
     def _handle_selection(self, actor, cell_id):
-        # Caso: deseleccionar si ya estaba seleccionada la misma cara
-        if self.last_selected_cell and self.last_selected_cell[1] == cell_id:
-            print(f"❌ Cara (ID={cell_id}) deseleccionada.")
-            if hasattr(self, "highlight_actor") and self.highlight_actor:
-                self.renderer.RemoveActor(self.highlight_actor)
-                self.highlight_actor = None                           ### aca se elimina el selecionado
-                self.renderer.GetRenderWindow().Render()
+        # Deseleccionar si ya estaba seleccionada
+        if self.last_selected_cell and self.last_selected_cell[0] == cell_id:
+            self._remove_highlight()
             self.last_selected_cell = None
-            notifier.cell_deselected.emit()
             return
 
-        # Si había otra seleccionada, eliminar highlight previo
-        if hasattr(self, "highlight_actor") and self.highlight_actor:
-            self.renderer.RemoveActor(self.highlight_actor)
+        self._remove_highlight()
 
         dataset = actor.GetMapper().GetInput()
         cell = dataset.GetCell(cell_id)
+        cell_type = cell.GetCellType()
 
-        puntos = [cell.GetPoints().GetPoint(i) for i in range(cell.GetNumberOfPoints())]
-        print(f"📌 Cara seleccionada (ID={cell_id}):")
-        
+        # Crear grid temporal con la celda seleccionada
+        ug = vtk.vtkUnstructuredGrid()
+        pts = vtk.vtkPoints()
+        for i in range(cell.GetNumberOfPoints()):
+            pts.InsertNextPoint(cell.GetPoints().GetPoint(i))
+        ug.SetPoints(pts)
 
-        # Calcular ángulo mínimo de la celda
-
-        angulos = []
-        n = len(puntos)
-        for i in range(n):
-            p1 = puntos[i-1]  # Punto anterior
-            p2 = puntos[i]    # Punto actual
-            p3 = puntos[(i+1) % n]  # Punto siguiente
-            angulo = calcular_angulo(p1, p2, p3)
-            angulos.append(angulo)
-        min_angle_rad = min(angulos)
-        min_angle_deg = math.degrees(min_angle_rad)
-        print(f"🔢 Ángulo mínimo de la celda: {min_angle_deg:.2f}°")
-
-        # Crear highlight para la nueva selección
-        poly = vtk.vtkPolyData()
-        points = vtk.vtkPoints()
         ids = vtk.vtkIdList()
-
-        for i, p in enumerate(puntos):
-            points.InsertNextPoint(p)
+        for i in range(cell.GetNumberOfPoints()):
             ids.InsertNextId(i)
+        ug.InsertNextCell(cell_type, ids)
 
-        cells = vtk.vtkCellArray()
-        cells.InsertNextCell(ids)
+        # 🔧 Convertir a PolyData (sirve tanto para 2D como 3D)
+        geom_filter = vtk.vtkGeometryFilter()
+        geom_filter.SetInputData(ug)
+        geom_filter.Update()
+        poly = geom_filter.GetOutput()
 
-        poly.SetPoints(points)
-        poly.SetPolys(cells)
+        if poly.GetNumberOfPoints() == 0:
+            print("⚠️ Celda seleccionada sin geometría visible (2D/3D no válido)")
+            return
 
+        # --- Superficie amarilla semi-transparente ---
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputData(poly)
+        self.highlight_actor = vtk.vtkActor()
+        self.highlight_actor.SetMapper(mapper)
+        prop = self.highlight_actor.GetProperty()
+        prop.SetColor(1.0, 1.0, 0.0)
+        prop.SetOpacity(0.25)
+        prop.BackfaceCullingOff()  # 🔧 importante para 2D
+        self.renderer.AddActor(self.highlight_actor)
 
-        highlight_actor = vtk.vtkActor()
-        highlight_actor.SetMapper(mapper)
-        highlight_actor.GetProperty().SetColor(1, 1, 0)
-        highlight_actor.GetProperty().SetLineWidth(3)
-        highlight_actor.GetProperty().EdgeVisibilityOn()
+        # --- Aristas en naranja ---
+        edge_extractor = vtk.vtkExtractEdges()
+        edge_extractor.SetInputData(poly)
+        edge_extractor.Update()
+        edge_mapper = vtk.vtkPolyDataMapper()
+        edge_mapper.SetInputConnection(edge_extractor.GetOutputPort())
+        self.edge_actor = vtk.vtkActor()
+        self.edge_actor.SetMapper(edge_mapper)
+        self.edge_actor.GetProperty().SetColor(1.0, 0.2, 0.0)
+        self.edge_actor.GetProperty().SetLineWidth(3.0)
+        self.renderer.AddActor(self.edge_actor)
 
-        self.renderer.AddActor(highlight_actor)
-        self.highlight_actor = highlight_actor
+        self.renderer.GetRenderWindow().Render()
+        self.last_selected_cell = (cell_id, cell_type)
+
+
+    def _remove_highlight(self):
+        if self.highlight_actor:
+            self.renderer.RemoveActor(self.highlight_actor)
+            self.highlight_actor = None
+        if self.edge_actor:
+            self.renderer.RemoveActor(self.edge_actor)
+            self.edge_actor = None
         self.renderer.GetRenderWindow().Render()
 
-        self.last_selected_cell = (puntos, cell_id)
-          # Emitir la señal con los datos calculados
-        notifier.cell_selected.emit(cell_id, len(puntos), min_angle_deg)
-        print(f"📌 Cara seleccionada (ID={cell_id}) registrada para cámara.")
+    # -------------------- Wireframe / Solido / Rayos X --------------------
+    def aplicar_modo_visualizacion(self):
+        actor = self._clip_actor if self.cut_enabled and self._clip_actor else self._original_actor
+        if not actor:
+            return
+        if self.modo_visualizacion == "wireframe":
+            actor.GetProperty().SetRepresentationToWireframe()
+            actor.GetProperty().SetOpacity(1.0)
+        elif self.modo_visualizacion == "solido":
+            actor.GetProperty().SetRepresentationToSurface()
+            actor.GetProperty().SetOpacity(1.0)
+        elif self.modo_visualizacion == "rayosX":
+            actor.GetProperty().SetRepresentationToSurface()
+            actor.GetProperty().SetOpacity(0.3)
+        self.renderer.GetRenderWindow().Render()
 
+    # -------------------- Plano de corte --------------------
+    def toggle_cut_plane(self, enable: bool):
+        if enable:
+            if not self._original_actor:
+                actors = self.renderer.GetActors()
+                actors.InitTraversal()
+                self._original_actor = actors.GetNextActor()
+            if not self._original_actor:
+                return
+
+            mapper = self._original_actor.GetMapper()
+            input_data = mapper.GetInput()
+
+            plane = vtk.vtkPlane()
+            bounds = input_data.GetBounds()
+            center = [(bounds[0]+bounds[1])/2, (bounds[2]+bounds[3])/2, (bounds[4]+bounds[5])/2]
+            plane.SetOrigin(center)
+            plane.SetNormal(0,0,1)
+
+            clip_filter = vtk.vtkClipDataSet()
+            clip_filter.SetInputData(input_data)
+            clip_filter.SetClipFunction(plane)
+            clip_filter.Update()
+
+            clip_mapper = vtk.vtkDataSetMapper()
+            clip_mapper.SetInputConnection(clip_filter.GetOutputPort())
+
+            self._clip_actor = vtk.vtkActor()
+            self._clip_actor.SetMapper(clip_mapper)
+
+            self.renderer.RemoveActor(self._original_actor)
+            self.renderer.AddActor(self._clip_actor)
+        else:
+            if self._clip_actor:
+                self.renderer.RemoveActor(self._clip_actor)
+            if self._original_actor:
+                self.renderer.AddActor(self._original_actor)
+        self.aplicar_modo_visualizacion()
+        self.renderer.GetRenderWindow().Render()
+
+    # -------------------- Rotación y cámara --------------------
     def left_button_press_event(self, obj, event):
         self.OnMiddleButtonDown()
         self.last_pos = self.GetInteractor().GetEventPosition()
-        
-
     def left_button_release_event(self, obj, event):
         self.OnMiddleButtonUp()
-        
-        
     def middle_button_press_event(self, obj, event):
-        # Ahora el botón del medio hará Rotación (lo que hacía el click izquierdo)
         self.OnLeftButtonDown()
-    
     def middle_button_release_event(self, obj, event):
         self.OnLeftButtonUp()
-       
-
     def mouse_move_event(self, obj, event):
         if self.left_mouse_down:
             x, y = self.GetInteractor().GetEventPosition()
             dx = x - self.last_pos[0]
             dy = y - self.last_pos[1]
-
-            camera = self.renderer.GetActiveCamera()
-            camera.Azimuth(-dx * 0.5)     # Rotación horizontal
-            camera.Elevation(dy * 0.5)    # Rotación vertical
-            camera.OrthogonalizeViewUp()
-
+            cam = self.renderer.GetActiveCamera()
+            cam.Azimuth(-dx*0.5)
+            cam.Elevation(dy*0.5)
+            cam.OrthogonalizeViewUp()
             self.renderer.ResetCameraClippingRange()
             self.GetInteractor().GetRenderWindow().Render()
-
-            self.last_pos = (x, y)
+            self.last_pos = (x,y)
         self.OnMouseMove()
-
-    def reset_camera_and_rotation(self): #Funcion para reiniciar la rotacion
-        self.renderer.GetActiveCamera().SetViewUp(0, 1, 0)
-        self.renderer.GetActiveCamera().SetPosition(0, 0, 1)
-        self.renderer.GetActiveCamera().SetFocalPoint(0, 0, 0)
+    def reset_camera_and_rotation(self):
+        cam = self.renderer.GetActiveCamera()
+        cam.SetViewUp(0,1,0)
+        cam.SetPosition(0,0,1)
+        cam.SetFocalPoint(0,0,0)
         self.renderer.ResetCamera()
         self.GetInteractor().GetRenderWindow().Render()
+
+
+# En FeriaVTK.py
+class AxesOverlay:
+    def __init__(self, renderer, interactor):
+        self.renderer = renderer
+        self.interactor = interactor
+
+        # Crear ejes
+        self.axes_actor = vtk.vtkAxesActor()
+        self.axes_actor.SetTotalLength(0.3, 0.3, 0.3)
+        self.axes_actor.SetShaftTypeToCylinder()
+        self.axes_actor.SetCylinderRadius(0.01)
+        self.axes_actor.SetConeRadius(0.04)
+        self.axes_actor.SetSphereRadius(0.02)
+
+        # Crear widget
+        self.widget = vtk.vtkOrientationMarkerWidget()
+        self.widget.SetOrientationMarker(self.axes_actor)
+        self.widget.SetViewport(0.0, 0.0, 0.25, 0.25)
+        self.widget.SetInteractor(self.interactor)
+        self.widget.EnabledOff()
+        self.widget.InteractiveOff()
+
+        # Bind tecla T
+        self.interactor.AddObserver("KeyPressEvent", self.toggle_visibility)
+
+    def toggle_visibility(self, obj=None, event=None):
+        key = self.interactor.GetKeySym().lower()
+        if key == "t":
+            if self.widget.GetEnabled():
+                print("❌ Ejes desactivados")
+                self.widget.EnabledOff()
+            else:
+                print("✅ Ejes activados")
+                self.widget.EnabledOn()
+            self.renderer.GetRenderWindow().Render()
+
 
 #------------------------------------------ Main ---------------------------------------------------------------------------
 
 def visualizar_vtk_unstructured_con_cambio_y_anadir(filenames):
+    import vtk
+
+    # ----------------------------- Renderer y ventana -----------------------------
     renderer = vtk.vtkRenderer()
-    renderer.SetBackground(0.1, 0.2, 0.4) # Color Fondo
+    renderer.SetBackground(0.1, 0.2, 0.4)
+    renderer.SetLayer(0)
 
     renderWindow = vtk.vtkRenderWindow()
+    renderWindow.SetNumberOfLayers(2)
     renderWindow.AddRenderer(renderer)
-    renderWindow.SetSize(800, 800) # tamano pantalla
+    renderWindow.SetSize(800, 800)
 
+    # ----------------------------- Interactor -----------------------------
     interactor = vtk.vtkRenderWindowInteractor()
     interactor.SetRenderWindow(renderWindow)
-    custom_style = CustomInteractorStyle(renderer) #Estilo camara
+
+    # ----------------------------- Ejes -----------------------------
+    axes_actor = vtk.vtkAxesActor()
+    axes_actor.SetTotalLength(0.3, 0.3, 0.3)
+    axes_actor.SetShaftTypeToCylinder()
+    axes_actor.SetCylinderRadius(0.01)
+    axes_actor.SetConeRadius(0.04)
+    axes_actor.SetSphereRadius(0.02)
+
+    axes_widget = vtk.vtkOrientationMarkerWidget()
+    axes_widget.SetOrientationMarker(axes_actor)
+    axes_widget.SetDefaultRenderer(renderer)
+    axes_widget.SetViewport(0.0, 0.0, 0.25, 0.25)
+    axes_widget.SetInteractor(interactor)
+    axes_widget.EnabledOff()  # Inicialmente oculto
+    axes_widget.InteractiveOff()
+
+    # ----------------------------- Estilo custom -----------------------------
+    custom_style = CustomInteractorStyle(renderer)
     interactor.SetInteractorStyle(custom_style)
 
+    # ----------------------------- Model Switcher -----------------------------
     switcher = ModelSwitcher(renderer, interactor, filenames)
 
+    # ----------------------------- Evento de tecla 't' -----------------------------
+    def toggle_axes(obj, event):
+        key = interactor.GetKeySym().lower()
+        if key == "t":
+            if axes_widget.GetEnabled():
+                print("❌ Ejes desactivados")
+                axes_widget.EnabledOff()
+            else:
+                print("✅ Ejes activados")
+                axes_widget.EnabledOn()
+            renderWindow.Render()
+
+    interactor.AddObserver("KeyPressEvent", toggle_axes)
+
+    # ----------------------------- Inicialización -----------------------------
+    interactor.Initialize()
+    renderer.ResetCamera()
     renderWindow.Render()
     interactor.Start()
