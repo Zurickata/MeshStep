@@ -1,7 +1,7 @@
 import os
 import vtk
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QStyle
+from PyQt5.QtCore import Qt, QTimer, QSize
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.visualization.coloreo_metricas import colorear_celdas
@@ -109,12 +109,22 @@ class RefinementViewer(QWidget):
 
 
         # Botones de navegación
-        self.boton_anterior = QPushButton("Anterior")
-        self.boton_siguiente = QPushButton("Siguiente")
-        self.boton_play = QPushButton("Play")
-        self.boton_pausa = QPushButton("Pausa")
-        self.boton_reinicio = QPushButton("Reinicio")
-        self.boton_overlay = QPushButton("Mostrar overlay")
+        icon_size = QSize(20, 20)
+
+        self.boton_anterior = QPushButton(self.style().standardIcon(QStyle.SP_ArrowBack), "Anterior")
+        self.boton_siguiente = QPushButton(self.style().standardIcon(QStyle.SP_ArrowForward), "Siguiente")
+        self.boton_play = QPushButton(self.style().standardIcon(QStyle.SP_MediaPlay), "Play")
+        self.boton_pausa = QPushButton(self.style().standardIcon(QStyle.SP_MediaPause), "Pausa")
+        self.boton_reinicio = QPushButton(self.style().standardIcon(QStyle.SP_MediaSkipBackward), "Reinicio")
+        self.boton_overlay = QPushButton(self.style().standardIcon(QStyle.SP_FileDialogInfoView), "Mostrar overlay")
+   
+        self.boton_anterior.setIconSize(icon_size)
+        self.boton_siguiente.setIconSize(icon_size)
+        self.boton_play.setIconSize(icon_size)
+        self.boton_pausa.setIconSize(icon_size)
+        self.boton_reinicio.setIconSize(icon_size)
+
+        self.boton_overlay.setIconSize(icon_size)
         self.overlay_visible = False
         self.overlay_actor = None
         self.poly_path = None
