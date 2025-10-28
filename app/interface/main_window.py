@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QListWidget,
                              QSplitter, QStyle, QTabWidget,
                              QMenuBar, QAction, QLabel)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QPixmap
 from app.visualization.RefinementViewer import RefinementViewer
 from app.interface.panel_derecho import PanelDerecho
@@ -28,19 +28,19 @@ class MainWindow(QWidget):
         logo_label.setPixmap(icono_svg.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
         self.menubar = QMenuBar(self)
-        self.file_menu = self.menubar.addMenu("Archivo")
-        self.edit_menu = self.menubar.addMenu("Editar")
-        self.help_menu = self.menubar.addMenu("Ayuda")
+        self.file_menu = self.menubar.addMenu("")
+        self.edit_menu = self.menubar.addMenu("")
+        self.help_menu = self.menubar.addMenu("")
 
         # Iconos estándar
         icon_cargar = self.style().standardIcon(QStyle.SP_DirOpenIcon)
         icon_opciones = self.style().standardIcon(QStyle.SP_FileDialogDetailedView)
 
         # Botones en barra horizontal
-        self.boton_cargar = QPushButton(icon_cargar, "Cargar archivos", self)
+        self.boton_cargar = QPushButton(icon_cargar, "", self)
         self.boton_cargar.clicked.connect(lambda: abrir_dialogo_carga(self))
 
-        self.boton_opciones = QPushButton(icon_opciones, "Opciones", self)
+        self.boton_opciones = QPushButton(icon_opciones, "", self)
         self.boton_opciones.clicked.connect(lambda: abrir_opciones_dialog(self))
 
         # Barra horizontal de botones
@@ -50,15 +50,15 @@ class MainWindow(QWidget):
         barra_botones.addStretch(1)  # Para que los botones queden a la izquierda
 
         # Acciones del menú
-        self.action_cargar = QAction("Cargar archivos", self)
+        self.action_cargar = QAction("", self)
         self.action_cargar.triggered.connect(lambda: abrir_dialogo_carga(self))
         self.file_menu.addAction(self.action_cargar)
 
-        self.action_opciones = QAction("Opciones", self)
+        self.action_opciones = QAction("", self)
         self.action_opciones.triggered.connect(lambda: abrir_opciones_dialog(self))
         self.edit_menu.addAction(self.action_opciones)
 
-        self.action_help = QAction("Manual", self)
+        self.action_help = QAction("", self)
         self.action_help.triggered.connect(lambda: abrir_manual(self))
         self.help_menu.addAction(self.action_help)
 
@@ -82,8 +82,8 @@ class MainWindow(QWidget):
 
         self.vtk_player = VTKPlayer(self)
         self.tab_widget = QTabWidget()
-        self.tab_widget.addTab(self.refinement_viewer, "Niveles de refinación")
-        self.tab_widget.addTab(self.vtk_player, "Paso a paso")
+        self.tab_widget.addTab(self.refinement_viewer, "")
+        self.tab_widget.addTab(self.vtk_player, "")
         self.tab_widget.currentChanged.connect(lambda idx: cambiar_visualizador(self, idx))
 
         self.panel_central = QWidget()
@@ -121,6 +121,26 @@ class MainWindow(QWidget):
         self.setAcceptDrops(True)
 
         self.switcher = None
+        self.retranslateUi()
+
+    def retranslateUi(self):
+        self.setWindowTitle(self.tr("MeshStep"))
+        self.file_menu.setTitle(self.tr("Archivo"))
+        self.edit_menu.setTitle(self.tr("Editar"))
+        self.help_menu.setTitle(self.tr("Ayuda"))
+        self.boton_cargar.setText(self.tr("Cargar archivos"))
+        self.boton_opciones.setText(self.tr("Opciones"))
+        self.action_cargar.setText(self.tr("Cargar archivos"))
+        self.action_opciones.setText(self.tr("Opciones"))
+        self.action_help.setText(self.tr("Manual"))
+        self.tab_widget.setTabText(0, self.tr("Niveles de refinación"))
+        self.tab_widget.setTabText(1, self.tr("Paso a paso"))
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.LanguageChange:
+            self.retranslateUi()
+        else:
+            super().changeEvent(event)
 
     # Eventos de drag & drop
     def dragEnterEvent(self, event):

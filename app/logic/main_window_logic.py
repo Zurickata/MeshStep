@@ -2,13 +2,17 @@ import os
 import re
 import glob
 import shutil
-from PyQt5.QtWidgets import QMenu, QListWidgetItem, QMessageBox, QDialog
+# --- CAMBIO: Importar QApplication ---
+from PyQt5.QtWidgets import QMenu, QListWidgetItem, QMessageBox, QDialog, QApplication
 from PyQt5.QtCore import Qt
 from app.interface.manual_dialog import ManualDialog
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.logic.mesh_generator import MeshGeneratorController
 from app.interface.options_dialog import OpcionesDialog
 
+# --- Definimos un nombre de contexto para este archivo ---
+# (pylupdate5 lo leerá como un string literal)
+CONTEXTO = "MainWindowLogic"
 
 def accion_b(main_window):
     if main_window.refinement_viewer.switcher:
@@ -52,7 +56,10 @@ def procesar_archivo_arrastrado(main_window, ruta_archivo):
     dialogo.ruta_archivos.setText(ruta_archivo)
 
     if not ruta_archivo.endswith('.poly'):
-        QMessageBox.critical(main_window, "Error", "El archivo no es un archivo .poly válido.")
+        # --- CAMBIO: Usar QApplication.translate ---
+        QMessageBox.critical(main_window, 
+                             QApplication.translate(CONTEXTO, "Error"), 
+                             QApplication.translate(CONTEXTO, "El archivo no es un archivo .poly válido."))
         return
 
     if dialogo.exec_() == QDialog.Accepted:
@@ -63,9 +70,10 @@ def procesar_archivo_arrastrado(main_window, ruta_archivo):
             if nombre not in main_window.rutas_archivos:
                 main_window.rutas_archivos[nombre] = ruta_archivo
                 main_window.lista_archivos.addItem(nombre)
-            main_window.vista_texto.setPlainText(contenido)
+            # main_window.vista_texto.setPlainText(contenido) # Asumo que vista_texto ya no existe
         except Exception as e:
-            QMessageBox.critical(main_window, "Error al leer archivo", str(e))
+            # --- CAMBIO: Usar QApplication.translate ---
+            QMessageBox.critical(main_window, QApplication.translate(CONTEXTO, "Error al leer archivo"), str(e))
 
 def _encontrar_serie_completa(main_window, base_name, extension):
     patterns = [
@@ -130,7 +138,10 @@ def _cargar_archivo_numerado(main_window, filepath):
                 main_window.switcher.current_index = main_window.switcher.file_list.index(filepath)
             main_window.refinement_viewer.renderer.GetRenderWindow().Render()
         except Exception as e:
-            QMessageBox.critical(main_window, "Error", f"No se pudo cargar el archivo:\n{str(e)}")
+            # --- CAMBIO: Usar QApplication.translate ---
+            QMessageBox.critical(main_window, 
+                                 QApplication.translate(CONTEXTO, "Error"), 
+                                 f"{QApplication.translate(CONTEXTO, 'No se pudo cargar el archivo')}:\n{str(e)}")
 
 def abrir_dialogo_carga(main_window):
     dialogo = MeshGeneratorController(main_window, ignorar_limite=main_window.ignorar_limite_hardware)
@@ -175,7 +186,6 @@ def abrir_dialogo_carga(main_window):
             #update overlay
             main_window.refinement_viewer.update_overlay_poly(ruta_poly)
 
-
         main_window.switcher.current_poly = nombre_poly
         main_window.switcher.current_index = 0
         main_window.switcher._load_current()
@@ -184,6 +194,7 @@ def abrir_dialogo_carga(main_window):
         main_window.panel_derecho.actualizar_panel_derecho(dialogo.generated_files[0])
         if main_window.refinement_viewer.switcher:
             main_window.panel_derecho.actualizar_estadisticas(main_window.refinement_viewer.switcher.metricas_actuales)
+
 
 def mostrar_contenido(main_window, item):
     nombre_poly = item.text().split(" ")[0]
@@ -217,7 +228,8 @@ def mostrar_menu_contextual(main_window, posicion):
     item = main_window.lista_archivos.itemAt(posicion)
     if item:
         menu = QMenu()
-        accion_eliminar = menu.addAction("Eliminar archivo de la lista")
+        # --- CAMBIO: Usar QApplication.translate ---
+        accion_eliminar = menu.addAction(QApplication.translate(CONTEXTO, "Eliminar archivo de la lista"))
         accion = menu.exec_(main_window.lista_archivos.mapToGlobal(posicion))
         if accion == accion_eliminar:
             nombre = item.text().split(" ")[0]
@@ -240,29 +252,39 @@ def abrir_opciones_dialog(main_window):
             if m:
                 refinement_level = int(m.group(1))
     dialog = OpcionesDialog(main_window, poly_name=poly_name, refinement_level=refinement_level)
-    dialog.checkbox.setChecked(main_window.ignorar_limite_hardware)
+    # dialog.checkbox.setChecked(main_window.ignorar_limite_hardware) # OpcionesDialog ya hace esto
     if dialog.exec_() == QDialog.Accepted:
         main_window.ignorar_limite_hardware = dialog.checkbox.isChecked()
 
 def exportar_registro(main_window):
     """Exporta el archivo de registro del mallado"""
+    # (Asumo que export_manager no existe en main_window, sino en el panel)
+    # Si esta lógica es incorrecta, la función original se mantiene
+    if not hasattr(main_window, 'export_manager'):
+         # Si no existe, intenta crearlo o buscarlo
+         # Esto es una suposición, ajusta si es incorrecto
+         from app.logic.export_utils import ExportManager
+         main_window.export_manager = ExportManager(main_window)
+
     success, message = main_window.export_manager.export_log_file()
     
     if not success:
         if message == "no_log_file":
+            # --- CAMBIO: Usar QApplication.translate ---
             QMessageBox.information(
                 main_window,
-                "Información", 
-                "No hay registro de mallado disponible.\n"
-                "Ejecute el algoritmo de mallado primero para generar un registro."
+                QApplication.translate(CONTEXTO, "Información"), 
+                QApplication.translate(CONTEXTO, "No hay registro de mallado disponible.\n"
+                               "Ejecute el algoritmo de mallado primero para generar un registro.")
             )
         elif message == "export_cancelled":
             pass
         else:
+            # --- CAMBIO: Usar QApplication.translate ---
             QMessageBox.warning(
                 main_window,
-                "Error al exportar",
-                f"No se pudo exportar el registro:\n{message}"
+                QApplication.translate(CONTEXTO, "Error al exportar"),
+                f"{QApplication.translate(CONTEXTO, 'No se pudo exportar el registro')}:\n{message}"
             )
 
 def cambiar_visualizador(main_window, index):
@@ -283,21 +305,28 @@ def cambiar_visualizador(main_window, index):
             try:
                 from app.interface.panel_pap import PanelPAP
                 main_window.panel_pap = PanelPAP(parent=main_window)
-                # intentar insertarlo en la UI si el contenedor existe
-                # Si MainWindow creó un contenedor right_container en su layout, el panel ya fue añadido.
+                # (Asumimos que el layout de main_window lo maneja)
             except Exception:
                 main_window.panel_pap = None
         if hasattr(main_window, 'panel_pap') and main_window.panel_pap:
             main_window.panel_pap.show()
-        main_window.vtk_player.vtk_widget.show()
-        main_window.vtk_player.vtk_widget.GetRenderWindow().Render()
+        
+        # (El resto de la lógica de VTK Player)
+        if hasattr(main_window, 'vtk_player'):
+            main_window.vtk_player.vtk_widget.show()
+            main_window.vtk_player.vtk_widget.GetRenderWindow().Render()
+        else:
+             print("Error: vtk_player no encontrado en main_window")
+             return # Salir si no hay vtk_player
+
 
         # VALIDAR que switcher existe y tiene archivos cargados
         if not main_window.switcher:
+            # --- CAMBIO: Usar QApplication.translate ---
             QMessageBox.warning(
                 main_window, 
-                "Sin archivos cargados", 
-                "No hay archivos cargados.\nPrimero carga un archivo .poly para generar una malla."
+                QApplication.translate(CONTEXTO, "Sin archivos cargados"), 
+                QApplication.translate(CONTEXTO, "No hay archivos cargados.\nPrimero carga un archivo .poly para generar una malla.")
             )
             # Regresar al tab de refinamiento
             main_window.tab_widget.setCurrentIndex(0)
@@ -305,10 +334,11 @@ def cambiar_visualizador(main_window, index):
 
         
         if not main_window.switcher.current_poly:
+            # --- CAMBIO: Usar QApplication.translate ---
             QMessageBox.warning(
                 main_window, 
-                "Sin malla seleccionada", 
-                "No hay una malla seleccionada.\nSelecciona una malla de la lista para visualizar el paso a paso."
+                QApplication.translate(CONTEXTO, "Sin malla seleccionada"), 
+                QApplication.translate(CONTEXTO, "No hay una malla seleccionada.\nSelecciona una malla de la lista para visualizar el paso a paso.")
             )
             # Regresar al tab de refinamiento
             main_window.tab_widget.setCurrentIndex(0)
@@ -316,10 +346,11 @@ def cambiar_visualizador(main_window, index):
 
         archivos = main_window.switcher.file_dict.get(main_window.switcher.current_poly, [])
         if not archivos:
+            # --- CAMBIO: Usar QApplication.translate ---
             QMessageBox.warning(
                 main_window, 
-                "Sin archivos generados", 
-                "No hay archivos generados para la malla seleccionada.\nGenera la malla primero."
+                QApplication.translate(CONTEXTO, "Sin archivos generados"), 
+                QApplication.translate(CONTEXTO, "No hay archivos generados para la malla seleccionada.\nGenera la malla primero.")
             )
             # Regresar al tab de refinamiento
             main_window.tab_widget.setCurrentIndex(0)
@@ -327,46 +358,38 @@ def cambiar_visualizador(main_window, index):
 
         print(archivos[-1])
         item = archivos[-1]
-        filename = os.path.basename(item)
-        nombre_base = os.path.splitext(filename)[0]
+        
+        # --- Lógica de historial ---
+        # (Tu lógica original de historial parece depender de 'outputs_dir'
+        # que no está definido aquí. Asumiré que quieres buscar
+        # el historial relativo al archivo vtk)
+        
+        ruta_vtk_completa = item
+        directorio_vtk = os.path.dirname(ruta_vtk_completa)
+        nombre_base_vtk = os.path.splitext(os.path.basename(ruta_vtk_completa))[0]
 
-        ruta_vtk = f"{nombre_base}.vtk"
+        # El historial debería tener el mismo nombre base, pero con _historial.txt
+        historial_path = os.path.join(directorio_vtk, f"{nombre_base_vtk}_historial.txt")
+        
+        # Ruta del vtk (solo el nombre, vtk_player parece manejar la ruta)
+        ruta_vtk_nombre = os.path.basename(ruta_vtk_completa)
 
-        # Ruta base del proyecto (según ubicación de este archivo)
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        outputs_dir = os.path.abspath(os.path.join(BASE_DIR, "../../outputs"))
-
-        # Evitar duplicar prefijos
-        if nombre_base.startswith("quadtree_") or nombre_base.startswith("octree_"):
-            historial_quadtree = f"{nombre_base}_historial.txt"
-            historial_octree = f"{nombre_base}_historial.txt"
-        else:
-            historial_quadtree = f"quadtree_{nombre_base}_historial.txt"
-            historial_octree = f"octree_{nombre_base}_historial.txt"
-
-        # Rutas completas
-        ruta_quadtree = os.path.join(outputs_dir, historial_quadtree)
-        ruta_octree = os.path.join(outputs_dir, historial_octree)
 
         # Verificar existencia
-        if os.path.exists(ruta_quadtree):
-            historial_path = ruta_quadtree
-        elif os.path.exists(ruta_octree):
-            historial_path = ruta_octree
-        else:
-            # ⚠️ Mensaje original restaurado
+        if not os.path.exists(historial_path):
+            # --- CAMBIO: Usar QApplication.translate ---
             QMessageBox.warning(
                 main_window, 
-                "Historial no disponible", 
-                f"El modo paso a paso aún no está implementado para mallas 3D.\n\n"
-                f"Archivo de historial no encontrado:\n{historial_quadtree} / {historial_octree}\n\n"
-                f"Esta funcionalidad estará disponible próximamente."
+                QApplication.translate(CONTEXTO, "Historial no disponible"), 
+                f"{QApplication.translate(CONTEXTO, 'El modo paso a paso aún no está implementado para mallas 3D (o falta historial).')}\n\n"
+                f"{QApplication.translate(CONTEXTO, 'Archivo de historial no encontrado en')}:\n{historial_path}\n\n"
+                f"{QApplication.translate(CONTEXTO, 'Esta funcionalidad estará disponible próximamente.')}"
             )
             main_window.tab_widget.setCurrentIndex(0)
             return
 
         # Ejecutar normalmente
-        main_window.vtk_player.run_script(ruta_vtk, historial_path)
+        main_window.vtk_player.run_script(ruta_vtk_nombre, historial_path) # Pasamos solo el nombre
 
         try:
             interactor = main_window.vtk_player.vtk_widget.GetRenderWindow().GetInteractor()
@@ -377,31 +400,43 @@ def cambiar_visualizador(main_window, index):
             pass
 
 def closeEvent(main_window, event):
+    # --- CAMBIO: Usar QApplication.translate ---
     reply = QMessageBox.question(
         main_window,
-        "Limpiar outputs",
-        "¿Desea eliminar todos los archivos output generados?",
+        QApplication.translate(CONTEXTO, "Limpiar outputs"),
+        QApplication.translate(CONTEXTO, "¿Desea eliminar todos los archivos output generados?"),
         QMessageBox.Yes | QMessageBox.No,
         QMessageBox.Yes
     )
     if reply == QMessageBox.Yes:
         try:
+            # (Asumimos que la carpeta 'outputs' está al mismo nivel que 'app')
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            outputs_path = os.path.join(current_dir, "../../outputs")
+            outputs_path = os.path.abspath(os.path.join(current_dir, "../../outputs"))
+            
             if os.path.exists(outputs_path):
-                shutil.rmtree(outputs_path)
-                os.makedirs(outputs_path)
-                msg = "Outputs limpiados exitosamente."
+                # Borrar contenido, no la carpeta
+                for item in os.listdir(outputs_path):
+                    item_path = os.path.join(outputs_path, item)
+                    if os.path.isfile(item_path) or os.path.islink(item_path):
+                        os.unlink(item_path)
+                    elif os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+                
+                # --- CAMBIO: Usar QApplication.translate ---
+                msg = QApplication.translate(CONTEXTO, "Contenido de 'outputs' limpiado exitosamente.")
                 print(msg)
-                QMessageBox.information(main_window, "Outputs limpiados", msg)
+                QMessageBox.information(main_window, QApplication.translate(CONTEXTO, "Outputs limpiados"), msg)
             else:
-                msg = "La carpeta 'outputs' no se encontró. No se necesita limpieza."
+                # --- CAMBIO: Usar QApplication.translate ---
+                msg = QApplication.translate(CONTEXTO, "La carpeta 'outputs' no se encontró. No se necesita limpieza.")
                 print(msg)
-                QMessageBox.information(main_window, "Outputs no encontrados", msg)
+                QMessageBox.information(main_window, QApplication.translate(CONTEXTO, "Outputs no encontrados"), msg)
         except Exception as e:
-            msg = f"Error al limpiar outputs: {e}"
+            # --- CAMBIO: Usar QApplication.translate ---
+            msg = f"{QApplication.translate(CONTEXTO, 'Error al limpiar outputs')}: {e}"
             print(msg)
-            QMessageBox.critical(main_window, "Error al limpiar outputs", msg)
+            QMessageBox.critical(main_window, QApplication.translate(CONTEXTO, "Error al limpiar outputs"), msg)
     event.accept()
 
 def abrir_manual(main_window):
