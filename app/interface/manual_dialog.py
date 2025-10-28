@@ -9,7 +9,7 @@ import os
 class ManualDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("")
+        self.setWindowTitle("Manual de usuario")
         self.resize(800, 600)
 
         layout = QVBoxLayout(self)
