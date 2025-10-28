@@ -2,8 +2,8 @@ import vtk
 import numpy as np
 import os
 import sys
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QFileDialog
-from PyQt5.QtCore import QStandardPaths, pyqtSignal
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QFileDialog, QProgressDialog
+from PyQt5.QtCore import QStandardPaths, pyqtSignal, Qt, QTimer
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 OUTPUTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../outputs")
@@ -505,9 +505,89 @@ class VTKPlayer(QWidget):
         print("[VTKPlayer] Style aplicado:", type(interactor.GetInteractorStyle()).__name__)
 
     def run_script(self, vtk_file, script_file, outputs_dir=OUTPUTS_DIR):
+        # Obtener referencia a ventana principal para verificar estado del historial
+        main_window = self.window()
+        mesh_generator = None
+
+        try:
+            # Buscar instancia de MeshGeneratorController en la jerarquía (si existe)
+            if hasattr(main_window, 'mesh_generator_controller'):
+                mesh_generator = main_window.mesh_generator_controller
+            elif hasattr(main_window, 'mesh_generator'):
+                mesh_generator = main_window.mesh_generator
+        except Exception:
+            mesh_generator = None
+
+        # Construir rutas completas
         alt_path_vtk = os.path.join(outputs_dir, vtk_file)
         alt_path_script = os.path.join(outputs_dir, script_file)
 
+        # 🧩 Validar existencia o generación del historial
+        def intentar_cargar_historial():
+            """Intenta cargar el historial, si ya existe o terminó de generarse."""
+            if os.path.exists(alt_path_script):
+                print(f"[VTKPlayer] Historial encontrado: {alt_path_script}")
+                progress.close()
+                QTimer.singleShot(300, lambda: self._run_script_core(alt_path_vtk, alt_path_script))
+                return True
+            if mesh_generator and not mesh_generator.historial_generandose:
+                # Ya no se está generando y el archivo no existe → error
+                progress.close()
+                QMessageBox.critical(self, "Error", "No existe historial disponible para este modelo.")
+                return True
+            return False
+        
+        # Si el historial se está generando → mostrar spinner
+        if mesh_generator and getattr(mesh_generator, "historial_generandose", False):
+            print("[VTKPlayer] Historial aún generándose, mostrando spinner...")
+            progress = QProgressDialog("Generando historial...", None, 0, 0, self)
+            progress.setWindowModality(Qt.WindowModal)
+            progress.setWindowTitle("Creando historial")
+            progress.setAutoClose(False)
+            progress.setAutoReset(False)
+            progress.setMinimumWidth(400)
+            progress.show()
+
+            # Reintentar cada 2 segundos
+            self._historial_timer = QTimer(self)
+
+            def revisar_historial():
+                # 🧠 Si ya existe el archivo del historial
+                if os.path.exists(alt_path_script):
+                    print(f"[VTKPlayer] ✅ Historial encontrado: {alt_path_script}")
+                    # Detener timer y cerrar progreso
+                    self._historial_timer.stop()
+                    self._historial_timer.timeout.disconnect()
+                    progress.close()
+                    # Ejecutar carga real
+                    QTimer.singleShot(300, lambda: self._run_script_core(alt_path_vtk, alt_path_script))
+                    return
+
+                # 🧠 Si el historial ya no se está generando pero no existe el archivo → error
+                if mesh_generator and not mesh_generator.historial_generandose:
+                    print("[VTKPlayer] ❌ El historial no se generó correctamente.")
+                    self._historial_timer.stop()
+                    self._historial_timer.timeout.disconnect()
+                    progress.close()
+                    QMessageBox.critical(self, "Error", "No existe historial disponible.")
+                    return
+
+                # (si no ocurre ninguna de las dos condiciones, sigue esperando)
+                print("[VTKPlayer] ⏳ Aún esperando historial...")
+
+            self._historial_timer.timeout.connect(revisar_historial)
+            self._historial_timer.start(2000)
+            return
+
+        # Si el historial ya está listo → cargar directamente
+        if os.path.exists(alt_path_script):
+            self._run_script_core(alt_path_vtk, alt_path_script)
+        else:
+            QMessageBox.critical(self, "Error", "No existe historial para este modelo.")
+
+    def _run_script_core(self, alt_path_vtk, alt_path_script):
+        """Versión interna de run_script() que realmente carga los archivos."""
+        print(f"[VTKPlayer] Cargando modelo {alt_path_vtk} y script {alt_path_script}")
         self.renderer.RemoveAllViewProps()
         self.vtk_file = alt_path_vtk
         self.script_file = alt_path_script
@@ -520,15 +600,15 @@ class VTKPlayer(QWidget):
             lineas = [ln for ln in f if ln.strip()]
         self.comandos = [parse_line(ln) for ln in lineas if parse_line(ln) is not None]
 
+        # Mostrar modelo
         self._mostrar_ugrid(self.ugrid)
 
-        # Asegurar interactor inicializado y aplicar estilo 
+        # Inicializar interactor y estilo
         iren = self.vtk_widget.GetRenderWindow().GetInteractor()
         if not iren.GetInitialized():
             iren.Initialize()
         self.apply_custom_style()
 
-        # Intentar actualizar directamente el panel PAP (más robusto: buscar en ancestros)
         try:
             self._update_panel_pap()
         except Exception:

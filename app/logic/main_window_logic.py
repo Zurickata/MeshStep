@@ -145,6 +145,8 @@ def _cargar_archivo_numerado(main_window, filepath):
 
 def abrir_dialogo_carga(main_window):
     dialogo = MeshGeneratorController(main_window, ignorar_limite=main_window.ignorar_limite_hardware)
+    main_window.mesh_generator_controller = dialogo
+
     if dialogo.exec_() == QDialog.Accepted:
         if dialogo.cargar_sin_generar:
             archivo = dialogo.archivos_seleccionados[0]
@@ -358,43 +360,68 @@ def cambiar_visualizador(main_window, index):
 
         print(archivos[-1])
         item = archivos[-1]
-        
-        # --- Lógica de historial ---
-        # (Tu lógica original de historial parece depender de 'outputs_dir'
-        # que no está definido aquí. Asumiré que quieres buscar
-        # el historial relativo al archivo vtk)
-        
-        ruta_vtk_completa = item
-        directorio_vtk = os.path.dirname(ruta_vtk_completa)
-        nombre_base_vtk = os.path.splitext(os.path.basename(ruta_vtk_completa))[0]
+        filename = os.path.basename(item)
+        nombre_base = os.path.splitext(filename)[0]
 
-        # El historial debería tener el mismo nombre base, pero con _historial.txt
-        historial_path = os.path.join(directorio_vtk, f"{nombre_base_vtk}_historial.txt")
-        
-        # Ruta del vtk (solo el nombre, vtk_player parece manejar la ruta)
-        ruta_vtk_nombre = os.path.basename(ruta_vtk_completa)
+        ruta_vtk = f"{nombre_base}.vtk"
 
+        # Ruta base del proyecto (según ubicación de este archivo)
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        outputs_dir = os.path.abspath(os.path.join(BASE_DIR, "../../outputs"))
+
+        # Evitar duplicar prefijos
+        if nombre_base.startswith("quadtree_") or nombre_base.startswith("octree_"):
+            historial_quadtree = f"{nombre_base}_historial.txt"
+            historial_octree = f"{nombre_base}_historial.txt"
+        else:
+            historial_quadtree = f"quadtree_{nombre_base}_historial.txt"
+            historial_octree = f"octree_{nombre_base}_historial.txt"
+
+        # Rutas completas
+        ruta_quadtree = os.path.join(outputs_dir, historial_quadtree)
+        ruta_octree = os.path.join(outputs_dir, historial_octree)
 
         # Verificar existencia
-        if not os.path.exists(historial_path):
-            # --- CAMBIO: Usar QApplication.translate ---
+        historial_path = None
+        historial_en_proceso = False
+
+        # Intentar acceder al estado del generador de mallas
+        mesh_generator = getattr(main_window, "mesh_generator_controller", None)
+        if not mesh_generator:
+            # A veces se guarda como "mesh_generator"
+            mesh_generator = getattr(main_window, "mesh_generator", None)
+
+        if mesh_generator and getattr(mesh_generator, "historial_generandose", False):
+            historial_en_proceso = True
+
+        # Construir rutas posibles
+        if os.path.exists(ruta_quadtree):
+            historial_path = ruta_quadtree
+        elif os.path.exists(ruta_octree):
+            historial_path = ruta_octree
+        elif historial_en_proceso:
+            # ✅ El historial aún se está generando → dejar que el VTKPlayer maneje el spinner
+            print("[MainWindowLogic] El historial aún se está generando, delegando al VTKPlayer...")
+            historial_path = ruta_quadtree if "quadtree" in nombre_base else ruta_octree
+        else:
+            # ❌ Historial inexistente y no se está generando → mensaje original
             QMessageBox.warning(
-                main_window, 
-                QApplication.translate(CONTEXTO, "Historial no disponible"), 
-                f"{QApplication.translate(CONTEXTO, 'El modo paso a paso aún no está implementado para mallas 3D (o falta historial).')}\n\n"
-                f"{QApplication.translate(CONTEXTO, 'Archivo de historial no encontrado en')}:\n{historial_path}\n\n"
-                f"{QApplication.translate(CONTEXTO, 'Esta funcionalidad estará disponible próximamente.')}"
+                main_window,
+                "Historial no disponible",
+                f"No se encontró un archivo de historial para el modelo seleccionado.\n\n"
+                f"Esta funcionalidad estará disponible una vez que se genere el historial."
             )
             main_window.tab_widget.setCurrentIndex(0)
             return
 
-        # Ejecutar normalmente
-        main_window.vtk_player.run_script(ruta_vtk_nombre, historial_path) # Pasamos solo el nombre
+        # ================================
+        # 🎬 EJECUTAR EL VTKPLAYER (maneja spinner si corresponde)
+        # ================================
+        main_window.vtk_player.run_script(ruta_vtk, historial_path)
 
         try:
             interactor = main_window.vtk_player.vtk_widget.GetRenderWindow().GetInteractor()
             interactor.Initialize()
-            # Reaplicar el estilo personalizado después del Initialize
             main_window.vtk_player.apply_custom_style()
         except Exception:
             pass
