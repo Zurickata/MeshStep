@@ -1,102 +1,110 @@
-# MeshStep
+# MeshStep  
+**Visualización Educativa de Algoritmos de Mallado (Quadtree y Octree)**  
 
-## PreRequisito
-- Ejecutar en Terminal Linux
-- Tener instalado Python 3.1 <, junto con el pip y el python3.12-venv (Para crear los entornos virtuales)
-    - Si no tiene ninguna de estas 2 últimas:
-    - Instalar pip:
-        ```bash
-        sudo apt install python3-pip
-    - Instalar python3.12-venv:
-        ```bash
-        sudo apt install python3.12-venv
+MeshStep es una herramienta interactiva para visualizar el proceso de generación de mallas 2D y 3D paso a paso, facilitando el aprendizaje y análisis de los algoritmos de mallado.
 
-- Tener instalado Cmake 3.22.1 
-    - Si no se tiene instalado Cmake ejecutar
-      ```bash
-      sudo apt install cmake # version 3.22.1-1ubuntu1.22.04.2
+---
+
+## Requisitos del sistema  
+
+**Sistema operativo:** Linux (Ubuntu/Debian o WSL)  
+**Versión mínima recomendada:** Ubuntu 22.04 o superior  
+
+### Dependencias necesarias
+Asegúrate de tener instalados los siguientes paquetes:
+- `python3` (≥ 3.10)
+- `pip3`
+- `python3-venv`
+- `cmake` (≥ 3.22)
+- `git`
+- `make`
+
+Para instalarlos:
+```bash
+sudo apt update
+sudo apt install -y python3 python3-pip python3-venv cmake git make
+```
+
+---
 
 ## Instalación
 
-1. Clona el repositorio:
-    ```bash
-   git clone https://github.com/Zurickata/MeshStep.git
-   cd MeshStep
-   git submodule init
-   git submodule update
+### 1. Clonar el repositorio  
+```bash
+git clone https://github.com/Zurickata/MeshStep.git
+cd MeshStep
+```
 
-2. Ejecutar el script de configuración:
-    ```bash
-   ./setup.sh
-    
-- En caso de que no se pueda correr por permisos, ejecutar:
-    ```bash
-    chmod +x setup.sh && ./setup.sh
+> Esto descargará el proyecto y sus submódulos internos.
 
-- Si necesita recompilar, elimina la carpeta build y compila nuevamente:
-    ```bash
-    rm -rf core/quadtree/build
-    ./setup.sh
+---
 
-- Si no puede por caracteres raros dentro del archivo o por un error de "No such file or directory" ejecute (Funciona también para el ./clean_outputs):
-    ```bash
-    sed -i 's/\r$//' setup.sh
+### 2. Configurar el entorno y compilar  
+Ejecuta el script de configuración (asegúrate de tener permisos de ejecución):
+```bash
+chmod +x setup.sh
+./setup.sh
+```
 
-3. Volver a levantar el entorno virtual
-    ```bash
-    source venv/bin/activate
+Este script realizará automáticamente:
+- La verificación de dependencias del sistema.  
+- La compilación de los algoritmos **Quadtree** y **Octree**.  
+- La creación del entorno virtual Python (`venv`).  
+- La instalación de todas las librerías necesarias desde `requirements.txt`.
 
-4. Ahora puedes ejecutar la aplicación:
-    ```bash
-    python -m app.main
+---
 
+### 3. Activar el entorno virtual  
+Cada vez que abras una nueva sesión de terminal:
+```bash
+source venv/bin/activate
+```
 
+---
 
-En Caso de error con libreria QT, algo como esto:
-qt.qpa.plugin: Could not load the Qt platform plugin "xcb" in "" even though it was found.
-This application failed to start because no Qt platform plugin could be initialized. Reinstalling the application may fix this problem.
+### 4. Ejecutar MeshStep  
+Una vez dentro del entorno virtual:
+```bash
+python -m app.main
+```
 
-Available platform plugins are: xcb.
+---
 
-error: exception occurred: Subprocess aborted
+## Recompilación manual (si es necesario)
+Si modificas los algoritmos o deseas recompilar desde cero:
+```bash
+./setup.sh
+```
 
+---
 
-- Intente lo siguiente:
-    ```bash
-        sudo apt update
-        sudo apt install libxcb-xinerama0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxkbcommon-x11-0 libxcb-xkb1
-- o:
-    ```bash
-            sudo apt install libx11-xcb1 libxcb1 libxcb-glx0 libxcb-keysyms1 libxcb-image0 \
-            libxcb-shm0 libxcb-icccm4 libxcb-sync1 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 \
-            libxcb-render-util0 libxcb-xinerama0 libxcb-util1 libxcb-cursor0 libxkbcommon-x11-0 \
-            libxrender1 libxi6
-- y si sigue fallando:
+## Solución a errores comunes
 
-    ```bash
-        sudo apt install libxcb-xinput0
+### Error Qt: `Could not load the Qt platform plugin "xcb"`
+Instala las librerías requeridas:
+```bash
+sudo apt install -y libxcb-xinerama0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxkbcommon-x11-0 libxcb-xkb1 libxcb-xinput0
+```
 
+Si el error persiste, asegúrate de tener también:
+```bash
+sudo apt install -y libx11-xcb1 libxcb-glx0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 libxcb-util1 libxrender1 libxi6
+```
 
-## 🚀 Pasos para Cambiar Submódulo
+---
 
-### 1) Sincronizar la configuración del submódulo con la nueva URL
+## Ejecución rápida (resumen)
 
-    git submodule sync --recursive
-    git config -f .gitmodules submodule.core/octree.url https://github.com/floraciendo/MixedOcTree.git
-    git submodule sync core/octree
+```bash
+git clone https://github.com/Zurickata/MeshStep.git
+cd MeshStep
+chmod +x setup.sh && ./setup.sh
+source venv/bin/activate
+python -m app.main
+```
 
-### 2) Eliminar por completo el submódulo antiguo
+---
 
-    git submodule deinit -f core/octree
-    rm -rf core/octree
-
-### 3) Reinstalar/recuperar el submódulo desde el fork nuevo
-
-    git submodule update --init --recursive
-
-### 4) Cambiar a la rama correcta y traer últimos cambios
-
-    cd core/octree
-    git checkout master
-    git pull origin master
-    cd ../..
+## Equipo de desarrollo
+Proyecto desarrollado en el marco de la **Feria de Software USM 2025**  
+por estudiantes de la **Universidad Técnica Federico Santa María**.
