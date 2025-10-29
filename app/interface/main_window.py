@@ -62,6 +62,10 @@ class MainWindow(QWidget):
         self.action_help.triggered.connect(lambda: abrir_manual(self))
         self.help_menu.addAction(self.action_help)
 
+        #self.action_help = QAction("", self)
+        #self.action_help.triggered.connect(lambda: abrir_manual(self))
+        #self.help_menu.addAction(self.action_help)
+
         self.lista_archivos = QListWidget()
         self.lista_archivos.itemClicked.connect(lambda item: mostrar_contenido(self, item))
         self.lista_archivos.setContextMenuPolicy(Qt.CustomContextMenu)

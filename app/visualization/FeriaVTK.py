@@ -348,8 +348,24 @@ class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
         self.edge_actor.GetProperty().SetLineWidth(3.0)
         self.renderer.AddActor(self.edge_actor)
 
+        puntos = [cell.GetPoints().GetPoint(i) for i in range(cell.GetNumberOfPoints())]
+
+        angulos = []
+        n = len(puntos)
+        for i in range(n):
+            p1 = puntos[i-1]  # Punto anterior
+            p2 = puntos[i]    # Punto actual
+            p3 = puntos[(i+1) % n]  # Punto siguiente
+            angulo = calcular_angulo(p1, p2, p3)
+            angulos.append(angulo)
+        min_angle_rad = min(angulos)
+        min_angle_deg = math.degrees(min_angle_rad)
+        print(f"🔢 Ángulo mínimo de la celda: {min_angle_deg:.2f}°")
+
         self.renderer.GetRenderWindow().Render()
         self.last_selected_cell = (cell_id, cell_type)
+        notifier.cell_selected.emit(cell_id, len(puntos), min_angle_deg)
+
 
 
     def _remove_highlight(self):
