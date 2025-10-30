@@ -10,7 +10,8 @@ from app.visualization.vtkplayer import VTKPlayer
 from app.logic.main_window_logic import (
     dragEnterEvent, dropEvent,
     abrir_dialogo_carga, mostrar_contenido, mostrar_menu_contextual,
-    abrir_opciones_dialog, cambiar_visualizador, closeEvent, abrir_manual
+    abrir_opciones_dialog, cambiar_visualizador, closeEvent, abrir_manual,
+    accion_w, accion_s
 )
 
 from .panel_derecho import PanelDerecho
@@ -31,6 +32,8 @@ class MainWindow(QWidget):
         self.file_menu = self.menubar.addMenu("")
         self.edit_menu = self.menubar.addMenu("")
         self.help_menu = self.menubar.addMenu("")
+        self.view_menu = self.menubar.addMenu("")
+        self.color_menu = self.menubar.addMenu("")
 
         # Iconos estándar
         icon_cargar = self.style().standardIcon(QStyle.SP_DirOpenIcon)
@@ -62,9 +65,31 @@ class MainWindow(QWidget):
         self.action_help.triggered.connect(lambda: abrir_manual(self))
         self.help_menu.addAction(self.action_help)
 
-        #self.action_help = QAction("", self)
-        #self.action_help.triggered.connect(lambda: abrir_manual(self))
-        #self.help_menu.addAction(self.action_help)
+        self.action_visual = QAction("", self)
+        #self.action_visual.triggered.connect(lambda: cambiar_visualizador(self))
+
+        # Acciones de vista: Wireframe / Sólido dentro del menú 'Vista'
+        self.action_wireframe = QAction("", self)
+        self.action_wireframe.triggered.connect(lambda: accion_w(self))
+        self.view_menu.addAction(self.action_wireframe)
+
+        self.action_solido = QAction("", self)
+        self.action_solido.triggered.connect(lambda: accion_s(self))
+        self.view_menu.addAction(self.action_solido)
+
+        # Menú de colores
+
+        self.action_area = QAction("", self)
+        self.action_area.triggered.connect(lambda: RefinementViewer.accion_area(self))
+        self.color_menu.addAction(self.action_area)
+
+        self.action_angulo_minimo = QAction("", self)
+        self.action_angulo_minimo.triggered.connect(lambda: RefinementViewer.accion_angulo_minimo(self))
+        self.color_menu.addAction(self.action_angulo_minimo)
+
+        self.action_relacion_aspecto = QAction("", self)
+        self.action_relacion_aspecto.triggered.connect(lambda: RefinementViewer.accion_relacion_aspecto(self))
+        self.color_menu.addAction(self.action_relacion_aspecto)
 
         self.lista_archivos = QListWidget()
         self.lista_archivos.itemClicked.connect(lambda item: mostrar_contenido(self, item))
@@ -134,7 +159,17 @@ class MainWindow(QWidget):
         self.help_menu.setTitle(self.tr("Ayuda"))
         self.boton_cargar.setText(self.tr("Cargar archivos"))
         self.boton_opciones.setText(self.tr("Opciones"))
+        # Textos traducibles para el menú 'Vista' y sus acciones
+        self.view_menu.setTitle(self.tr("Vista"))
+        self.action_wireframe.setText(self.tr("Wireframe"))
+        self.action_wireframe.setToolTip(self.tr("Alternar al modo wireframe (W)"))
+        self.action_solido.setText(self.tr("Sólido"))
+        self.action_solido.setToolTip(self.tr("Alternar al modo sólido (S)"))
         self.action_cargar.setText(self.tr("Cargar archivos"))
+        self.color_menu.setTitle(self.tr("Coloreos"))
+        self.action_area.setText(self.tr("Área"))
+        self.action_angulo_minimo.setText(self.tr("Ángulo Mínimo"))
+        self.action_relacion_aspecto.setText(self.tr("Relación de Aspecto"))
         self.action_opciones.setText(self.tr("Opciones"))
         self.action_help.setText(self.tr("Manual"))
         self.tab_widget.setTabText(0, self.tr("Niveles de refinación"))

@@ -164,6 +164,7 @@ class RefinementViewer(QWidget):
     def _load_overlay_poly(self):
         # Cargar el poly original como overlay
         if self.poly_path and os.path.exists(self.poly_path):
+            self.panel_derecho.reload_modelo() #Esto es para asegurar de limpiar el modelo antes de cambiar
             polydata = poly_to_vtk(self.poly_path)
             mapper = vtk.vtkPolyDataMapper()
             mapper.SetInputData(polydata)

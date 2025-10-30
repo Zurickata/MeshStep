@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                             QLabel, QGroupBox, QScrollArea,
                             QSlider, QGridLayout)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QCoreApplication, QEvent
 
 import os
 import re
@@ -16,7 +16,7 @@ class PanelDerecho(QScrollArea):
         super().__init__(parent)
         self.refinement_viewer = None
         self.parent = parent
-        self.modo_visualizacion = "solido"  # Estado inicial
+        #self.modo_visualizacion = "solido"  # Estado inicial
         self.threshold_angulo = 30  # Valor inicial del threshold
         self.setup_ui()
         self.metricas_actuales = None
@@ -35,7 +35,6 @@ class PanelDerecho(QScrollArea):
         
         # Crear secciones 
         self.crear_seccion_metricas()
-        self.crear_seccion_visualizacion()
         self.crear_seccion_coloreos()
         self.crear_seccion_acciones()
         self.crear_seccion_estadisticas()
@@ -47,7 +46,6 @@ class PanelDerecho(QScrollArea):
         
         self.setWidget(self.contenido)
         self.aplicar_estilo_botones()
-        self.actualizar_estado_botones_visualizacion()
         
         self.actualizar_display_threshold()
        
@@ -101,186 +99,6 @@ class PanelDerecho(QScrollArea):
                 self.actualizar_metricas(contenido_html)
                 self._contenido_base_sin_celda = contenido_html
 
-
-    def actualizar_panel_derecho_custom(self, ruta_archivo):
-        try:
-            # Cambiar extensión del archivo de .vtk a _histo.txt
-            base, _ = os.path.splitext(ruta_archivo)
-            ruta_modificada = f"{base}_histo.txt"
-            numero = base.split('_')[-1]
-
-            # Leer el archivo línea por línea
-            with open(ruta_modificada, 'r') as f:
-                lineas = f.readlines()
-
-            angulo_triangulo = None
-            angulo_cuadrado = None
-            min_triangulo = None
-            max_triangulo = None
-            min_cuadrado = None
-            max_cuadrado = None
-            criticos_triangulos = 0
-            criticos_cuadrados = 0
-
-            # Variables para el procesamiento del histograma
-            procesando_triangulos = False
-            procesando_cuadrados = False
-            threshold_actual = self.threshold_angulo
-
-            for i, linea in enumerate(lineas):
-                # Detectar secciones
-                if "For Triangles:" in linea:
-                    procesando_triangulos = True
-                    procesando_cuadrados = False
-                    continue
-                elif "For Quads:" in linea:
-                    procesando_triangulos = False
-                    procesando_cuadrados = True
-                    continue
-                elif "Smallest angle:" in linea and "Largest angle:" in linea:
-                    # Extraer valores mínimo y máximo
-                    partes = linea.split('|')
-                    if len(partes) >= 2:
-                        min_val = partes[0].replace('Smallest angle:', '').strip()
-                        max_val = partes[1].replace('Largest angle:', '').strip()
-                        
-                        if procesando_triangulos:
-                            min_triangulo = min_val
-                            max_triangulo = max_val
-                            angulo_triangulo = f"{min_val} | {max_val}"
-                        elif procesando_cuadrados:
-                            min_cuadrado = min_val
-                            max_cuadrado = max_val
-                            angulo_cuadrado = f"{min_val} | {max_val}"
-                    continue
-                
-                # Procesar líneas del histograma
-                if ("Angle histogram:" in linea or 
-                    "0 -   1 degrees:" in linea or 
-                    linea.strip().startswith('0 -') or 
-                    re.match(r'^\s*\d+ - \s*\d+ degrees:', linea)):
-                    
-                    # Buscar patrones de histograma: "X - Y degrees: COUNT"
-                    match = re.match(r'.*?(\d+)\s*-\s*(\d+)\s*degrees:\s*(\d+)', linea)
-                    if match:
-                        min_deg = int(match.group(1))
-                        max_deg = int(match.group(2))
-                        count = int(match.group(3))
-                        
-                        # Si el rango está por debajo del threshold, sumar al contador
-                        if max_deg < threshold_actual:
-                            if procesando_triangulos:
-                                criticos_triangulos += count
-                            elif procesando_cuadrados:
-                                criticos_cuadrados += count
-
-            # Determinar color basado en el threshold (lógica invertida: ángulos bajos = malos)
-            if threshold_actual <= 25:
-                color_threshold = "#ff6b6b"  # ROJO - ángulos muy bajos (críticos)
-            elif threshold_actual <= 45:
-                color_threshold = "#ff9f43"  # NARANJA - ángulos medios (regulares)
-            else:
-                color_threshold = "#4ecdc4"  # VERDE AZULADO - ángulos altos (buenos)
-
-            # Función para determinar el color de un ángulo basado en el threshold
-            def color_por_angulo(angulo_str):
-                try:
-                    if angulo_str and '°' in angulo_str:
-                        valor = float(angulo_str.replace('°', '').split()[0])
-                        if valor < threshold_actual:
-                            return "#ff6b6b"  # Rojo para ángulos críticos
-                        elif valor < threshold_actual + 15:
-                            return "#ff9f43"  # Naranja para ángulos regulares
-                        else:
-                            return "#4ecdc4"  # Verde para ángulos buenos
-                except:
-                    pass
-                return "#ffffff"  # Blanco por defecto
-
-            # Función para formatear valores angulares
-            def formatear_valor_angular(valor):
-                try:
-                    # Extraer el número y agregar el símbolo de grados
-                    num_val = float(valor.split()[0])
-                    return f"{num_val:.1f}°"
-                except:
-                    return valor
-
-            # Determinar calidad general basada en los ángulos críticos
-            total_criticos = criticos_triangulos + criticos_cuadrados
-            if total_criticos == 0:
-                calidad_general = "Excelente"
-                color_calidad = "#4ecdc4"
-            elif total_criticos <= 5:
-                calidad_general = "Buena"
-                color_calidad = "#4ecdc4"
-            elif total_criticos <= 15:
-                calidad_general = "Regular"
-                color_calidad = "#ff9f43"
-            elif total_criticos <= 30:
-                calidad_general = "Mala"
-                color_calidad = "#ff6b6b"
-            else:
-                calidad_general = "Crítica"
-                color_calidad = "#ff0000"
-
-            # Construir el contenido HTML con el estilo deseado
-            contenido_html = f"""
-            <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px;'>
-                <b style='color: #ffd700;'>Nivel de Refinamiento: {numero}</b><br><br>
-                
-                <b style='color: #ffd700;'>Ángulos Críticos (Umbral: <span style='color: {color_threshold};'>{threshold_actual}°</span>)</b><br><br>
-            """
-
-            # Agregar información de triángulos si está disponible
-            if min_triangulo and max_triangulo:
-                min_tri_formatted = formatear_valor_angular(min_triangulo)
-                max_tri_formatted = formatear_valor_angular(max_triangulo)
-                color_min_tri = color_por_angulo(min_triangulo)
-                color_max_tri = color_por_angulo(max_triangulo)
-                
-                contenido_html += f"""
-                <b>Triángulos:</b><br>
-                <span style='color: {color_min_tri};'>Mín: {min_tri_formatted}</span> | 
-                <span style='color: {color_max_tri};'>Máx: {max_tri_formatted}</span><br>
-                <span style='color: #ff6b6b;'>⚠️ {criticos_triangulos} ángulos &lt; {threshold_actual}°</span><br><br>
-                """
-
-            # Agregar información de cuadriláteros si está disponible
-            if min_cuadrado and max_cuadrado:
-                min_cuad_formatted = formatear_valor_angular(min_cuadrado)
-                max_cuad_formatted = formatear_valor_angular(max_cuadrado)
-                color_min_cuad = color_por_angulo(min_cuadrado)
-                color_max_cuad = color_por_angulo(max_cuadrado)
-                
-                contenido_html += f"""
-                <b>Cuadriláteros:</b><br>
-                <span style='color: {color_min_cuad};'>Mín: {min_cuad_formatted}</span> | 
-                <span style='color: {color_max_cuad};'>Máx: {max_cuad_formatted}</span><br>
-                <span style='color: #ff6b6b;'>⚠️ {criticos_cuadrados} ángulos &lt; {threshold_actual}°</span><br>
-                """
-
-            # Agregar calidad general
-            contenido_html += f"""
-                <div style='margin-top: 10px; padding: 8px; background-color: #3a3a3a; border-radius: 4px;'>
-                    <b style='color: {color_calidad};'>Calidad General:</b> 
-                    <span style='color: {color_calidad};'>{calidad_general}</span> 
-                    <span style='color: #cccccc; font-size: 12px;'>({total_criticos} ángulos críticos)</span>
-                </div>
-            </div>
-            """
-
-            # Actualizar el panel derecho
-            self.actualizar_metricas(contenido_html)
-
-        except Exception as e:
-            error_html = f"""
-            <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; color: #ff6b6b;'>
-                <b>Error al leer el archivo:</b><br>{str(e)}<br><br>
-                <span style='font-size: 12px; color: #cccccc;'>Ruta: {ruta_modificada}</span>
-            </div>
-            """
-            self.panel_derecho.actualizar_metricas(error_html)    
     
     def actualizar_panel_derecho(self, ruta_archivo):
         
@@ -293,16 +111,24 @@ class PanelDerecho(QScrollArea):
                 ultimo_archivo = archivos[-1] if archivos else "N/A"
                 ultimo_archivo = ultimo_archivo.split('_')[-1] if '_' in ultimo_archivo else "N/A"
                 ultimo_level_refinement = ultimo_archivo.split('.')[0] if '.' in ultimo_archivo else "N/A"
-            contenido_html = f"""
-                <div style='margin-top: 10px; padding: 8px; background-color: #3a3a3a; border-radius: 4px;'>
-                    <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px;'>
-                    <b style='color: #ffd700;'>Nivel de Refinamiento: {numero}/{ultimo_level_refinement}<br><br>
-                </div>
-            """
+             # Plantilla traducible con placeholders %1 (actual) y %2 (máximo)
+            tpl = QCoreApplication.translate(
+                "PanelDerecho",
+                "<div style='margin-top: 10px; padding: 8px; background-color: #3a3a3a; border-radius: 4px;'>"
+                "<div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px;'>"
+                "<b style='color: #ffd700;'>Nivel de Refinamiento: %1/%2</b><br><br>"
+                "</div>"
+                "</div>"
+            )
+            contenido_html = (tpl
+                              .replace("%1", str(numero))
+                              .replace("%2", str(ultimo_level_refinement)))
+            
             # Actualizar el panel derecho
             self.actualizar_metricas(contenido_html)
             # Guardar como contenido base limpio (SIN información de celda)
             self._contenido_base_sin_celda = contenido_html
+            self._archivo_actual = ruta_archivo
 
         except Exception as e:
             error_html = f"""
@@ -550,28 +376,7 @@ class PanelDerecho(QScrollArea):
         grupo.setLayout(layout)
         self.layout_principal.addWidget(grupo)
     
-    def crear_seccion_visualizacion(self):
-        """Sección específica para modos de visualización"""
-        grupo = QGroupBox("Modo de Visualización")
-        grupo.setStyleSheet("QGroupBox { font-weight: bold; color: #ffffff; }")
-        layout = QHBoxLayout()
-        
-        # Botones de visualización
-        self.boton_wireframe = QPushButton("Wireframe")
-        self.boton_solido = QPushButton("Sólido")
 
-        # Tooltips
-        self.boton_wireframe.setToolTip("Shortcut: W")
-        self.boton_solido.setToolTip("Shortcut: S")
-
-        # Conectar señales
-        self.boton_wireframe.clicked.connect(self.activar_wireframe)
-        self.boton_solido.clicked.connect(self.activar_solido)
-        
-        layout.addWidget(self.boton_wireframe)
-        layout.addWidget(self.boton_solido)
-        grupo.setLayout(layout)
-        self.layout_principal.addWidget(grupo)
     
     def crear_seccion_acciones(self):
         """Sección de acciones rápidas"""
@@ -731,61 +536,22 @@ class PanelDerecho(QScrollArea):
     
     def activar_wireframe(self):
         """Activa modo wireframe"""
-        self.modo_visualizacion = "wireframe"
-        self.actualizar_estado_botones_visualizacion()
+        #self.modo_visualizacion = "wireframe"
+        #self.actualizar_estado_botones_visualizacion()
         # Obtener la ventana principal de forma robusta
         main_window = self.window()
         accion_w(main_window)
     
     def activar_solido(self):
         """Activa modo sólido"""
-        self.modo_visualizacion = "solido"
-        self.actualizar_estado_botones_visualizacion()
+        #self.modo_visualizacion = "solido"
+        #self.actualizar_estado_botones_visualizacion()
         # Obtener la ventana principal de forma robusta
         main_window = self.window()
         accion_s(main_window)
     
-    def actualizar_estado_botones_visualizacion(self):
-        """Actualiza el aspecto visual de los botones según el modo activo"""
-        estilo_activo = """
-            QPushButton {
-                background-color: #2e7d32;
-                color: white;
-                border: 2px solid #4caf50;
-                padding: 8px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #3d8b40;
-            }
-        """
-        
-        estilo_inactivo = """
-            QPushButton {
-                background-color: #4a4a4a;
-                color: white;
-                border: 1px solid #666;
-                padding: 8px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #5a5a5a;
-            }
-        """
-        
-        if self.modo_visualizacion == "wireframe":
-            self.boton_wireframe.setStyleSheet(estilo_activo)
-            self.boton_solido.setStyleSheet(estilo_inactivo)
-        else:
-            self.boton_wireframe.setStyleSheet(estilo_inactivo)
-            self.boton_solido.setStyleSheet(estilo_activo)
     
-    def set_modo_visualizacion(self, modo):
-        """Sincronizar el modo de visualización desde fuera"""
-        if modo in ["wireframe", "solido"]:
-            self.modo_visualizacion = modo
-            self.actualizar_estado_botones_visualizacion()
+
     
     def aplicar_estilo_botones(self):
         """Aplica estilo consistente a todos los botones"""
@@ -859,7 +625,9 @@ class PanelDerecho(QScrollArea):
                 if isinstance(style, CustomInteractorStyle):
                     if hasattr(style, "highlight_actor") and style.highlight_actor:
                         switcher.renderer.RemoveActor(style.highlight_actor)
+                        style._remove_highlight()
                         style.highlight_actor = None
+                        
                     style.last_selected_cell = None
                 
                 # Emitir deselección para limpiar panel
@@ -881,3 +649,13 @@ class PanelDerecho(QScrollArea):
                 print("⚠️ No hay modelo actual para recargar")
         else:
             print("⚠️ No hay refinement viewer o switcher disponible")
+
+    def changeEvent(self, event):
+        # Regenerar HTML traducible al cambiar el idioma de la app
+        if event.type() == QEvent.LanguageChange:
+            if hasattr(self, "_archivo_actual") and self._archivo_actual:
+                try:
+                    self.actualizar_panel_derecho(self._archivo_actual)
+                except Exception:
+                    pass
+        super().changeEvent(event)

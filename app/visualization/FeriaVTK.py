@@ -295,6 +295,7 @@ class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
         if self.last_selected_cell and self.last_selected_cell[0] == cell_id:
             self._remove_highlight()
             self.last_selected_cell = None
+            notifier.cell_deselected.emit()
             return
 
         self._remove_highlight()
