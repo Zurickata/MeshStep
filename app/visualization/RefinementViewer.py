@@ -277,8 +277,10 @@ class RefinementViewer(QWidget):
         else:
             print("No hay archivo actual.")
     # Métodos para cada acción
-        input_path = "outputs/" + nombre
-        output_path = "outputs/" + "color_" +nombre
+        input_path = "../outputs/" + nombre
+        output_path = "../outputs/" + "color_" +nombre
+        print("Input path:", input_path)
+        print("Output path:", output_path)
         colorear_celdas(
             input_path, output_path,
             metric="area", bins=12,
@@ -299,8 +301,8 @@ class RefinementViewer(QWidget):
         else:
             print("No hay archivo actual.")
     # Métodos para cada acción
-        input_path = "outputs/" +  nombre
-        output_path = "outputs/" + "color_" + nombre
+        input_path = "../outputs/" +  nombre
+        output_path = "../outputs/" + "color_" + nombre
         colorear_celdas(
             input_path, output_path,
             metric="angle", bins=12,
@@ -320,9 +322,9 @@ class RefinementViewer(QWidget):
             nombre = os.path.basename(archivos[self.switcher.current_index])
         else:
             print("No hay archivo actual.")
-    # Métodos para cada acción
-        input_path = "outputs/" + nombre
-        output_path = "outputs/" + "color_" +nombre
+        # Métodos para cada acción
+        input_path = "../outputs/" + nombre
+        output_path = "../outputs/" + "color_" +nombre
         colorear_celdas(
             input_path, output_path,
             metric="aspect", bins=12,
