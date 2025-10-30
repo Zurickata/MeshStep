@@ -80,15 +80,17 @@ class MainWindow(QWidget):
         # Menú de colores
 
         self.action_area = QAction("", self)
-        self.action_area.triggered.connect(lambda: RefinementViewer.accion_area(self))
+        self.action_area.triggered.connect(
+            lambda: self.refinement_viewer.accion_area() if getattr(self, "refinement_viewer", None) else None
+        )
         self.color_menu.addAction(self.action_area)
 
         self.action_angulo_minimo = QAction("", self)
-        self.action_angulo_minimo.triggered.connect(lambda: RefinementViewer.accion_angulo_minimo(self))
+        self.action_angulo_minimo.triggered.connect(lambda: self.refinement_viewer.accion_angulo_minimo() if getattr(self, "refinement_viewer", None) else None)
         self.color_menu.addAction(self.action_angulo_minimo)
 
         self.action_relacion_aspecto = QAction("", self)
-        self.action_relacion_aspecto.triggered.connect(lambda: RefinementViewer.accion_relacion_aspecto(self))
+        self.action_relacion_aspecto.triggered.connect(lambda: self.refinement_viewer.accion_relacion_aspecto() if getattr(self, "refinement_viewer", None) else None)
         self.color_menu.addAction(self.action_relacion_aspecto)
 
         self.lista_archivos = QListWidget()
