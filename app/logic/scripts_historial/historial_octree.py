@@ -51,7 +51,7 @@ def combinar_historial_octree(name, output_file):
 
 def crear_historial_octree(name,nivel_refinamiento,tipo="completo", input_dir="."):
     quad2closeto.generar_movimientos_numpy(f"{name}_quads.vtk", f"{name}_closeto.vtk", "movimientos1_new.txt")
-    historial_patrones(f"{name}_closeto.vtk", f"{name}_remsur.vtk", "movimientos2_new.txt")
-    remsu2shrink.generar_movimientos_numpy(f"{name}_remsur.vtk", f"{name}_shrink.vtk", "movimientos3_new.txt")
+    historial_patrones(f"{name}_closeto.vtk", f"{name}_remSur.vtk", "movimientos2_new.txt")
+    remsu2shrink.generar_movimientos_numpy(f"{name}_remSur.vtk", f"{name}_shrink.vtk", "movimientos3_new.txt")
 
     combinar_historial_octree(name, f"{name}_historial.txt")

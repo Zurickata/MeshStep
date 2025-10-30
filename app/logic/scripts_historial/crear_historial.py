@@ -67,7 +67,7 @@ def combine_historial_borde(name,LR,output_file,vtkq,vtkc,vtkr,vtks):
     ## changes_files  agregar nombres finales!
     changes_files.append(f"change {name}_quads.vtk")
     changes_files.append(f"change {name}_closeto.vtk")
-    changes_files.append(f"change {name}_remsur.vtk")
+    changes_files.append(f"change {name}_remSur.vtk")
     changes_files.append(f"change {name}_shrink.vtk")
     with open(output_file, 'w') as outfile:
         for x in changes_files:
