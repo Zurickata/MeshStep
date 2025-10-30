@@ -548,26 +548,44 @@ class VTKPlayer(QWidget):
             progress.setMinimumWidth(400)
             progress.show()
 
+            # Variable de guardia para evitar ejecuciones múltiples
+            self._historial_cargado = False
+
             # Reintentar cada 2 segundos
             self._historial_timer = QTimer(self)
 
             def revisar_historial():
+                # Evitar llamadas repetidas
+                if getattr(self, "_historial_cargado", False):
+                    return
+
                 # 🧠 Si ya existe el archivo del historial
                 if os.path.exists(alt_path_script):
                     print(f"[VTKPlayer] ✅ Historial encontrado: {alt_path_script}")
-                    # Detener timer y cerrar progreso
-                    self._historial_timer.stop()
-                    self._historial_timer.timeout.disconnect()
+                    self._historial_cargado = True  # marcar como cargado
+
+                    # Detener timer de forma segura
+                    if hasattr(self, "_historial_timer") and self._historial_timer.isActive():
+                        self._historial_timer.stop()
+                        try:
+                            self._historial_timer.timeout.disconnect(revisar_historial)
+                        except TypeError:
+                            pass
+
                     progress.close()
-                    # Ejecutar carga real
+                    # Ejecutar la carga real una sola vez
                     QTimer.singleShot(300, lambda: self._run_script_core(alt_path_vtk, alt_path_script))
                     return
 
                 # 🧠 Si el historial ya no se está generando pero no existe el archivo → error
                 if mesh_generator and not mesh_generator.historial_generandose:
                     print("[VTKPlayer] ❌ El historial no se generó correctamente.")
-                    self._historial_timer.stop()
-                    self._historial_timer.timeout.disconnect()
+                    if hasattr(self, "_historial_timer") and self._historial_timer.isActive():
+                        self._historial_timer.stop()
+                        try:
+                            self._historial_timer.timeout.disconnect(revisar_historial)
+                        except TypeError:
+                            pass
                     progress.close()
                     QMessageBox.critical(self, "Error", "No existe historial disponible.")
                     return

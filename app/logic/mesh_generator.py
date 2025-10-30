@@ -232,6 +232,7 @@ class MeshGeneratorController(QDialog):
             self.historial_generandose = True
             self.historial_thread = HistorialWorker(algoritmo, input_dir, name, tipo, max_refinement)
             self.historial_thread.finished.connect(self.on_historial_finished)
+            self.historial_start_time = time.time()
             self.historial_thread.start()
 
             QMessageBox.information(
@@ -323,13 +324,26 @@ class MeshGeneratorController(QDialog):
         self.historial_status = success
         self.ruta_historial = msg if success else ""
 
-        # 🔹 Notificar al MainWindow si existe
         if self.parent() and hasattr(self.parent(), "mesh_generator_controller"):
             self.parent().mesh_generator_controller = self
 
+        elapsed = 0
+        if hasattr(self, "historial_start_time"):
+            elapsed = time.time() - self.historial_start_time
+
+        # 🔹 Notificación condicional según tiempo transcurrido
         if success:
-            print(f"[Historial] Generado correctamente en {msg}")
-            QMessageBox.information(self.parent() or self, "Historial", "Historial generado correctamente.")
+            print(f"[Historial] Generado correctamente en {msg} ({elapsed:.2f}s)")
+
+            # Mostrar notificación solo si se demoró más de 5 segundos
+            if elapsed > 5:
+                QMessageBox.information(
+                    self.parent() or self,
+                    "Historial",
+                    "El historial se generó correctamente."
+                )
+            else:
+                print("[Historial] Finalizó rápido (<5s), no se muestra notificación.")
         else:
             print(f"[Historial] Error: {msg}")
             QMessageBox.critical(self.parent() or self, "Error al generar historial", msg)
