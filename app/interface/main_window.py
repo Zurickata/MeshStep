@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QListWidget,
                              QSplitter, QStyle, QTabWidget,
-                             QMenuBar, QAction, QLabel, QMessageBox)
-from PyQt5.QtCore import Qt, QEvent
+                             QMenuBar, QAction, QLabel, QMessageBox, QToolButton, QFrame)
+from PyQt5.QtCore import Qt, QEvent, QSize
 from PyQt5.QtGui import QPixmap
 from app.visualization.RefinementViewer import RefinementViewer
 from app.interface.panel_derecho import PanelDerecho
@@ -41,24 +41,97 @@ class MainWindow(QWidget):
         icon_opciones = self.style().standardIcon(QStyle.SP_FileDialogDetailedView)
 
         # Botones en barra horizontal
-        self.boton_cargar = QPushButton(icon_cargar, "", self)
+        #self.boton_cargar = QPushButton(icon_cargar, "", self)
+        #self.boton_cargar.clicked.connect(lambda: abrir_dialogo_carga(self))
+
+        #self.boton_opciones = QPushButton(icon_opciones, "", self)
+        #self.boton_opciones.clicked.connect(lambda: abrir_opciones_dialog(self))
+
+        #self.boton_wireframe = QPushButton("", self)
+        #self.boton_wireframe.clicked.connect(lambda: accion_w(self))
+
+        #self.boton_solido = QPushButton("", self)
+        #self.boton_solido.clicked.connect(lambda: accion_s(self))
+
+        #self.boton_color_area = QPushButton("", self)
+        #self.boton_color_area.clicked.connect(lambda: self.refinement_viewer.accion_area() if getattr(self, "refinement_viewer", None) else None)
+
+        #self.boton_color_angulo_minimo = QPushButton("", self)
+        #self.boton_color_angulo_minimo.clicked.connect(lambda: self.refinement_viewer.accion_angulo_minimo() if getattr(self, "refinement_viewer", None) else None)
+
+        #self.boton_color_relacion_aspecto = QPushButton("", self)
+        #self.boton_color_relacion_aspecto.clicked.connect(lambda: self.refinement_viewer.accion_relacion_aspecto() if getattr(self, "refinement_viewer", None) else None)
+
+        # Barra: usar QToolButton para un aspecto más profesional
+        icon_size = QSize(22, 22)
+
+        self.boton_cargar = QToolButton(self)
+        self.boton_cargar.setIcon(icon_cargar)
+        self.boton_cargar.setIconSize(icon_size)
+        self.boton_cargar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.boton_cargar.clicked.connect(lambda: abrir_dialogo_carga(self))
 
-        self.boton_opciones = QPushButton(icon_opciones, "", self)
+        self.boton_opciones = QToolButton(self)
+        self.boton_opciones.setIcon(icon_opciones)
+        self.boton_opciones.setIconSize(icon_size)
+        self.boton_opciones.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.boton_opciones.clicked.connect(lambda: abrir_opciones_dialog(self))
 
-        self.boton_wireframe = QPushButton("", self)
+        self.boton_wireframe = QToolButton(self)
+        self.boton_wireframe.setIconSize(icon_size)
+        self.boton_wireframe.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.boton_wireframe.clicked.connect(lambda: accion_w(self))
 
-        self.boton_solido = QPushButton("", self)
+        self.boton_solido = QToolButton(self)
+        self.boton_solido.setIconSize(icon_size)
+        self.boton_solido.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.boton_solido.clicked.connect(lambda: accion_s(self))
 
-        # Barra horizontal de botones
+        self.boton_color_area = QToolButton(self)
+        self.boton_color_area.setIconSize(icon_size)
+        self.boton_color_area.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.boton_color_area.clicked.connect(lambda: self.refinement_viewer.accion_area() if getattr(self, "refinement_viewer", None) else None)
+
+        self.boton_color_angulo_minimo = QToolButton(self)
+        self.boton_color_angulo_minimo.setIconSize(icon_size)
+        self.boton_color_angulo_minimo.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.boton_color_angulo_minimo.clicked.connect(lambda: self.refinement_viewer.accion_angulo_minimo() if getattr(self, "refinement_viewer", None) else None)
+
+        self.boton_color_relacion_aspecto = QToolButton(self)
+        self.boton_color_relacion_aspecto.setIconSize(icon_size)
+        self.boton_color_relacion_aspecto.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.boton_color_relacion_aspecto.clicked.connect(lambda: self.refinement_viewer.accion_relacion_aspecto() if getattr(self, "refinement_viewer", None) else None)
+
+        # Labels compactos entre grupos
+        self.vista_label = QLabel("")
+        self.vista_label.setAlignment(Qt.AlignCenter)
+        self.vista_label.setStyleSheet("padding:4px; font-weight:600;")
+
+        self.colores_label = QLabel("")
+        self.colores_label.setAlignment(Qt.AlignCenter)
+        self.colores_label.setStyleSheet("padding:4px; font-weight:600;")
+
+
+        # Barra horizontal de botones con separadores
         barra_botones = QHBoxLayout()
+        barra_botones.setSpacing(8)
         barra_botones.addWidget(self.boton_cargar)
         barra_botones.addWidget(self.boton_opciones)
+
+        sep1 = QFrame(self); sep1.setFrameShape(QFrame.VLine); sep1.setFrameShadow(QFrame.Sunken); sep1.setFixedHeight(28)
+        barra_botones.addWidget(sep1)
+
+        barra_botones.addWidget(self.vista_label)
         barra_botones.addWidget(self.boton_wireframe)
         barra_botones.addWidget(self.boton_solido)
+
+        sep2 = QFrame(self); sep2.setFrameShape(QFrame.VLine); sep2.setFrameShadow(QFrame.Sunken); sep2.setFixedHeight(28)
+        barra_botones.addWidget(sep2)
+
+        barra_botones.addWidget(self.colores_label)
+        barra_botones.addWidget(self.boton_color_area)
+        barra_botones.addWidget(self.boton_color_angulo_minimo)
+        barra_botones.addWidget(self.boton_color_relacion_aspecto)
         barra_botones.addStretch(1)  # Para que los botones queden a la izquierda
 
         # Acciones del menú
@@ -176,6 +249,11 @@ class MainWindow(QWidget):
         self.boton_opciones.setText(self.tr("Opciones"))
         self.boton_wireframe.setText(self.tr("Wireframe"))
         self.boton_solido.setText(self.tr("Solido"))
+        self.boton_color_area.setText(self.tr("Área"))
+        self.boton_color_angulo_minimo.setText(self.tr("Ángulo Mínimo"))
+        self.boton_color_relacion_aspecto.setText(self.tr("Relación de Aspecto"))
+        self.vista_label.setText(self.tr("Vista:"))
+        self.colores_label.setText(self.tr("Coloreos:"))
         # Textos traducibles para el menú 'Vista' y sus acciones
         self.view_menu.setTitle(self.tr("Vista"))
         self.action_wireframe.setText(self.tr("Wireframe"))
