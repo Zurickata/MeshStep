@@ -310,7 +310,9 @@ class PanelDerecho(QScrollArea):
             conteo_html = self._construir_conteo_threshold_html()
         except Exception:
             conteo_html = (
-                "<div style='color:#cccccc;'>Cargue un archivo para ver conteos por umbral.</div>"
+                "<div style='color:#cccccc;'>" +
+                self.tr("Cargue un archivo para ver conteos por umbral.") +
+                "</div>"
             )
         if hasattr(self, 'label_threshold_counts') and self.label_threshold_counts:
             self.label_threshold_counts.setText(conteo_html)
@@ -401,14 +403,14 @@ class PanelDerecho(QScrollArea):
         
         # Control de velocidad
         velocidad_layout = QHBoxLayout()
-        label_velocidad = QLabel(self.tr("Velocidad:"))
+        self.label_velocidad_title = QLabel(self.tr("Velocidad:"))
         self.slider_velocidad = QSlider(Qt.Horizontal)
         self.slider_velocidad.setRange(500, 3000)
         self.slider_velocidad.setValue(1500)
         self.label_velocidad_valor = QLabel("1.5s")
         self.slider_velocidad.valueChanged.connect(self._on_velocidad_cambiada)
 
-        velocidad_layout.addWidget(label_velocidad)
+        velocidad_layout.addWidget(self.label_velocidad_title)
         velocidad_layout.addWidget(self.slider_velocidad)
         velocidad_layout.addWidget(self.label_velocidad_valor)
         
