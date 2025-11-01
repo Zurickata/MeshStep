@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QListWidget,
                              QSplitter, QStyle, QTabWidget,
-                             QMenuBar, QAction, QLabel)
+                             QMenuBar, QAction, QLabel, QMessageBox)
 from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QPixmap
 from app.visualization.RefinementViewer import RefinementViewer
@@ -13,6 +13,7 @@ from app.logic.main_window_logic import (
     abrir_opciones_dialog, cambiar_visualizador, closeEvent, abrir_manual,
     accion_w, accion_s
 )
+#from app.logic.export_utils import ExportManager
 
 from .panel_derecho import PanelDerecho
 
@@ -46,10 +47,18 @@ class MainWindow(QWidget):
         self.boton_opciones = QPushButton(icon_opciones, "", self)
         self.boton_opciones.clicked.connect(lambda: abrir_opciones_dialog(self))
 
+        self.boton_wireframe = QPushButton("", self)
+        self.boton_wireframe.clicked.connect(lambda: accion_w(self))
+
+        self.boton_solido = QPushButton("", self)
+        self.boton_solido.clicked.connect(lambda: accion_s(self))
+
         # Barra horizontal de botones
         barra_botones = QHBoxLayout()
         barra_botones.addWidget(self.boton_cargar)
         barra_botones.addWidget(self.boton_opciones)
+        barra_botones.addWidget(self.boton_wireframe)
+        barra_botones.addWidget(self.boton_solido)
         barra_botones.addStretch(1)  # Para que los botones queden a la izquierda
 
         # Acciones del menú
@@ -64,6 +73,10 @@ class MainWindow(QWidget):
         self.action_help = QAction("", self)
         self.action_help.triggered.connect(lambda: abrir_manual(self))
         self.help_menu.addAction(self.action_help)
+
+        #self.action_exportar = QAction("", self)
+        #self.action_exportar.triggered.connect(lambda: self.exportar_historial())
+        #self.file_menu.addAction(self.action_exportar)
 
         self.action_visual = QAction("", self)
         #self.action_visual.triggered.connect(lambda: cambiar_visualizador(self))
@@ -161,6 +174,8 @@ class MainWindow(QWidget):
         self.help_menu.setTitle(self.tr("Ayuda"))
         self.boton_cargar.setText(self.tr("Cargar archivos"))
         self.boton_opciones.setText(self.tr("Opciones"))
+        self.boton_wireframe.setText(self.tr("Wireframe"))
+        self.boton_solido.setText(self.tr("Solido"))
         # Textos traducibles para el menú 'Vista' y sus acciones
         self.view_menu.setTitle(self.tr("Vista"))
         self.action_wireframe.setText(self.tr("Wireframe"))
@@ -174,6 +189,7 @@ class MainWindow(QWidget):
         self.action_relacion_aspecto.setText(self.tr("Relación de Aspecto"))
         self.action_opciones.setText(self.tr("Opciones"))
         self.action_help.setText(self.tr("Manual"))
+        #self.action_exportar.setText(self.tr("Exportar historial de mallado"))
         self.tab_widget.setTabText(0, self.tr("Niveles de refinación"))
         self.tab_widget.setTabText(1, self.tr("Paso a paso"))
 
@@ -192,3 +208,22 @@ class MainWindow(QWidget):
 
     def closeEvent(self, event):
         closeEvent(self, event)
+
+#    def exportar_historial(self):
+#        """
+#        Exporta el historial usando ExportManager.
+#        Intenta usar el archivo seleccionado en la lista; si no hay ninguno, pasa None.
+#        Muestra mensaje de error traducible si no existe archivo de historial.
+#        """
+#        current_item = self.lista_archivos.currentItem()
+#        poly_name = current_item.text() if current_item else None
+#        refinement_level = None  # ajustar si tienes forma de obtener el nivel actual
+#
+#        export_manager = ExportManager(self)
+#        success, message = export_manager.export_log_file(poly_name, refinement_level)
+#        if not success and message == "no_log_file":
+#            QMessageBox.critical(self, self.tr("Error"),
+#                                 self.tr("No se encontró ningún archivo de historial para exportar."))
+#        elif success:
+#            QMessageBox.information(self, self.tr("Éxito"),
+#                                    self.tr("Historial exportado correctamente."))

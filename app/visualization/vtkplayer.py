@@ -2,6 +2,7 @@ import vtk
 import numpy as np
 import os
 import sys
+import math
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QFileDialog, QProgressDialog
 from PyQt5.QtCore import QStandardPaths, pyqtSignal, Qt, QTimer
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
@@ -314,6 +315,80 @@ def ejecutar_comando(ugrid, tokens):
 # ------------------------------
 # VISUALIZADOR + PLAYER DE SCRIPT
 # ------------------------------
+def fit_camera_to_actor(renderer, actor, padding=1, dolly=1.5, min_distance=1e-6):
+    """
+    Ajusta la cámara del renderer para encuadrar el actor.
+    padding: margen sobre la caja delimitadora (1.0 = sin margen).
+    dolly: factor adicional para acercar la cámara ( >1 = más cerca).
+    """
+    if actor is None or renderer is None:
+        return
+    bounds = actor.GetBounds()
+    if not bounds:
+        return
+    xmin, xmax, ymin, ymax, zmin, zmax = bounds
+    dx = xmax - xmin
+    dy = ymax - ymin
+    dz = zmax - zmin
+
+    # Si la caja es prácticamente nula, no hacemos nada
+    if dx <= 0 and dy <= 0 and dz <= 0:
+        return
+
+    # Centro y "diagonal" de la caja
+    cx = (xmin + xmax) / 2.0
+    cy = (ymin + ymax) / 2.0
+    cz = (zmin + zmax) / 2.0
+    diag = math.sqrt(max(dx*dx + dy*dy + dz*dz, 1e-12))
+
+    cam = renderer.GetActiveCamera()
+    if cam is None:
+        return
+
+    # Usamos el ángulo de vista vertical para calcular distancia necesaria
+    fov = max(1.0, cam.GetViewAngle())
+    fov_rad = math.radians(fov)
+    # Distancia para que la diagonal quepa en el fov vertical (aprox)
+    distance = (diag * padding) / (2.0 * math.sin(fov_rad / 2.0))
+    if distance < min_distance:
+        distance = min_distance
+
+    # Dirección de proyección (normalizada). Vector desde cámara hacia el focal point.
+    dirp = list(cam.GetDirectionOfProjection())
+    norm = math.sqrt(dirp[0]**2 + dirp[1]**2 + dirp[2]**2)
+    if norm == 0:
+        dirn = [0.0, 0.0, -1.0]
+    else:
+        dirn = [d / norm for d in dirp]
+
+    # Posicionar la cámara en center - dir * distance
+    px = cx - dirn[0] * distance
+    py = cy - dirn[1] * distance
+    pz = cz - dirn[2] * distance
+
+    cam.SetFocalPoint(cx, cy, cz)
+    cam.SetPosition(px, py, pz)
+    renderer.ResetCameraClippingRange()
+
+    # Reset para asegurar buen framing, luego aplicar dolly (acercamiento adicional)
+    try:
+        renderer.ResetCamera()
+    except Exception:
+        pass
+
+    # aplicar dolly si se pide (1.0 = sin cambio, >1 = más cerca)
+    try:
+        if dolly != 1.0:
+            cam.Dolly(dolly)
+            renderer.ResetCameraClippingRange()
+    except Exception:
+        pass
+
+    try:
+        cam.Modified()
+    except Exception:
+        pass
+
 def visualizar_con_script(ugrid, script_file, renderer, render_window, interactor):
     with open(script_file, "r") as f:
         lineas = [ln for ln in f if ln.strip()]
@@ -337,6 +412,10 @@ def visualizar_con_script(ugrid, script_file, renderer, render_window, interacto
     renderer.SetBackground(0.1, 0.1, 0.1)
     render_window.Render()
 
+    # Ajustar cámara para que el modelo quepa bien
+    fit_camera_to_actor(renderer, actor, padding=1.1)
+    render_window.Render()
+
     def keypress(obj, _):
         key = obj.GetKeySym()
         nonlocal ugrid
@@ -354,6 +433,8 @@ def visualizar_con_script(ugrid, script_file, renderer, render_window, interacto
                 actor.GetProperty().SetEdgeVisibility(1)
                 actor.GetProperty().SetColor(0.8, 0.8, 1.0)
                 renderer.AddActor(actor)
+                # Ajustar cámara tras cambiar la malla
+                fit_camera_to_actor(renderer, actor, padding=1.1)
                 render_window.Render()
                 estado["i"] += 1
                 print(f"→ Puntos: {ugrid.GetNumberOfPoints()} | Celdas: {ugrid.GetNumberOfCells()}")
@@ -641,7 +722,8 @@ class VTKPlayer(QWidget):
         self.actor.GetProperty().SetEdgeVisibility(1)
         self.actor.GetProperty().SetColor(0.8, 0.8, 1.0)
         self.renderer.AddActor(self.actor)
-        self.renderer.ResetCamera()
+        # Ajustar cámara para que el modelo quepa bien
+        fit_camera_to_actor(self.renderer, self.actor, padding=1.1)
         self.vtk_widget.GetRenderWindow().Render()
 
     def siguiente_paso(self):
