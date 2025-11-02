@@ -1,6 +1,7 @@
 import os
 import app.logic.scripts_historial.quad2closeto as quad2closeto
 import app.logic.scripts_historial.remsu2shrink as remsu2shrink
+import app.logic.scripts_historial.subdivider3d_octree as sub3d
 
 def comparar_pts(pts_before, pts_after):
     del_ids = []
@@ -28,7 +29,7 @@ def historial_patrones(vtkc, vtkr, output_path):
             f.write(f"add_pt {pt[0]:+0.8E} {pt[1]:+0.8E} {pt[2]:+0.8E}\n")
         # comparar las caras diferentes :c
 
-def combinar_historial_octree(name, output_file):
+def combinar_historial_octree(name,nivel_refinamiento, output_file):
     input_files = [
         "movimientos1_new.txt",
         "movimientos2_new.txt",
@@ -38,7 +39,8 @@ def combinar_historial_octree(name, output_file):
     changes_files = [
         f"change {name}_grid.vtk",
     ]
-
+    for x in range(nivel_refinamiento):
+        changes_files.append(f"change {name}_{x+1}_subdividida.vtk")
     with open(output_file, 'w') as outfile:
         for x in changes_files:
             outfile.write(x + "\n\n")
@@ -50,8 +52,9 @@ def combinar_historial_octree(name, output_file):
                     outfile.write("\n")
 
 def crear_historial_octree(name,nivel_refinamiento,tipo="completo", input_dir="."):
+    sub3d.subdividir_completo(name, nivel_refinamiento, input_dir, f"{name}_quads.vtk")
     quad2closeto.generar_movimientos_numpy(f"{name}_quads.vtk", f"{name}_closeto.vtk", "movimientos1_new.txt")
     historial_patrones(f"{name}_closeto.vtk", f"{name}_remSur.vtk", "movimientos2_new.txt")
     remsu2shrink.generar_movimientos_numpy(f"{name}_remSur.vtk", f"{name}_shrink.vtk", "movimientos3_new.txt")
 
-    combinar_historial_octree(name, f"{name}_historial.txt")
+    combinar_historial_octree(name, nivel_refinamiento,f"{name}_historial.txt")

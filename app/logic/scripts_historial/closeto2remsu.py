@@ -21,7 +21,7 @@ def leer_celdas_vtk_numpy(path):
             if len(vals) > 1:
                 nverts = vals[0]
                 cells.append(vals[1:1+nverts])
-    return np.array(cells, dtype=int)
+    return cells
 
 def generar_historial_caras_numpy(vtk_old, vtk_new, salida_txt):
     # Leer celdas

@@ -176,6 +176,72 @@ class RefinementViewer(QWidget):
             self.overlay_actor.VisibilityOff()
             self.renderer.AddActor(self.overlay_actor)
 
+
+## Cargar referencia
+    def load_vtk_reference(self, filepath):
+        if not os.path.exists(filepath):
+            print("Archivo de referencia no encontrado:", filepath)
+            return
+
+        reader = vtk.vtkGenericDataObjectReader()
+        reader.SetFileName(filepath)
+        reader.Update()
+        output = reader.GetOutput()
+
+        if isinstance(output, vtk.vtkUnstructuredGrid):
+            geometry = vtk.vtkGeometryFilter()
+            geometry.SetInputData(output)
+            geometry.Update()
+            polydata = geometry.GetOutput()
+        else:
+            polydata = output
+
+        # Mapper
+        mapper = vtk.vtkPolyDataMapper()
+        mapper.SetInputData(polydata)
+
+        # Actor (marcador pequeño)
+        marker_actor = vtk.vtkActor()
+        marker_actor.SetMapper(mapper)
+        marker_actor.GetProperty().SetColor(1, 0, 0)
+        marker_actor.GetProperty().SetOpacity(0.8)
+        marker_actor.GetProperty().SetLineWidth(1.2)
+
+        # Crear widget tipo axes, pero con la malla
+        self.reference_widget = vtk.vtkOrientationMarkerWidget()
+        self.reference_widget.SetOrientationMarker(marker_actor)
+        self.reference_widget.SetInteractor(self.interactor)
+
+        # Colocarlo en la esquina superior derecha
+        self.reference_widget.SetViewport(0.8, 0.8, 1.0, 1.0)
+
+        self.reference_widget.SetEnabled(True)
+        self.reference_widget.InteractiveOff()
+
+        self.reference_visible = True
+        self.renderer.GetRenderWindow().Render()
+
+
+    def toggle_reference(self):
+        if not hasattr(self, "reference_widget"):
+            return
+
+        self.reference_visible = not self.reference_visible
+        self.reference_widget.SetEnabled(self.reference_visible)
+        self.renderer.GetRenderWindow().Render()
+
+
+    def seleccionar_y_cargar_referencia(self):
+        filepath, _ = QFileDialog.getOpenFileName(
+            self,
+            "Selecciona archivo de referencia VTK",
+            "",
+            "Archivos VTK (*.vtk)"
+        )
+        if filepath:
+            self.load_vtk_reference(filepath)
+## Cargar referencia fin
+
     def navegar_anterior(self):
         if not self.switcher:
             return
