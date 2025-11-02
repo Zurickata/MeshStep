@@ -1,6 +1,7 @@
 import vtk
 import math
 import numpy as np
+from PyQt5.QtCore import QThread, pyqtSignal, QObject
 
 EPS = 1e-12
 
@@ -117,10 +118,10 @@ def map_value_to_color(val, ref_value, step, base_color, end_color, max_bins):
 # --------- Función principal ---------
 def colorear_celdas(
     input_path, output_path,
-    metric="aspect",              
-    base_color=(128, 0, 128),     
-    end_color=(255, 0, 0),        
-    bins=10                       # número de rangos
+    metric="aspect",
+    base_color=(128, 0, 128),
+    end_color=(255, 0, 0),
+    bins=10
 ):
     """
     Lee un .vtk (UNSTRUCTURED_GRID 2D) y colorea celdas según:
@@ -130,7 +131,6 @@ def colorear_celdas(
     Los rangos se calculan automáticamente usando 'bins'.
     """
 
-    # Leer malla
     reader = vtk.vtkUnstructuredGridReader()
     reader.SetFileName(input_path)
     reader.Update()
@@ -143,16 +143,18 @@ def colorear_celdas(
 
     values = []
     for cid in range(n_cells):
+        # 🔹 chequeo de cancelación cooperativa
+        if QThread.currentThread().isInterruptionRequested():
+            print("[colorear_celdas] ❌ Cancelado por usuario durante cálculo.")
+            return None
+
         cell = ugrid.GetCell(cid)
         ids = cell.GetPointIds()
         n = ids.GetNumberOfIds()
         pts = [points.GetPoint(ids.GetId(i)) for i in range(n)]
 
         if metric == "aspect":
-            if n == 3:
-                val = tri_aspect_ratio(pts[0], pts[1], pts[2])
-            else:
-                val = poly_aspect_ratio(pts)
+            val = tri_aspect_ratio(pts[0], pts[1], pts[2]) if n == 3 else poly_aspect_ratio(pts)
         elif metric == "angle":
             val = math.degrees(min_angle_of_cell(cell, points))
         elif metric == "area":
@@ -178,18 +180,54 @@ def colorear_celdas(
     colors.SetNumberOfComponents(3)
     colors.SetName("CellColors")
 
-    for val in values:
+    for i, val in enumerate(values):
+        if QThread.currentThread().isInterruptionRequested():
+            print("[colorear_celdas] ❌ Cancelado durante asignación de colores.")
+            return None
         rgb = map_value_to_color(val, min_val, step, base_color, end_color, bins)
         colors.InsertNextTuple3(*rgb)
 
     ugrid.GetCellData().SetScalars(colors)
-
     writer = vtk.vtkUnstructuredGridWriter()
     writer.SetFileName(output_path)
     writer.SetInputData(ugrid)
     writer.Write()
 
     print(f"✔ Archivo generado: {output_path} ({n_cells} celdas)")
+    return output_path
 
+class ColoreoWorker(QObject):
+    finished = pyqtSignal(str, bool, str)  # (output_path, success, message)
 
+    def __init__(self, input_path, output_path, metric, bins, base_color, end_color):
+        super().__init__()
+        self.input_path = input_path
+        self.output_path = output_path
+        self.metric = metric
+        self.bins = bins
+        self.base_color = base_color
+        self.end_color = end_color
 
+    def run(self):
+        try:
+            print("[ColoreoWorker] Iniciando coloreo...")
+            result = colorear_celdas(
+                self.input_path,
+                self.output_path,
+                metric=self.metric,
+                bins=self.bins,
+                base_color=self.base_color,
+                end_color=self.end_color
+            )
+
+            if result is None:  # cancelado a mitad de proceso
+                self.finished.emit(self.output_path, False, "Cancelado por el usuario.")
+                return
+
+            if QThread.currentThread().isInterruptionRequested():
+                self.finished.emit(self.output_path, False, "Cancelado por el usuario.")
+                return
+
+            self.finished.emit(self.output_path, True, "OK")
+        except Exception as e:
+            self.finished.emit(self.output_path, False, str(e))

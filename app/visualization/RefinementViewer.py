@@ -1,10 +1,10 @@
 import os
 import vtk
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QStyle
-from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QStyle, QProgressDialog
+from PyQt5.QtCore import Qt, QTimer, QSize, QThread
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
-from app.visualization.coloreo_metricas import colorear_celdas
+from app.visualization.coloreo_metricas import colorear_celdas, ColoreoWorker
 
 def poly_to_vtk(filepath):
 
@@ -332,76 +332,169 @@ class RefinementViewer(QWidget):
         self.boton_overlay.setText("Mostrar overlay")
         self.renderer.GetRenderWindow().Render()
 
-    def accion_area(self):
-        if not self.switcher:
-            print("No hay modelo cargado.")
-            return
-        self.panel_derecho.reload_modelo()
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if archivos and 0 <= self.switcher.current_index < len(archivos):
-            nombre = os.path.basename(archivos[self.switcher.current_index])
-        else:
-            print("No hay archivo actual.")
-    # Métodos para cada acción
-        input_path = "../outputs/" + nombre
-        output_path = "../outputs/" + "color_" +nombre
-        print("Input path:", input_path)
-        print("Output path:", output_path)
-        colorear_celdas(
-            input_path, output_path,
-            metric="area", bins=12,
-            base_color=(0,255,0), end_color=(255,0,0)
-        )   
+    # def accion_area(self):
+    #     if not self.switcher:
+    #         print("No hay modelo cargado.")
+    #         return
+    #     self.panel_derecho.reload_modelo()
+    #     archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+    #     if archivos and 0 <= self.switcher.current_index < len(archivos):
+    #         nombre = os.path.basename(archivos[self.switcher.current_index])
+    #     else:
+    #         print("No hay archivo actual.")
+    # # Métodos para cada acción
+    #     input_path = "../outputs/" + nombre
+    #     output_path = "../outputs/" + "color_" +nombre
+    #     print("Input path:", input_path)
+    #     print("Output path:", output_path)
+    #     colorear_celdas(
+    #         input_path, output_path,
+    #         metric="area", bins=12,
+    #         base_color=(0,255,0), end_color=(255,0,0)
+    #     )   
 
-        self.switcher.load_model(output_path)
-        self.renderer.GetRenderWindow().Render()
+    #     self.switcher.load_model(output_path)
+    #     self.renderer.GetRenderWindow().Render()
 
-    def accion_angulo_minimo(self):
-        if not self.switcher:
-            print("No hay modelo cargado.")
-            return
-        self.panel_derecho.reload_modelo()
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if archivos and 0 <= self.switcher.current_index < len(archivos):
-            nombre = os.path.basename(archivos[self.switcher.current_index])
-        else:
-            print("No hay archivo actual.")
-    # Métodos para cada acción
-        input_path = "../outputs/" +  nombre
-        output_path = "../outputs/" + "color_" + nombre
-        colorear_celdas(
-            input_path, output_path,
-            metric="angle", bins=12,
-            base_color=(0,255,0), end_color=(255,0,0)
-        )
+    # def accion_angulo_minimo(self):
+    #     if not self.switcher:
+    #         print("No hay modelo cargado.")
+    #         return
+    #     self.panel_derecho.reload_modelo()
+    #     archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+    #     if archivos and 0 <= self.switcher.current_index < len(archivos):
+    #         nombre = os.path.basename(archivos[self.switcher.current_index])
+    #     else:
+    #         print("No hay archivo actual.")
+    # # Métodos para cada acción
+    #     input_path = "../outputs/" +  nombre
+    #     output_path = "../outputs/" + "color_" + nombre
+    #     colorear_celdas(
+    #         input_path, output_path,
+    #         metric="angle", bins=12,
+    #         base_color=(0,255,0), end_color=(255,0,0)
+    #     )
 
-        self.switcher.load_model(output_path)
-        self.renderer.GetRenderWindow().Render()
+    #     self.switcher.load_model(output_path)
+    #     self.renderer.GetRenderWindow().Render()
 
-    def accion_relacion_aspecto(self):
-        if not self.switcher:
-            print("No hay modelo cargado.")
-            return
-        self.panel_derecho.reload_modelo()
-        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if archivos and 0 <= self.switcher.current_index < len(archivos):
-            nombre = os.path.basename(archivos[self.switcher.current_index])
-        else:
-            print("No hay archivo actual.")
-        # Métodos para cada acción
-        input_path = "../outputs/" + nombre
-        output_path = "../outputs/" + "color_" +nombre
-        colorear_celdas(
-            input_path, output_path,
-            metric="aspect", bins=12,
-            base_color=(0,255,0), end_color=(255,0,0)
-        )
+    # def accion_relacion_aspecto(self):
+    #     if not self.switcher:
+    #         print("No hay modelo cargado.")
+    #         return
+    #     self.panel_derecho.reload_modelo()
+    #     archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+    #     if archivos and 0 <= self.switcher.current_index < len(archivos):
+    #         nombre = os.path.basename(archivos[self.switcher.current_index])
+    #     else:
+    #         print("No hay archivo actual.")
+    #     # Métodos para cada acción
+    #     input_path = "../outputs/" + nombre
+    #     output_path = "../outputs/" + "color_" +nombre
+    #     colorear_celdas(
+    #         input_path, output_path,
+    #         metric="aspect", bins=12,
+    #         base_color=(0,255,0), end_color=(255,0,0)
+    #     )
 
-        self.switcher.load_model(output_path)
-        self.renderer.GetRenderWindow().Render()
+    #     self.switcher.load_model(output_path)
+    #     self.renderer.GetRenderWindow().Render()
     
     def ajustar_velocidad(self, valor):
         """Ajusta la velocidad de la animación"""
         segundos = valor / 1000.0
         self.timer_animacion.setInterval(valor)
         self.panel_derecho.label_velocidad_valor.setText(f"{segundos:.1f}s")
+
+    def _iniciar_coloreo(self, metric_name):
+        if not self.switcher:
+            print("No hay modelo cargado.")
+            return
+
+        self.panel_derecho.reload_modelo()
+        archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
+        if not (archivos and 0 <= self.switcher.current_index < len(archivos)):
+            print("No hay archivo actual.")
+            return
+
+        nombre = os.path.basename(archivos[self.switcher.current_index])
+        input_path = f"../outputs/{nombre}"
+        output_path = f"../outputs/color_{nombre}"
+
+        # 🔹 Estados de control
+        self._coloreo_cancelado = False
+        self._coloreo_finalizo = False
+
+        self.progress = QProgressDialog("Calculando color de celdas...", "Cancelar", 0, 0, self)
+        self.progress.setWindowTitle("Aplicando métrica")
+        self.progress.setWindowModality(Qt.WindowModal)
+        self.progress.setAutoClose(False)
+        self.progress.canceled.connect(self._cancelar_coloreo)
+        self.progress.show()
+
+        self.coloreo_thread = QThread()
+        self.coloreo_worker = ColoreoWorker(
+            input_path, output_path,
+            metric=metric_name,
+            bins=12,
+            base_color=(0, 255, 0),
+            end_color=(255, 0, 0)
+        )
+        self.coloreo_worker.moveToThread(self.coloreo_thread)
+
+        self.coloreo_thread.started.connect(self.coloreo_worker.run)
+        self.coloreo_worker.finished.connect(self._coloreo_finalizado)
+        self.coloreo_worker.finished.connect(self.coloreo_thread.quit)
+        self.coloreo_worker.finished.connect(self.coloreo_worker.deleteLater)
+        self.coloreo_thread.finished.connect(self.coloreo_thread.deleteLater)
+
+        self.coloreo_thread.start()
+
+
+    def _cancelar_coloreo(self):
+        """Solo marca cancelación si el proceso aún no ha terminado."""
+        if getattr(self, "_coloreo_finalizo", False):
+            print("[Coloreo] El proceso ya había finalizado; no se cancela.")
+            return
+
+        print("[Coloreo] ⚠ Usuario canceló el coloreo antes de finalizar.")
+        self._coloreo_cancelado = True
+
+        try:
+            if hasattr(self, "coloreo_thread") and self.coloreo_thread and self.coloreo_thread.isRunning():
+                self.coloreo_thread.requestInterruption()
+        except Exception as e:
+            print("Error al solicitar interrupción del hilo:", e)
+
+        if hasattr(self, "progress") and self.progress:
+            self.progress.close()
+            self.progress = None
+
+
+    def _coloreo_finalizado(self, output_path, success, message):
+        """Se ejecuta al terminar el coloreo (éxito o error)."""
+        self._coloreo_finalizo = True  # 🔹 Marcar que terminó
+
+        if hasattr(self, "progress") and self.progress:
+            self.progress.close()
+            self.progress = None
+
+        if getattr(self, "_coloreo_cancelado", False):
+            print("[Coloreo] Proceso cancelado por el usuario. No se actualizará el modelo.")
+            return
+
+        if success:
+            print(f"[Coloreo] ✔ Archivo generado: {output_path}")
+            self.switcher.load_model(output_path)
+            self.renderer.GetRenderWindow().Render()
+        else:
+            QMessageBox.critical(self, "Error en coloreo", f"No se pudo generar el archivo:\n{message}")
+
+    def accion_area(self):
+        self._iniciar_coloreo("area")
+
+    def accion_angulo_minimo(self):
+        self._iniciar_coloreo("angle")
+
+    def accion_relacion_aspecto(self):
+        self._iniciar_coloreo("aspect")
