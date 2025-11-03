@@ -91,6 +91,11 @@ Si el error persiste, asegúrate de tener también:
 sudo apt install -y libx11-xcb1 libxcb-glx0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 libxcb-util1 libxrender1 libxi6
 ```
 
+### Error QWebEngineView: `TypeError: 'NoneType' object is not callable`
+Instala las librerías requeridas:
+```bash
+sudo apt install libqt5webengine5 libqt5webenginewidgets5 libqt5webchannel5
+```
 ---
 
 ## Ejecución rápida (resumen)
