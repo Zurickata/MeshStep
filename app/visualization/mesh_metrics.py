@@ -140,7 +140,7 @@ def _calcular_metricas_triangulos(grid, triangulo_indices):
     
     # Combinar las métricas con las estadísticas
     metrics.update(stats)
-    
+    metrics['cell_ids'] = list(triangulo_indices)
     return metrics
 
 def _calcular_metricas_cuadrilateros(grid, quad_indices):
@@ -245,7 +245,7 @@ def _calcular_metricas_cuadrilateros(grid, quad_indices):
     
     # Combinar las métricas con las estadísticas
     metrics.update(stats)
-    
+    metrics['cell_ids'] = list(quad_indices)
     
     return metrics
 

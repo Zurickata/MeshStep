@@ -448,7 +448,7 @@ class PanelDerecho(QScrollArea):
         tri = metricas.get('triangulos', {}) or {}
         tri_aspect = fmt(tri.get('aspect_ratio_avg'), "{:.3f}")
         tri_min_ang_min = fmt(tri.get('min_angle_min'), "{:.1f}")
-        tri_max_ang_avg = fmt(tri.get('max_angle_avg'), "{:.1f}")
+        tri_max_ang_max = fmt(tri.get('max_angle_max'), "{:.1f}")
         tri_area_avg = fmt(tri.get('area_avg'), "{:.6f}")
 
         lbl_tri = self.tr("Triángulos:")
@@ -461,7 +461,7 @@ class PanelDerecho(QScrollArea):
         quad = metricas.get('cuadrilateros', {}) or {}
         quad_aspect = fmt(quad.get('aspect_ratio_avg'), "{:.3f}")
         quad_min_ang_min = fmt(quad.get('min_angle_min'), "{:.1f}")
-        quad_max_ang_avg = fmt(quad.get('max_angle_avg'), "{:.1f}")
+        quad_max_ang_max = fmt(quad.get('max_angle_max'), "{:.1f}")
         quad_skew = fmt(quad.get('skew_avg'), "{:.3f}")
         quad_edge_ratio = fmt(quad.get('edge_ratio_avg'), "{:.3f}")
 
@@ -485,7 +485,7 @@ class PanelDerecho(QScrollArea):
             <b>{lbl_tri}</b><br>
             • {lbl_aspect} <span style='color: #4ecdc4;'>{tri_aspect}</span><br>
             • {lbl_ang_min} <span style='color: #4ecdc4;'>{tri_min_ang_min}°</span><br>
-            • {lbl_ang_max} <span style='color: #ff6b6b;'>{tri_max_ang_avg}°</span><br>
+            • {lbl_ang_max} <span style='color: #ff6b6b;'>{tri_max_ang_max}°</span><br>
             • {lbl_area_avg} <span style='color: #4ecdc4;'>{tri_area_avg}</span><br>
             """)
 
@@ -494,7 +494,7 @@ class PanelDerecho(QScrollArea):
             <b>{lbl_quad}</b><br>
             • {lbl_aspect} <span style='color: #4ecdc4;'>{quad_aspect}</span><br>
             • {lbl_ang_min} <span style='color: #4ecdc4;'>{quad_min_ang_min}°</span><br>
-            • {lbl_ang_max} <span style='color: #ff6b6b;'>{quad_max_ang_avg}°</span><br>
+            • {lbl_ang_max} <span style='color: #ff6b6b;'>{quad_max_ang_max}°</span><br>
             • {lbl_skew} <span style='color: #ff6b6b;'>{quad_skew}</span><br>
             • {lbl_edge_ratio} <span style='color: #4ecdc4;'>{quad_edge_ratio}</span><br>
             """)
@@ -610,12 +610,14 @@ class PanelDerecho(QScrollArea):
     
 
     def toggle_puntos_criticos(self):
+        """Mostrar/Ocultar el punto del ángulo mínimo global usando métricas."""
         if self.refinement_viewer and self.refinement_viewer.switcher:
-            self.refinement_viewer.switcher.toggle_load = not self.refinement_viewer.switcher.toggle_load
-            if self.refinement_viewer.switcher.toggle_load:
-                self.refinement_viewer.switcher.marcar_angulos_extremos()
+            sw = self.refinement_viewer.switcher
+            sw.toggle_load = not sw.toggle_load
+            if sw.toggle_load:
+                sw.marcar_min_y_max_desde_metricas()
             else:
-                self.refinement_viewer.switcher.clear_extra_models()
+                sw.clear_extra_models()
             self.refinement_viewer.renderer.GetRenderWindow().Render()
 
     def resetear_camara(self):
@@ -691,6 +693,22 @@ class PanelDerecho(QScrollArea):
 
         if hasattr(self, "grupo_estadisticas") and self.grupo_estadisticas:
             self.grupo_estadisticas.setTitle(self.tr("Estadísticas Detalladas"))
+            if hasattr(self, "label_estadisticas") and self.label_estadisticas:
+                if self.metricas_actuales and 'error' not in self.metricas_actuales:
+                    try:
+                        self.label_estadisticas.setText(self._build_stats_html(self.metricas_actuales))
+                    except Exception:
+                        pass
+                else:
+                    titulo_espera = self.tr("Esperando modelo...")
+                    subt_espera = self.tr("Carga un archivo para ver las estadísticas.")
+                    html_inicial = f"""
+                    <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; font-family: monospace; color: #4ecdc4;'>
+                        <b>🔄 {titulo_espera}</b><br>
+                        {subt_espera}
+                    </div>
+                    """
+                    self.label_estadisticas.setText(html_inicial)
 
         if hasattr(self, "grupo_animacion") and self.grupo_animacion:
             self.grupo_animacion.setTitle(self.tr("Control de Animación"))

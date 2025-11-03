@@ -35,6 +35,7 @@ class MainWindow(QWidget):
         self.help_menu = self.menubar.addMenu("")
         self.view_menu = self.menubar.addMenu("")
         self.color_menu = self.menubar.addMenu("")
+        self.reload_menu = self.menubar.addMenu("")
 
         # Iconos estándar
         icon_cargar = self.style().standardIcon(QStyle.SP_DirOpenIcon)
@@ -182,6 +183,33 @@ class MainWindow(QWidget):
         self.action_relacion_aspecto.triggered.connect(lambda: self.refinement_viewer.accion_relacion_aspecto() if getattr(self, "refinement_viewer", None) else None)
         self.color_menu.addAction(self.action_relacion_aspecto)
 
+        #angulo critico
+        self.view_menu.addSeparator()
+
+        self.action_puntos_criticos = QAction("", self)
+        self.action_puntos_criticos.setShortcut("A")
+        self.action_puntos_criticos.triggered.connect(
+            lambda: self.panel_derecho.toggle_puntos_criticos() if getattr(self, "panel_derecho", None) else None
+        )
+        self.view_menu.addAction(self.action_puntos_criticos)
+
+        #agrego resets
+
+        self.action_reset_camara = QAction("", self)
+        self.action_reset_camara.setShortcut("R")
+        self.action_reset_camara.triggered.connect(
+            lambda: self.panel_derecho.resetear_camara() if getattr(self, "panel_derecho", None) else None
+        )
+        self.reload_menu.addAction(self.action_reset_camara)
+
+        self.action_recargar = QAction("", self)
+        self.action_recargar.setShortcut("L")
+        self.action_recargar.triggered.connect(
+            lambda: self.panel_derecho.reload_modelo() if getattr(self, "panel_derecho", None) else None
+        )
+        self.reload_menu.addAction(self.action_recargar)
+
+
         self.lista_archivos = QListWidget()
         self.lista_archivos.itemClicked.connect(lambda item: mostrar_contenido(self, item))
         self.lista_archivos.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -269,6 +297,13 @@ class MainWindow(QWidget):
         self.action_area.setText(self.tr("Área"))
         self.action_angulo_minimo.setText(self.tr("Ángulo Mínimo"))
         self.action_relacion_aspecto.setText(self.tr("Relación de Aspecto"))
+        self.reload_menu.setTitle(self.tr("Reestablecer"))
+        self.action_reset_camara.setText(self.tr("Restablecer Cámara"))
+        self.action_reset_camara.setToolTip(self.tr("Restablecer la cámara (R)"))
+        self.action_recargar.setText(self.tr("Recargar Modelo"))
+        self.action_recargar.setToolTip(self.tr("Recargar modelo (L)"))
+        self.action_puntos_criticos.setText(self.tr("Puntos Críticos"))
+        self.action_puntos_criticos.setToolTip(self.tr("Alternar puntos críticos (P)"))
         self.action_opciones.setText(self.tr("Opciones"))
         self.action_help.setText(self.tr("Manual"))
         #self.action_exportar.setText(self.tr("Exportar historial de mallado"))

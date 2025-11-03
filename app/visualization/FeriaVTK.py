@@ -55,10 +55,113 @@ class ModelSwitcher:
         self.actor.SetMapper(self.mapper)
         # Calcular métricas al cargar el modelo
         self.metricas_actuales = calcular_metricas_calidad(self.reader.GetOutput())
+        self._cache_global_min_angle()
         self.renderer.ResetCamera()
         self.renderer.GetRenderWindow().Render()
 
 #-------------------------------------------Calculo de angulos-----------------------------------------------------
+    def _cache_global_min_angle(self):
+        self.min_angle_cell_id = None
+        self.min_angle_value = None
+        m = self.metricas_actuales or {}
+        tri = m.get('triangulos') or {}
+        qua = m.get('cuadrilateros') or {}
+        cand = []
+
+        if tri.get('min_angle') and tri.get('cell_ids'):
+            vals = tri['min_angle']; ids = tri['cell_ids']
+            i = int(np.argmin(vals))
+            cand.append((float(vals[i]), int(ids[i])))
+        if qua.get('min_angle') and qua.get('cell_ids'):
+            vals = qua['min_angle']; ids = qua['cell_ids']
+            i = int(np.argmin(vals))
+            cand.append((float(vals[i]), int(ids[i])))
+
+        if cand:
+            cand.sort(key=lambda x: x[0])
+            self.min_angle_value, self.min_angle_cell_id = cand[0]
+    
+    
+    def marcar_angulo_minimo_real(self):
+        grid = self.reader.GetOutput()
+        if grid.GetNumberOfCells() == 0:
+            return
+
+        # Resolver celda y punto a marcar
+        if self.min_angle_cell_id is None:
+            # intentar cachear y, si no hay, brute-force
+            self._cache_global_min_angle()
+
+        if self.min_angle_cell_id is not None:
+            cell = grid.GetCell(self.min_angle_cell_id)
+            pts = [cell.GetPoints().GetPoint(j) for j in range(cell.GetNumberOfPoints())]
+            n = len(pts)
+            min_deg = float('inf'); min_pt = None
+            for j in range(n):
+                ang = calcular_angulo(pts[j-1], pts[j], pts[(j+1) % n])
+                deg = math.degrees(ang)
+                if deg < min_deg:
+                    min_deg = deg; min_pt = pts[j]
+
+        # Dibujar esfera y texto (rojo)
+        if min_pt is not None:
+            self._agregar_esfera(min_pt, (1, 0, 0))
+            self._agregar_texto_angulo(min_pt, f"{min_deg:.1f}°", (1, 0, 0))
+            self.renderer.GetRenderWindow().Render()
+
+    def marcar_angulo_maximo_real(self):
+        """Marca el vértice con el ángulo máximo global usando metricas_actuales."""
+        m = self.metricas_actuales or {}
+        tri = m.get('triangulos') or {}
+        qua = m.get('cuadrilateros') or {}
+
+        candidates = []
+        for section in (tri, qua):
+            vals = section.get('max_angle') or []
+            ids = section.get('cell_ids') or []
+            if not vals or not ids or len(vals) != len(ids):
+                continue
+            i = int(np.argmax(vals))
+            candidates.append((float(vals[i]), int(ids[i])))
+
+        if not candidates:
+            return
+
+        # Tomar el mayor ángulo global
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        _, cid = candidates[0]
+
+        grid = self.reader.GetOutput()
+        if cid < 0 or cid >= grid.GetNumberOfCells():
+            return
+
+        cell = grid.GetCell(cid)
+        n = cell.GetNumberOfPoints()
+        pts = [cell.GetPoints().GetPoint(j) for j in range(n)]
+
+        max_deg = -1.0
+        max_pt = None
+        for j in range(n):
+            ang = calcular_angulo(pts[j-1], pts[j], pts[(j+1) % n])
+            deg = math.degrees(ang)
+            if deg > max_deg:
+                max_deg, max_pt = deg, pts[j]
+
+        if max_pt is not None:
+            # Verde para máximo
+            self._agregar_esfera(max_pt, (0, 1, 0))
+            self._agregar_texto_angulo(max_pt, f"{max_deg:.1f}°", (0, 1, 0))
+            self.renderer.GetRenderWindow().Render()
+
+    def marcar_min_y_max_desde_metricas(self):
+        """Marca ambos extremos globales (mín y máx) usando métricas."""
+        # Limpia cualquier marcador previo
+        self.clear_extra_models()
+        # Marca mínimo (rojo) y máximo (verde)
+        self.marcar_angulo_minimo_real()
+        self.marcar_angulo_maximo_real()
+        self.renderer.GetRenderWindow().Render()
+
     def marcar_angulos_extremos(self): # Marca los angulos extremos de un Modelo ¯\_(ツ)_/¯, la puedes llamar.
         grid = self.reader.GetOutput()
         if grid.GetNumberOfCells() == 0:
@@ -175,7 +278,7 @@ class ModelSwitcher:
             self.toggle_load = not self.toggle_load
             if self.toggle_load:
                 print("Cargando puntos criticos...")
-                self.marcar_angulos_extremos()
+                self.marcar_min_y_max_desde_metricas()
                 self.renderer.GetRenderWindow().Render()  # <--- FORZAR RENDER
             else:
                 print("Toggle desactivado puntos criticos.")
