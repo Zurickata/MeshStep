@@ -1,6 +1,6 @@
 import os
 import vtk
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QStyle, QProgressDialog
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QStyle, QProgressDialog, QFileDialog
 from PyQt5.QtCore import Qt, QTimer, QSize, QThread
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
@@ -206,6 +206,8 @@ class RefinementViewer(QWidget):
         marker_actor.GetProperty().SetColor(1, 0, 0)
         marker_actor.GetProperty().SetOpacity(0.8)
         marker_actor.GetProperty().SetLineWidth(1.2)
+        # Guardar referencia al actor para que otras partes de la app puedan modificarlo
+        self.reference_actor = marker_actor
 
         # Crear widget tipo axes, pero con la malla
         self.reference_widget = vtk.vtkOrientationMarkerWidget()

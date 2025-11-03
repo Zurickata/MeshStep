@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QListWidget,
                              QSplitter, QStyle, QTabWidget,
-                             QMenuBar, QAction, QLabel, QMessageBox, QToolButton, QFrame)
+                             QMenuBar, QAction, QLabel, QMessageBox, QToolButton, QFrame, QFileDialog)
 from PyQt5.QtCore import Qt, QEvent, QSize
 from PyQt5.QtGui import QPixmap
 from app.visualization.RefinementViewer import RefinementViewer
@@ -193,6 +193,16 @@ class MainWindow(QWidget):
         )
         self.view_menu.addAction(self.action_puntos_criticos)
 
+        # Acción para mostrar/ocultar una malla de referencia VTK
+        self.action_referencia = QAction("", self)
+        self.action_referencia.triggered.connect(lambda: self.toggle_reference_action())
+        self.view_menu.addAction(self.action_referencia)
+
+        # Acción para togglear visibilidad del preview ya cargado (no carga archivos)
+        self.action_toggle_preview = QAction("", self)
+        self.action_toggle_preview.triggered.connect(lambda: self.toggle_preview_action())
+        self.view_menu.addAction(self.action_toggle_preview)
+
         #agrego resets
 
         self.action_reset_camara = QAction("", self)
@@ -304,6 +314,10 @@ class MainWindow(QWidget):
         self.action_recargar.setToolTip(self.tr("Recargar modelo (L)"))
         self.action_puntos_criticos.setText(self.tr("Puntos Críticos"))
         self.action_puntos_criticos.setToolTip(self.tr("Alternar puntos críticos (P)"))
+        self.action_referencia.setText(self.tr("Referencia"))
+        self.action_referencia.setToolTip(self.tr("Mostrar/ocultar malla de referencia (VTK)"))
+        self.action_toggle_preview.setText(self.tr("Mostrar/Ocultar referencia"))
+        self.action_toggle_preview.setToolTip(self.tr("Alternar visibilidad del preview de referencia (no carga archivos)"))
         self.action_opciones.setText(self.tr("Opciones"))
         self.action_help.setText(self.tr("Manual"))
         #self.action_exportar.setText(self.tr("Exportar historial de mallado"))
@@ -315,6 +329,85 @@ class MainWindow(QWidget):
             self.retranslateUi()
         else:
             super().changeEvent(event)
+
+    def toggle_reference_action(self):
+        """Load a VTK reference from the selected list item or open a file dialog, then toggle visibility.
+
+        Behavior:
+        - If a list item is selected and it maps to one or more files, try to find a .vtk file and load it.
+        - Otherwise, fallback to opening the file dialog from the refinement viewer.
+        - Ensure the Refinement tab is active.
+        """
+        # Ensure refinement tab is active
+        try:
+            if self.tab_widget.currentIndex() != 0:
+                self.tab_widget.setCurrentIndex(0)
+        except Exception:
+            pass
+
+        if not getattr(self, 'refinement_viewer', None):
+            QMessageBox.warning(self, self.tr("Error"), self.tr("Refinement viewer no disponible."))
+            return
+
+        current_item = self.lista_archivos.currentItem()
+        filepath = None
+
+        if current_item:
+            nombre = current_item.text().split(" ")[0]
+            archivos = None
+            if nombre in self.rutas_archivos:
+                archivos = self.rutas_archivos.get(nombre)
+            elif nombre in self.rutas_octree:
+                archivos = self.rutas_octree.get(nombre)
+
+            # archivos puede ser lista o dict; buscar un .vtk
+            if isinstance(archivos, list):
+                for a in archivos:
+                    if isinstance(a, str) and a.lower().endswith('.vtk'):
+                        filepath = a
+                        break
+            elif isinstance(archivos, dict):
+                for v in archivos.values():
+                    if isinstance(v, list):
+                        for a in v:
+                            if isinstance(a, str) and a.lower().endswith('.vtk'):
+                                filepath = a
+                                break
+                        if filepath:
+                            break
+
+        if filepath:
+            try:
+                self.refinement_viewer.load_vtk_reference(filepath)
+                # ensure visible
+                self.refinement_viewer.toggle_reference()
+            except Exception as e:
+                QMessageBox.critical(self, self.tr("Error"), str(e))
+        else:
+            # Fallback: ask user to pick a vtk file
+            self.refinement_viewer.seleccionar_y_cargar_referencia()
+
+    def toggle_preview_action(self):
+        """Toggle visibility of the already-loaded reference preview without loading a file.
+
+        If no reference is loaded, show an informational message.
+        """
+        if not getattr(self, 'refinement_viewer', None):
+            QMessageBox.warning(self, self.tr("Error"), self.tr("Refinement viewer no disponible."))
+            return
+
+        # If a reference widget exists, toggle it. Otherwise inform the user.
+        if hasattr(self.refinement_viewer, 'reference_widget'):
+            try:
+                self.refinement_viewer.toggle_reference()
+            except Exception as e:
+                QMessageBox.critical(self, self.tr("Error"), str(e))
+        else:
+            QMessageBox.information(
+                self,
+                self.tr("Sin referencia cargada"),
+                self.tr("No hay una malla de referencia cargada. Usa 'Referencia' para cargar una.")
+            )
 
     # Eventos de drag & drop
     def dragEnterEvent(self, event):

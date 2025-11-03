@@ -33,11 +33,27 @@ def accion_w(main_window):
     if main_window.refinement_viewer.switcher:
         main_window.refinement_viewer.switcher.actor.GetProperty().SetRepresentationToWireframe()
         main_window.refinement_viewer.renderer.GetRenderWindow().Render()
+        # También actualizar la representación de la referencia si existe
+        try:
+            ref_actor = getattr(main_window.refinement_viewer, 'reference_actor', None)
+            if ref_actor is not None:
+                ref_actor.GetProperty().SetRepresentationToWireframe()
+                main_window.refinement_viewer.renderer.GetRenderWindow().Render()
+        except Exception:
+            pass
 
 def accion_s(main_window):
     if main_window.refinement_viewer.switcher:
         main_window.refinement_viewer.switcher.actor.GetProperty().SetRepresentationToSurface()
         main_window.refinement_viewer.renderer.GetRenderWindow().Render()
+        # También actualizar la representación de la referencia si existe
+        try:
+            ref_actor = getattr(main_window.refinement_viewer, 'reference_actor', None)
+            if ref_actor is not None:
+                ref_actor.GetProperty().SetRepresentationToSurface()
+                main_window.refinement_viewer.renderer.GetRenderWindow().Render()
+        except Exception:
+            pass
 
 def dragEnterEvent(main_window, event):
     if event.mimeData().hasUrls():
