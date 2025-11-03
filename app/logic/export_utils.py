@@ -12,24 +12,40 @@ class ExportManager:
         Obtiene la ruta del archivo de log del mallado según el nombre del input y nivel de refinamiento.
         Si no se especifica, busca el historial genérico.
         """
-        outputs_dir = Path("outputs")
+        # Si no hay poly_name, usar el directorio de trabajo actual
+        if poly_name:
+            BASE_DIR = os.path.dirname(os.path.abspath(poly_name))
+        else:
+            BASE_DIR = os.getcwd()
+
+        # usar Path para operaciones de path
+        outputs_dir = (Path(BASE_DIR) / ".." / "outputs").resolve()
+        print(str(outputs_dir))
+
         if poly_name and refinement_level is not None:
             # Ejemplo: a_output_5_historial.txt
             base_name = Path(poly_name).stem
             log_name = f"{base_name}_output_{refinement_level}_historial.txt"
             log_path = outputs_dir / log_name
+            print("Log_path", log_path)
             if log_path.exists():
                 return str(log_path)
-        elif poly_name:
-            # Buscar cualquier historial que empiece con el nombre base
+
+        if poly_name:
+            # Buscar cualquier historial que empiece con el nombre base y elegir el más reciente
             base_name = Path(poly_name).stem
+            print("Base name:", base_name)
             files = list(outputs_dir.glob(f"{base_name}_output*_historial.txt"))
             if files:
-                return str(files[-1])  # El último por defecto
-        # Fallback: buscar cualquier historial
+                newest = max(files, key=lambda p: p.stat().st_mtime)
+                return str(newest)
+
+        # Fallback: buscar cualquier historial y elegir el más reciente
         files = list(outputs_dir.glob("*_output*_historial.txt"))
         if files:
-            return str(files[-1])
+            newest = max(files, key=lambda p: p.stat().st_mtime)
+            return str(newest)
+
         return None
 
     def validate_log_file(self, poly_name=None, refinement_level=None):
