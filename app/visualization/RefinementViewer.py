@@ -412,14 +412,21 @@ class RefinementViewer(QWidget):
             return
 
         self.panel_derecho.reload_modelo()
+        
+        # Obtener archivo actual
         archivos = self.switcher.file_dict.get(self.switcher.current_poly, [])
-        if not (archivos and 0 <= self.switcher.current_index < len(archivos)):
-            print("No hay archivo actual.")
+        if archivos and 0 <= self.switcher.current_index < len(archivos):
+            input_path = archivos[self.switcher.current_index]
+        else:
+            print("[Coloreo] No se encontró el archivo actual.")
             return
 
-        nombre = os.path.basename(archivos[self.switcher.current_index])
-        input_path = f"../outputs/{nombre}"
-        output_path = f"../outputs/color_{nombre}"
+        # Obtener nombre y directorio del archivo
+        nombre = os.path.basename(input_path)
+        directorio = os.path.dirname(os.path.abspath(input_path))
+
+        # Crear el nombre del nuevo archivo coloreado en el mismo directorio
+        output_path = os.path.join(directorio, f"color_{nombre}")
 
         # 🔹 Estados de control
         self._coloreo_cancelado = False

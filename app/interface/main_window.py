@@ -11,7 +11,7 @@ from app.logic.main_window_logic import (
     dragEnterEvent, dropEvent,
     abrir_dialogo_carga, mostrar_contenido, mostrar_menu_contextual,
     abrir_opciones_dialog, cambiar_visualizador, closeEvent, abrir_manual,
-    accion_w, accion_s
+    accion_w, accion_s, abrir_dialogo_vtk_externo
 )
 #from app.logic.export_utils import ExportManager
 
@@ -138,6 +138,9 @@ class MainWindow(QWidget):
         self.action_cargar = QAction("", self)
         self.action_cargar.triggered.connect(lambda: abrir_dialogo_carga(self))
         self.file_menu.addAction(self.action_cargar)
+        self.action_cargar_vtk = QAction("", self)
+        self.action_cargar_vtk.triggered.connect(lambda: abrir_dialogo_vtk_externo(self))
+        self.file_menu.addAction(self.action_cargar_vtk)
 
         self.action_opciones = QAction("", self)
         self.action_opciones.triggered.connect(lambda: abrir_opciones_dialog(self))
@@ -261,6 +264,7 @@ class MainWindow(QWidget):
         self.action_solido.setText(self.tr("Sólido"))
         self.action_solido.setToolTip(self.tr("Alternar al modo sólido (S)"))
         self.action_cargar.setText(self.tr("Cargar archivos"))
+        self.action_cargar_vtk.setText(self.tr("Cargar malla VTK"))
         self.color_menu.setTitle(self.tr("Coloreos"))
         self.action_area.setText(self.tr("Área"))
         self.action_angulo_minimo.setText(self.tr("Ángulo Mínimo"))

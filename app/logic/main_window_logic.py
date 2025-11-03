@@ -3,7 +3,7 @@ import re
 import glob
 import shutil
 # --- CAMBIO: Importar QApplication ---
-from PyQt5.QtWidgets import QMenu, QListWidgetItem, QMessageBox, QDialog, QApplication
+from PyQt5.QtWidgets import QMenu, QListWidgetItem, QMessageBox, QDialog, QApplication, QFileDialog
 from PyQt5.QtCore import Qt
 from app.interface.manual_dialog import ManualDialog
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
@@ -469,3 +469,47 @@ def closeEvent(main_window, event):
 def abrir_manual(main_window):
     dialog = ManualDialog(main_window)
     dialog.exec_()
+
+def abrir_dialogo_vtk_externo(main_window):
+    archivo, _ = QFileDialog.getOpenFileName(
+        main_window,
+        "Seleccionar archivo VTK externo",
+        "",
+        "Archivos VTK (*.vtk);;Todos los archivos (*)"
+    )
+
+    if not archivo:
+        return  # cancelado
+
+    nombre = os.path.basename(archivo)
+    try:
+        # Agregarlo a la lista lateral
+        if nombre not in main_window.rutas_archivos:
+            main_window.rutas_archivos[nombre] = [archivo]
+            item = QListWidgetItem(f"{nombre} (Externo)")
+            item.setData(Qt.UserRole, "externo")
+            main_window.lista_archivos.addItem(item)
+
+        # Crear o actualizar el switcher
+        if not main_window.switcher:
+            main_window.switcher = ModelSwitcher(
+                main_window.refinement_viewer.renderer,
+                main_window.refinement_viewer.interactor,
+                {nombre: [archivo]}
+            )
+            main_window.refinement_viewer.set_switcher(main_window.switcher, poly_path=None)
+        else:
+            main_window.switcher.file_dict[nombre] = [archivo]
+            main_window.switcher.load_model(archivo)
+
+        main_window.switcher.current_poly = nombre
+        main_window.switcher.current_index = 0
+        main_window.switcher._load_current()
+
+        # Renderizar
+        main_window.refinement_viewer.renderer.GetRenderWindow().Render()
+
+        QMessageBox.information(main_window, "Malla cargada", f"Archivo externo cargado:\n{nombre}")
+
+    except Exception as e:
+        QMessageBox.critical(main_window, "Error", f"No se pudo cargar la malla:\n{str(e)}")
