@@ -63,11 +63,8 @@ compilar_algoritmo() {
 
     cd core/${modulo} || { echo -e "${RED}No se encontró core/${modulo}${NC}"; exit 1; }
 
-    # Si el módulo está versionado por git, actualizar (solo quadtree/octree)
-    if [ -d ".git" ]; then
-        git checkout master &>/dev/null
-        git pull origin master &>/dev/null
-    fi
+    git checkout master &>/dev/null
+    git pull origin master &>/dev/null
 
     # Reconstruir build
     rm -rf build
