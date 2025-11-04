@@ -1,6 +1,7 @@
 import os
 import math
 import numpy as np
+import vtk
 from collections import defaultdict
 import app.logic.scripts_historial.quad2closeto as quad2closeto
 import app.logic.scripts_historial.remsu2shrink as remsu2shrink
@@ -140,6 +141,77 @@ def comparar_celdas(celdas_old, celdas_new, del_pts, mapeo):
 
     return celdas_eliminadas
 
+def cargar_ugrid(filename):
+    reader = vtk.vtkUnstructuredGridReader()
+    reader.SetFileName(filename)
+    reader.Update()
+    ugrid = vtk.vtkUnstructuredGrid()
+    ugrid.DeepCopy(reader.GetOutput())
+    return ugrid
+
+def guardar_ugrid(ugrid, filepath):
+    out = []
+    out.append("# vtk DataFile Version 3.0\n")
+    out.append("VTK file formatted in classic ASCII\n")
+    out.append("ASCII\n")
+    out.append("DATASET UNSTRUCTURED_GRID\n")
+
+    npoints = ugrid.GetNumberOfPoints()
+    out.append(f"POINTS {npoints} float\n")
+    for i in range(0, npoints, 2):
+        line_coords = []
+        for j in range(2):
+            idx = i + j
+            if idx >= npoints:
+                break
+            x, y, z = ugrid.GetPoint(idx)
+            line_coords.extend([f"{c:+.{8}E}" for c in (x, y, z)])
+        out.append(" ".join(line_coords) + "\n")
+
+    ncells = ugrid.GetNumberOfCells()
+    total_indices = sum(ugrid.GetCell(i).GetNumberOfPoints() + 1 for i in range(ncells))
+    out.append(f"CELLS {ncells} {total_indices}\n")
+    for i in range(ncells):
+        cell = ugrid.GetCell(i)
+        ids = [str(cell.GetNumberOfPoints())] + [str(cell.GetPointId(j)) for j in range(cell.GetNumberOfPoints())]
+        out.append(" ".join(ids) + "\n")
+
+    out.append(f"CELL_TYPES {ncells}\n")
+    for i in range(ncells):
+        out.append(str(ugrid.GetCellType(i)) + "\n")
+
+    with open(filepath, "w") as f:
+        f.writelines(out)
+
+def mover_vertice(ugrid, vid, new_pos):
+    pts = ugrid.GetPoints()
+    if vid < 0 or vid >= pts.GetNumberOfPoints():
+        print(f"[WARN] mov: vid {vid} fuera de rango.")
+        return ugrid
+    pts.SetPoint(vid, new_pos)
+    pts.Modified()
+    ugrid.Modified()
+    return ugrid
+
+def borrar_caras(ugrid, caras_a_borrar_ids):
+    """
+    Elimina celdas por sus IDs (índices).
+    """
+    caras_a_borrar_set = set(caras_a_borrar_ids)
+    nuevas_celdas = vtk.vtkCellArray()
+    tipos = vtk.vtkUnsignedCharArray()
+    tipos.SetName("types")
+    for i in range(ugrid.GetNumberOfCells()):
+        if i in caras_a_borrar_set:
+            continue
+        cell = ugrid.GetCell(i)
+        tipos.InsertNextValue(ugrid.GetCellType(i))
+        nuevas_celdas.InsertNextCell(cell)
+    nuevo_grid = vtk.vtkUnstructuredGrid()
+    nuevo_grid.SetPoints(ugrid.GetPoints())
+    nuevo_grid.SetCells(tipos, nuevas_celdas)
+    return nuevo_grid
+
 def historial_patrones(vtkc, vtkr, vtks, output_path):
     pts_before = quad2closeto.leer_puntos_vtk_numpy(vtkc)
     pts_after = quad2closeto.leer_puntos_vtk_numpy(vtkr)
@@ -147,6 +219,7 @@ def historial_patrones(vtkc, vtkr, vtks, output_path):
     _, add_pts = comparar_pts(pts_after, pts_before)
     celdas_before = leer_celdas_vtk(vtkc)
     celdas_after = leer_celdas_vtk(vtkr)
+    ugrid = cargar_ugrid(vtkc)
     with open(output_path, "w") as f:
         # agregar/mover los puntos
         # todavía estoy revisando si es más fácil mover o agregar el punto
@@ -157,7 +230,7 @@ def historial_patrones(vtkc, vtkr, vtks, output_path):
             
             # me está generando problemas :(
             # f.write(f"mov {i[idx]} {pt[0]:+0.8E} {pt[1]:+0.8E} {pt[2]:+0.8E}\n")
-            
+            # ugrid = mover_vertice(ugrid, i[idx], pt)
             pts_before[i[idx]] = pt
             del i[idx]
             del del_pts[idx]
@@ -170,7 +243,10 @@ def historial_patrones(vtkc, vtkr, vtks, output_path):
         # borrar celdas
         for j in reversed(del_cells):
             f.write(f"del_face {j} {' '.join(map(str, celdas_before[j]))}\n")
+            ugrid = borrar_caras(ugrid, [j])
 
+        intermedio = vtkc[:-4]
+        guardar_ugrid(ugrid, f"{intermedio}_step.vtk")
         # eliminar los puntos
         # for pt in reversed(i):
             # f.write(f"del_pt {pt}\n")
