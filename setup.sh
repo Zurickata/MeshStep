@@ -63,14 +63,24 @@ compilar_algoritmo() {
 
     cd core/${modulo} || { echo -e "${RED}No se encontró core/${modulo}${NC}"; exit 1; }
 
-    # Asegurar la rama master actualizada
-    git checkout master &>/dev/null
-    git pull origin master &>/dev/null
+    # Si el módulo está versionado por git, actualizar (solo quadtree/octree)
+    if [ -d ".git" ]; then
+        git checkout master &>/dev/null
+        git pull origin master &>/dev/null
+    fi
 
     # Reconstruir build
     rm -rf build
     mkdir -p build && cd build || exit 1
-    cmake ../src && make -j$(nproc)
+    
+    # ⚙️ Detectar estructura del módulo (algunos usan src/, otros no)
+    if [ -d "../src" ]; then
+        cmake ../src
+    else
+        cmake ..
+    fi
+
+    make -j$(nproc)
 
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ ${modulo} compilado correctamente.${NC}\n"
@@ -85,6 +95,7 @@ compilar_algoritmo() {
 # --- Compilar Quadtree y Octree ---
 compilar_algoritmo "quadtree"
 compilar_algoritmo "octree"
+compilar_algoritmo "jeans"
 
 # --- Crear entorno virtual ---
 echo -e "${YELLOW}🐍 Creando entorno virtual de Python...${NC}"

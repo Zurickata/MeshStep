@@ -8,6 +8,7 @@ from PyQt5.QtCore import Qt, QEvent, QThread, pyqtSignal
 from core.wrapper import QuadtreeWrapper, OctreeWrapper
 from app.logic.scripts_historial.crear_historial import crear_historial
 from app.logic.scripts_historial.historial_octree import crear_historial_octree
+from app.logic.metricas_jeans import generar_metricas_jeans
 
 # --- CAMBIO: Definir Contexto ---
 CONTEXTO = "MeshGeneratorController"
@@ -203,6 +204,30 @@ class MeshGeneratorController(QDialog):
                     show_quality_metrics=True
                 )
                 
+                # --- Integración de métricas 3D con Jeans ---
+                if algoritmo == "Octree":
+                    try:
+                        print(f"[JEANS] Iniciando generación de métricas para nivel {level}...")
+
+                        # Ruta del binario Jeans
+                        jeans_bin = os.path.join(os.getcwd(), "core", "jeans", "build", "jens")
+
+                        # Ruta del archivo VTK generado por el Octree
+                        vtk_path = result_file  # viene del generate_mesh()
+                        output_dir = os.path.dirname(vtk_path)
+
+                        # Ejecutar generación de métricas (-s y -j)
+                        ok = generar_metricas_jeans(vtk_path, jeans_bin, output_dir)
+
+                        if ok:
+                            print(f"[JEANS] ✅ Métricas completadas para nivel {level}")
+                        else:
+                            print(f"[JEANS] ⚠️ No se pudieron generar métricas para nivel {level}")
+
+                    except Exception as e:
+                        print(f"[JEANS] ❌ Error inesperado al generar métricas del nivel {level}: {e}")
+
+
                 level_time = time.time() - level_start
                 level_times.append(level_time)
                 self.generated_files.append(result_file)
@@ -245,79 +270,6 @@ class MeshGeneratorController(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Ocurrió un error: {e}")
-
-            # # Medir también la creación del historial
-            # historial_start = time.time()
-
-            # try:
-            #     last_output_path = self.generated_files[-1] if self.generated_files else result_file
-            #     input_dir = os.path.dirname(last_output_path)
-            #     name = os.path.splitext(os.path.basename(last_output_path))[0]
-            #     tipo = "borde" if self.edge_refinement.isChecked() else "completo"
-
-            #     _cwd = os.getcwd()
-            #     try:
-            #         os.chdir(input_dir)
-            #         if algoritmo == "Quadtree":
-            #             crear_historial(name, max_refinement, tipo)
-            #         else:
-            #             crear_historial_octree(name, max_refinement, tipo)
-            #         self.historial_status = True
-            #         self.ruta_quads = f"{input_dir}/{name}_quads.vtk"
-            #         self.ruta_historial = f"{input_dir}/{name}_historial.txt"
-            #     finally:
-            #         os.chdir(_cwd)
-
-            #     print(f"[Historial] Generado en {self.ruta_historial}")
-            #     # --- CAMBIO: Usar QApplication.translate ---
-            #     self.status_label.setText(self.status_label.text() + f"\n{QApplication.translate(CONTEXTO, 'El historial se generó correctamente')}")
-            # except Exception as e_hist:
-            #     print(f"[Historial] Error al generar historial: {e_hist}")
-            #     # --- CAMBIO: Usar QApplication.translate ---
-            #     self.status_label.setText(self.status_label.text() + f"\n{QApplication.translate(CONTEXTO, 'Ocurrió un error al generar el historial')}")
-            # historial_time = time.time() - historial_start
-
-            # # 🔹 Tiempo total (mallado + historial)
-            # total_time = mesh_time + historial_time
-            # avg_time = total_time / max_refinement
-
-            # # --- CAMBIO: Usar QApplication.translate ---
-            # time_report = (
-            #     f"{QApplication.translate(CONTEXTO, 'Tiempo total')}: {total_time:.2f} {QApplication.translate(CONTEXTO, 'segundos')}\n"
-            #     f"{QApplication.translate(CONTEXTO, 'Tiempo promedio por nivel')}: {avg_time:.2f} {QApplication.translate(CONTEXTO, 'segundos')}\n"
-            #     f"{QApplication.translate(CONTEXTO, 'Tiempo del Historial')}: {historial_time:.2f} {QApplication.translate(CONTEXTO, 'segundos')}"
-            # )
-
-            # self.time_label.setText(time_report)
-            # self.status_label.setText(f"{QApplication.translate(CONTEXTO, 'Generación completada')}!\n{time_report}")
-
-            # # --- CAMBIO: Usar QApplication.translate ---
-            # msg_historial = QApplication.translate(CONTEXTO, 'Se generó el historial exitosamente') if self.historial_status else QApplication.translate(CONTEXTO, 'No se generó el historial')
-            # QMessageBox.information(
-            #     self, 
-            #     QApplication.translate(CONTEXTO, "Proceso completado"), 
-            #     f"{QApplication.translate(CONTEXTO, 'Se generaron')} {max_refinement} {QApplication.translate(CONTEXTO, 'mallas con')} {algoritmo} {QApplication.translate(CONTEXTO, 'en')} {total_time:.2f} {QApplication.translate(CONTEXTO, 'segundos')}\n{msg_historial}"
-            # )
-            # self.accept()
-            
-        # except Exception as e:
-        #     elapsed_time = time.time() - start_time
-        #     # --- CAMBIO: Usar QApplication.translate ---
-        #     error_msg = (
-        #         f"{QApplication.translate(CONTEXTO, 'Error después de')} {elapsed_time:.2f} {QApplication.translate(CONTEXTO, 'segundos')}:\n"
-        #         f"{str(e)}"
-        #     )
-            
-        #     print(f"ERROR: {error_msg}")
-        #     self.time_label.setText(f"{QApplication.translate(CONTEXTO, 'Error después de')} {elapsed_time:.2f}s")
-        #     self.status_label.setText(error_msg)
-            
-        #     # --- CAMBIO: Usar QApplication.translate ---
-        #     QMessageBox.critical(
-        #         self,
-        #         QApplication.translate(CONTEXTO, "Error"),
-        #         error_msg
-        #     )
 
     def on_historial_finished(self, success, msg):
         self.historial_generandose = False
