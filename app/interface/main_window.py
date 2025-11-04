@@ -13,7 +13,7 @@ from app.logic.main_window_logic import (
     abrir_opciones_dialog, cambiar_visualizador, closeEvent, abrir_manual,
     accion_w, accion_s, abrir_dialogo_vtk_externo
 )
-#from app.logic.export_utils import ExportManager
+from app.logic.export_utils import ExportManager
 
 from .panel_derecho import PanelDerecho
 
@@ -151,9 +151,9 @@ class MainWindow(QWidget):
         self.action_help.triggered.connect(lambda: abrir_manual(self))
         self.help_menu.addAction(self.action_help)
 
-        #self.action_exportar = QAction("", self)
-        #self.action_exportar.triggered.connect(lambda: self.exportar_historial())
-        #self.file_menu.addAction(self.action_exportar)
+        self.action_exportar = QAction("", self)
+        self.action_exportar.triggered.connect(lambda: self.exportar_historial())
+        self.file_menu.addAction(self.action_exportar)
 
         self.action_visual = QAction("", self)
         #self.action_visual.triggered.connect(lambda: cambiar_visualizador(self))
@@ -320,7 +320,7 @@ class MainWindow(QWidget):
         self.action_toggle_preview.setToolTip(self.tr("Alternar visibilidad del preview de referencia (no carga archivos)"))
         self.action_opciones.setText(self.tr("Opciones"))
         self.action_help.setText(self.tr("Manual"))
-        #self.action_exportar.setText(self.tr("Exportar historial de mallado"))
+        self.action_exportar.setText(self.tr("Exportar historial de mallado"))
         self.tab_widget.setTabText(0, self.tr("Niveles de refinación"))
         self.tab_widget.setTabText(1, self.tr("Paso a paso"))
 
@@ -338,15 +338,15 @@ class MainWindow(QWidget):
         - Otherwise, fallback to opening the file dialog from the refinement viewer.
         - Ensure the Refinement tab is active.
         """
-        # Ensure refinement tab is active
-        try:
-            if self.tab_widget.currentIndex() != 0:
-                self.tab_widget.setCurrentIndex(0)
-        except Exception:
-            pass
+        # Decide which viewer to use depending on active tab
+        viewer = None
+        if getattr(self, 'tab_widget', None) and self.tab_widget.currentIndex() == 1:
+            viewer = getattr(self, 'vtk_player', None)
+        else:
+            viewer = getattr(self, 'refinement_viewer', None)
 
-        if not getattr(self, 'refinement_viewer', None):
-            QMessageBox.warning(self, self.tr("Error"), self.tr("Refinement viewer no disponible."))
+        if not viewer:
+            QMessageBox.warning(self, self.tr("Error"), self.tr("Viewer no disponible."))
             return
 
         current_item = self.lista_archivos.currentItem()
@@ -378,28 +378,47 @@ class MainWindow(QWidget):
 
         if filepath:
             try:
-                self.refinement_viewer.load_vtk_reference(filepath)
+                # viewer can be refinement_viewer or vtk_player
+                if hasattr(viewer, 'load_vtk_reference'):
+                    viewer.load_vtk_reference(filepath)
                 # ensure visible
-                self.refinement_viewer.toggle_reference()
+                if hasattr(viewer, 'toggle_reference'):
+                    viewer.toggle_reference()
             except Exception as e:
                 QMessageBox.critical(self, self.tr("Error"), str(e))
         else:
-            # Fallback: ask user to pick a vtk file
-            self.refinement_viewer.seleccionar_y_cargar_referencia()
+            # Fallback: ask user to pick a vtk file via the viewer method if available
+            if hasattr(viewer, 'seleccionar_y_cargar_referencia'):
+                viewer.seleccionar_y_cargar_referencia()
+            elif hasattr(viewer, 'load_vtk_reference'):
+                # open dialog here if viewer doesn't provide it
+                filepath, _ = QFileDialog.getOpenFileName(self, self.tr("Seleccionar archivo VTK"), "", "Archivos VTK (*.vtk)")
+                if filepath:
+                    viewer.load_vtk_reference(filepath)
 
     def toggle_preview_action(self):
         """Toggle visibility of the already-loaded reference preview without loading a file.
 
         If no reference is loaded, show an informational message.
         """
-        if not getattr(self, 'refinement_viewer', None):
-            QMessageBox.warning(self, self.tr("Error"), self.tr("Refinement viewer no disponible."))
+        # Target the active viewer (refinement or vtk_player)
+        viewer = None
+        if getattr(self, 'tab_widget', None) and self.tab_widget.currentIndex() == 1:
+            viewer = getattr(self, 'vtk_player', None)
+        else:
+            viewer = getattr(self, 'refinement_viewer', None)
+
+        if not viewer:
+            QMessageBox.warning(self, self.tr("Error"), self.tr("Viewer no disponible."))
             return
 
-        # If a reference widget exists, toggle it. Otherwise inform the user.
-        if hasattr(self.refinement_viewer, 'reference_widget'):
+        # If a reference widget exists on the chosen viewer, toggle it. Otherwise inform the user.
+        if hasattr(viewer, 'reference_widget'):
             try:
-                self.refinement_viewer.toggle_reference()
+                if hasattr(viewer, 'toggle_reference'):
+                    viewer.toggle_reference()
+                else:
+                    QMessageBox.information(self, self.tr("Sin acción"), self.tr("El viewer no soporta toggle_reference."))
             except Exception as e:
                 QMessageBox.critical(self, self.tr("Error"), str(e))
         else:
@@ -419,21 +438,21 @@ class MainWindow(QWidget):
     def closeEvent(self, event):
         closeEvent(self, event)
 
-#    def exportar_historial(self):
-#        """
-#        Exporta el historial usando ExportManager.
-#        Intenta usar el archivo seleccionado en la lista; si no hay ninguno, pasa None.
-#        Muestra mensaje de error traducible si no existe archivo de historial.
-#        """
-#        current_item = self.lista_archivos.currentItem()
-#        poly_name = current_item.text() if current_item else None
-#        refinement_level = None  # ajustar si tienes forma de obtener el nivel actual
-#
-#        export_manager = ExportManager(self)
-#        success, message = export_manager.export_log_file(poly_name, refinement_level)
-#        if not success and message == "no_log_file":
-#            QMessageBox.critical(self, self.tr("Error"),
-#                                 self.tr("No se encontró ningún archivo de historial para exportar."))
-#        elif success:
-#            QMessageBox.information(self, self.tr("Éxito"),
-#                                    self.tr("Historial exportado correctamente."))
+    def exportar_historial(self):
+        """
+        Exporta el historial usando ExportManager.
+        Intenta usar el archivo seleccionado en la lista; si no hay ninguno, pasa None.
+        Muestra mensaje de error traducible si no existe archivo de historial.
+        """
+        current_item = self.lista_archivos.currentItem()
+        poly_name = current_item.text() if current_item else None
+        refinement_level = None
+
+        export_manager = ExportManager(self)
+        success, message = export_manager.export_log_file(poly_name, refinement_level)
+        if not success and message == "no_log_file":
+            QMessageBox.critical(self, self.tr("Error"),
+                                    self.tr("No se encontró ningún archivo de historial para exportar."))
+        elif success:
+            QMessageBox.information(self, self.tr("Éxito"),
+                                    self.tr("Historial exportado correctamente."))

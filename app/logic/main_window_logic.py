@@ -33,7 +33,7 @@ def accion_w(main_window):
     if main_window.refinement_viewer.switcher:
         main_window.refinement_viewer.switcher.actor.GetProperty().SetRepresentationToWireframe()
         main_window.refinement_viewer.renderer.GetRenderWindow().Render()
-        # También actualizar la representación de la referencia si existe
+        # También actualizar la representación de la referencia si existe (en refinement_viewer y vtk_player)
         try:
             ref_actor = getattr(main_window.refinement_viewer, 'reference_actor', None)
             if ref_actor is not None:
@@ -41,17 +41,31 @@ def accion_w(main_window):
                 main_window.refinement_viewer.renderer.GetRenderWindow().Render()
         except Exception:
             pass
+        try:
+            vp_ref = getattr(main_window, 'vtk_player', None)
+            if vp_ref is not None and hasattr(vp_ref, 'reference_actor') and vp_ref.reference_actor is not None:
+                vp_ref.reference_actor.GetProperty().SetRepresentationToWireframe()
+                vp_ref.renderer.GetRenderWindow().Render()
+        except Exception:
+            pass
 
 def accion_s(main_window):
     if main_window.refinement_viewer.switcher:
         main_window.refinement_viewer.switcher.actor.GetProperty().SetRepresentationToSurface()
         main_window.refinement_viewer.renderer.GetRenderWindow().Render()
-        # También actualizar la representación de la referencia si existe
+        # También actualizar la representación de la referencia si existe (en refinement_viewer y vtk_player)
         try:
             ref_actor = getattr(main_window.refinement_viewer, 'reference_actor', None)
             if ref_actor is not None:
                 ref_actor.GetProperty().SetRepresentationToSurface()
                 main_window.refinement_viewer.renderer.GetRenderWindow().Render()
+        except Exception:
+            pass
+        try:
+            vp_ref = getattr(main_window, 'vtk_player', None)
+            if vp_ref is not None and hasattr(vp_ref, 'reference_actor') and vp_ref.reference_actor is not None:
+                vp_ref.reference_actor.GetProperty().SetRepresentationToSurface()
+                vp_ref.renderer.GetRenderWindow().Render()
         except Exception:
             pass
 
