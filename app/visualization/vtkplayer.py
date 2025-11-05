@@ -3,7 +3,7 @@ import numpy as np
 import os
 import sys
 import math
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QFileDialog, QProgressDialog
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QFileDialog, QProgressDialog, QStyle
 from PyQt5.QtCore import QStandardPaths, pyqtSignal, Qt, QTimer
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
@@ -441,7 +441,7 @@ def visualizar_con_script(ugrid, script_file, renderer, render_window, interacto
             else:
                 print("No quedan más comandos.")
 
-        elif key == "s":
+        elif key == "g":
             print("Guardando a salida.vtk ...")
             guardar_ugrid(ugrid, "salida.vtk")
 
@@ -525,7 +525,7 @@ class CustomVTKPlayerStyle(vtk.vtkInteractorStyleTrackballCamera):
         elif key == "r":
             print("🔁 Reseteando cámara")
             self.vtk_player.reset_camera()
-        elif key == "s":
+        elif key == "g":
             self.vtk_player.guardar()
         else:
             self.OnKeyPress()
@@ -546,18 +546,19 @@ class VTKPlayer(QWidget):
         self._custom_style = None
 
         # Botones de control
-        self.boton_siguiente = QPushButton("Siguiente paso (n)")
+        self.boton_siguiente = QPushButton(self.style().standardIcon(QStyle.SP_ArrowForward), "Siguiente paso (n)")
         self.boton_reiniciar = QPushButton("Reiniciar (r)")
-        self.boton_guardar = QPushButton("Guardar (s)")
+        self.boton_guardar = QPushButton("Guardar (g)")
 
         self.boton_siguiente.clicked.connect(self.siguiente_paso)
+        self.boton_siguiente.setStyleSheet("background-color: #008000; color: white;")
         self.boton_reiniciar.clicked.connect(self.reiniciar)
         self.boton_guardar.clicked.connect(self.guardar)
 
         botones_layout = QHBoxLayout()
-        botones_layout.addWidget(self.boton_siguiente)
-        botones_layout.addWidget(self.boton_reiniciar)
         botones_layout.addWidget(self.boton_guardar)
+        botones_layout.addWidget(self.boton_reiniciar)
+        botones_layout.addWidget(self.boton_siguiente)
 
         layout = QVBoxLayout()
         layout.addWidget(self.vtk_widget)
@@ -738,7 +739,7 @@ class VTKPlayer(QWidget):
         self._ejecutar_comando("r")
 
     def guardar(self):
-        self._ejecutar_comando("s")
+        self._ejecutar_comando("g")
 
     def keypress(self, obj, _):
         key = obj.GetKeySym()
@@ -746,7 +747,7 @@ class VTKPlayer(QWidget):
             self.siguiente_paso()
         elif key == "r":
             self.reiniciar()
-        elif key == "s":
+        elif key == "g":
             self.guardar()
 
     def _ejecutar_comando(self, comando):
@@ -776,7 +777,7 @@ class VTKPlayer(QWidget):
                 self._update_panel_pap()
             except Exception:
                 pass
-        elif comando == "s":
+        elif comando == "g":
             print("Guardando a salida.vtk ...")
             guardar_ugrid(self.ugrid, "salida.vtk", parent=self)
 

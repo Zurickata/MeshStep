@@ -26,6 +26,7 @@ class MainWindow(QWidget):
         self.perfil_actual = "principiante" 
         self.widgets_expertos = []
 
+
         self.ignorar_limite_hardware = False
 
         logo_label = QLabel()
@@ -60,7 +61,7 @@ class MainWindow(QWidget):
 
         self.widgets_expertos.append(self.edit_menu.menuAction()) # Menú "Editar" (Opciones) es experto
         self.widgets_expertos.append(self.color_menu.menuAction()) # Menú "Coloreos" es experto
-        self.widgets_expertos.append(self.reload_menu.menuAction()) # Menú "Reestablecer" es experto
+        #self.widgets_expertos.append(self.reload_menu.menuAction()) # Menú "Reestablecer" es experto
 
         # Iconos estándar
         icon_cargar = self.style().standardIcon(QStyle.SP_DirOpenIcon)
@@ -287,6 +288,7 @@ class MainWindow(QWidget):
         self.tab_widget.addTab(self.refinement_viewer, "")
         self.tab_widget.addTab(self.vtk_player, "")
         self.tab_widget.currentChanged.connect(lambda idx: cambiar_visualizador(self, idx))
+        self.tab_widget.currentChanged.connect(lambda idx: self.actualizar_visibilidad_ui())
 
         self.panel_central = QWidget()
         central_layout = QVBoxLayout()
@@ -326,6 +328,21 @@ class MainWindow(QWidget):
 
         self.switcher = None
         self.retranslateUi()
+
+        self.widgets_refinamiento = [
+            self.view_menu.menuAction(),
+            self.color_menu.menuAction(),
+            self.vista_label,
+            self.boton_wireframe,
+            self.boton_solido,
+            self.colores_label,
+            self.boton_color_area,
+            self.boton_color_angulo_minimo,
+            self.boton_color_relacion_aspecto,
+            self.panel_derecho
+        ]
+
+        self.widgets_paso_a_paso = [self.panel_pap]
 
         self.actualizar_visibilidad_ui()
 
@@ -494,14 +511,32 @@ class MainWindow(QWidget):
             self.actualizar_visibilidad_ui()
 
     def actualizar_visibilidad_ui(self):
-        """Recorre la lista de widgets expertos y los muestra o oculta."""
-        
-        # Determina si deben ser visibles
         es_experto = (self.perfil_actual == "experto")
+        es_tab_refinamiento = (self.tab_widget.currentIndex() == 0)
+        es_tab_paso_a_paso = (self.tab_widget.currentIndex() == 1)
+        todos_los_widgets = set(self.widgets_expertos) | \
+                            set(self.widgets_refinamiento) | \
+                            set(self.widgets_paso_a_paso)
 
-        # Itera sobre todos los widgets guardados
-        for widget in self.widgets_expertos:
-            widget.setVisible(es_experto)
+        for widget in todos_los_widgets:
+            es_widget_experto = widget in self.widgets_expertos
+            es_widget_refinamiento = widget in self.widgets_refinamiento
+            es_widget_paso_a_paso = widget in self.widgets_paso_a_paso
+
+            visible = False 
+
+            if es_widget_paso_a_paso:
+                visible = es_tab_paso_a_paso
+                
+            elif es_widget_refinamiento:
+                if es_widget_experto:
+                    visible = es_experto and es_tab_refinamiento
+                else:
+                    visible = es_tab_refinamiento
+            
+            elif es_widget_experto:
+                visible = es_experto
+            widget.setVisible(visible)
     #FIN: LÓGICA DE PERFILES 
 
     # Eventos de drag & drop
