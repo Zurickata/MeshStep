@@ -142,27 +142,64 @@ def load_ref_surface(ref_file):
     print(f" - Superficie: {poly.GetNumberOfPoints()} puntos, {poly.GetNumberOfCells()} celdas")
     return poly
 
+def sample_hexa_points(points, cell):
+    """
+    Devuelve una lista de puntos (np.array Nx3) a muestrear dentro del hexaedro.
+    puntos: array Nx3 con coordenadas globales
+    cell: lista/iterable con 8 índices de puntos (orden hexa)
+    """
+    p = points[cell]  # (8,3)
+    # esquinas
+    corners = [p[i] for i in range(8)]
+
+    # aristas (12): pares según edge_pairs en tu subdivisión
+    edge_pairs = [(0,1),(1,2),(2,3),(3,0),
+                  (4,5),(5,6),(6,7),(7,4),
+                  (0,4),(1,5),(2,6),(3,7)]
+    edge_mid = [(p[i]+p[j])/2.0 for i,j in edge_pairs]
+
+    # caras (6) - centro de cada cara
+    face_quads = [(0,1,2,3),(4,5,6,7),
+                  (0,1,5,4),(1,2,6,5),
+                  (2,3,7,6),(0,3,7,4)]
+    face_centers = [p[list(ids)].mean(axis=0) for ids in face_quads]
+
+    # centro del hexa
+    center = p.mean(axis=0)
+
+    samples = np.vstack(corners + edge_mid + face_centers + [center])
+    return samples
+
+
 def filter_hexes(points, cells, ref_poly):
-    print("🧩 Filtrando celdas dentro de la superficie...")
-    select = vtk.vtkSelectEnclosedPoints()
-    pts = vtk.vtkPoints()
-    for p in points:
-        pts.InsertNextPoint(*p)
-    poly_pts = vtk.vtkPolyData()
-    poly_pts.SetPoints(pts)
+    print("🧩 Filtrando celdas usando distancia firmada...")
 
-    select.SetInputData(poly_pts)
-    select.SetSurfaceData(ref_poly)
-    select.Update()
+    # Distancia firmada respecto a la superficie
+    dist = vtk.vtkImplicitPolyDataDistance()
+    dist.SetInput(ref_poly)
 
-    kept_cells = []
+    kept = []
+    total = len(cells)
+
     for cell in cells:
-        centroid = np.mean(points[cell], axis=0)
-        if select.IsInsideSurface(*centroid):
-            kept_cells.append(cell)
+        sample_pts = sample_hexa_points(points, cell)  # (27,3)
+        ds = np.array([dist.EvaluateFunction(pt) for pt in sample_pts])
 
-    print(f" - {len(kept_cells)} celdas conservadas de {len(cells)}")
-    return kept_cells
+        # Caso 1: algún punto está dentro → keep
+        if np.any(ds < 0):
+            kept.append(cell)
+            continue
+
+        # Caso 2: la superficie cruza el hexa → cambio de signo
+        if np.min(ds) < 0 < np.max(ds):
+            kept.append(cell)
+            continue
+
+        # Caso 3: todo afuera y sin cruce → descartar
+
+    print(f" - {len(kept)} celdas conservadas de {total}")
+    return kept
+
 
 # -----------------------------
 # Subdividir con filtrado en cada nivel
