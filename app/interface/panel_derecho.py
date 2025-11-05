@@ -6,8 +6,8 @@ from PyQt5.QtCore import Qt, QCoreApplication, QEvent
 import os
 import re
 from app.visualization.FeriaVTK import CustomInteractorStyle
-from app.logic.main_window_logic import (
-    accion_w, accion_s
+from app.logic.metricas_jeans import (
+    parse_jeans_output
 )
 from app.visualization.FeriaVTK import notifier
 
@@ -20,6 +20,8 @@ class PanelDerecho(QScrollArea):
         self.threshold_angulo = 30  # Valor inicial del threshold
         self.setup_ui()
         self.metricas_actuales = None
+        self.metricas_3d_actuales = None
+        self.isMesh3D = False
         
     def setup_ui(self):
         """Configura la interfaz del panel derecho"""
@@ -35,6 +37,7 @@ class PanelDerecho(QScrollArea):
         
         # Crear secciones 
         self.crear_seccion_metricas()
+        self.crear_seccion_metricas_3d()
         self.crear_seccion_estadisticas()
         self.crear_seccion_threshold()
         self.crear_seccion_animacion()
@@ -44,12 +47,14 @@ class PanelDerecho(QScrollArea):
         
         self.setWidget(self.contenido)
         self.aplicar_estilo_botones()
-        
-        self.actualizar_display_threshold()
-       
 
+        self.actualizar_display_threshold()
+    
         notifier.cell_selected.connect(self.mostrar_info_celda)
         notifier.cell_deselected.connect(self.limpiar_info_celda)
+
+
+    # -------------------FUNCIONES DEL HIGHLIGHTER -------------------
 
     def mostrar_info_celda(self, cell_id, num_points, min_angle):
         """Muestra información de la celda seleccionada"""
@@ -126,6 +131,7 @@ class PanelDerecho(QScrollArea):
                 self.actualizar_metricas(contenido_html)
                 self._contenido_base_sin_celda = contenido_html
 
+# ------------------- FUNCIONES DEL PRIMER TEXTO, NIVELES DE REFINAMIENTO -------------------
     
     def actualizar_panel_derecho(self, ruta_archivo):
         
@@ -151,8 +157,31 @@ class PanelDerecho(QScrollArea):
                               .replace("%1", str(numero))
                               .replace("%2", str(ultimo_level_refinement)))
             
+            
+            # --- visibilidad por prefijo del archivo (quadtree_ / octree_) ---
+            fname = os.path.basename(ruta_archivo)
+            name_no_ext = os.path.splitext(fname)[0]
+            prefix = name_no_ext.split('_')[0].lower()
+            if prefix not in ("quadtree", "octree"):
+                print(f"[PanelDerecho] Prefijo desconocido en archivo: {fname}")
+
+            is_3d = (prefix == "octree")
+            self.isMesh3D = is_3d
+
+            # 3D: ocultar threshold/estadísticas y mostrar Métricas 3D (prueba)
+            if hasattr(self, "grupo_threshold") and self.grupo_threshold:
+                self.grupo_threshold.setVisible(not is_3d)
+            if hasattr(self, "grupo_estadisticas") and self.grupo_estadisticas:
+                self.grupo_estadisticas.setVisible(not is_3d)
+            if hasattr(self, "grupo_metricas_3d") and self.grupo_metricas_3d:
+                self.grupo_metricas_3d.setVisible(is_3d)
+
+
             # Actualizar el panel derecho
             self.actualizar_metricas(contenido_html)
+            if is_3d:
+                self.actualizar_metricas_3d(ruta_archivo)
+
             # Guardar como contenido base limpio (SIN información de celda)
             self._contenido_base_sin_celda = contenido_html
             self._archivo_actual = ruta_archivo
@@ -173,6 +202,7 @@ class PanelDerecho(QScrollArea):
                           .replace("%3", ruta_label)
                           .replace("%4", str(ruta_archivo)))
             self.actualizar_metricas(error_html)
+
 
     def crear_seccion_metricas(self):
         """Sección de métricas de calidad (ahora dinámica)"""
@@ -202,6 +232,9 @@ class PanelDerecho(QScrollArea):
     def actualizar_metricas(self, contenido_html):
         """Actualiza el contenido de las métricas"""
         self.label_metricas.setText(contenido_html)
+
+
+# ------------------- FUNCIONES DEL THRESHOLD -------------------
     
     def crear_seccion_threshold(self):
         """Sección para controlar el threshold de ángulos críticos"""
@@ -394,6 +427,8 @@ class PanelDerecho(QScrollArea):
         </div>
         """
     
+# ------------------- FUNCIONES DE LA VELOCIDAD -------------------
+#     
     def crear_seccion_animacion(self):
         """Sección de control de animación"""
         self.grupo_animacion = QGroupBox(self.tr("Control de Animación"))
@@ -417,6 +452,9 @@ class PanelDerecho(QScrollArea):
         layout.addLayout(velocidad_layout)
         self.grupo_animacion.setLayout(layout)
         self.layout_principal.addWidget(self.grupo_animacion)
+
+
+# ------------------- FUNCIONES ESTADISTICAS DETALLADAS -------------------
 
 
     def _build_stats_html(self, metricas):
@@ -560,24 +598,7 @@ class PanelDerecho(QScrollArea):
     
 
 
-    
-    def activar_wireframe(self):
-        """Activa modo wireframe"""
-        #self.modo_visualizacion = "wireframe"
-        #self.actualizar_estado_botones_visualizacion()
-        # Obtener la ventana principal de forma robusta
-        main_window = self.window()
-        accion_w(main_window)
-    
-    def activar_solido(self):
-        """Activa modo sólido"""
-        #self.modo_visualizacion = "solido"
-        #self.actualizar_estado_botones_visualizacion()
-        # Obtener la ventana principal de forma robusta
-        main_window = self.window()
-        accion_s(main_window)
-    
-    
+# ------------------- FUNCIONES VIEJAS DE LOS BOTONES QUE AUN SE USAN -------------------
 
     
     def aplicar_estilo_botones(self):
@@ -680,8 +701,176 @@ class PanelDerecho(QScrollArea):
             print("⚠️ No hay refinement viewer o switcher disponible")
 
 
-    
+ # ------------------- MÉTRICAS 3D -------------------
 
+    def crear_seccion_metricas_3d(self):
+        """Sección de métricas 3D (placeholder hasta que se actualice la malla)."""
+        self.grupo_metricas_3d = QGroupBox(self.tr("Métricas 3D"))
+        self.grupo_metricas_3d.setStyleSheet("QGroupBox { font-weight: bold; color: #ffffff; }")
+        layout = QVBoxLayout()
+
+        self.label_metricas_3d = QLabel()
+        self.label_metricas_3d.setWordWrap(True)
+        self.label_metricas_3d.setTextFormat(Qt.RichText)
+        self.label_metricas_3d.setStyleSheet("""
+            QLabel {
+                background-color: #2a2a2a;
+                padding: 12px;
+                border-radius: 6px;
+                min-height: 120px;
+            }
+        """)
+
+        # Placeholder traducible (tarjeta)
+        titulo_espera = self.tr("Esperando modelo 3D...")
+        subt_espera = self.tr("Carga un archivo 3D para ver las métricas.")
+        html_inicial = f"""
+        <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; font-family: monospace; color: #4ecdc4;'>
+            <b>🔄 {titulo_espera}</b><br>
+            {subt_espera}
+        </div>
+        """
+        self.label_metricas_3d.setText(html_inicial)
+
+        layout.addWidget(self.label_metricas_3d)
+        self.grupo_metricas_3d.setLayout(layout)
+        self.layout_principal.addWidget(self.grupo_metricas_3d)
+
+    def actualizar_metricas_3d(self, ruta_archivo):
+        """Actualiza el contenido de la sección Métricas 3D con HTML externo."""
+
+        base, _ = os.path.splitext(str(ruta_archivo))
+        jeansinput = f"{base}_jeanss.txt"
+        # Leer contenido del archivo jeansinput
+        try:
+            with open(jeansinput, "r", encoding="utf-8") as fh:
+                contenido = fh.read()
+        except Exception as e:
+            error_html = (
+                "<div style='background-color:#2a2a2a; padding:12px; border-radius:6px; color:#ff6b6b;'>"
+                f"<b>{self.tr('Error al leer métricas 3D')}</b><br>{str(e)}</div>"
+            )
+            self.metricas_3d_actuales = error_html
+            self.label_metricas_3d.setText(error_html)
+            return
+
+        try:
+            data = parse_jeans_output(contenido)
+        except Exception as e:
+            error_html = (
+                "<div style='background-color:#2a2a2a; padding:12px; border-radius:6px; color:#ff6b6b;'>"
+                f"<b>{self.tr('Error al parsear métricas 3D')}</b><br>{str(e)}</div>"
+            )
+            self.metricas_3d_actuales = error_html
+            self.label_metricas_3d.setText(error_html)
+            return
+
+        # Campos esperados del parser
+        total = data.get("total")
+        negativos = data.get("negative")
+        promedio = data.get("average_quality")
+        peor = data.get("worst_quality")
+        por_tipo = data.get("by_type", {})
+
+        def f(v, nd=3):
+            return f"{float(v):.{nd}f}"
+
+        # Encabezado + resumen
+        header_html = (
+            "<div style='color:#9ad; font-family:Consolas, Menlo, monospace; font-weight:bold;'>"
+            "Jens (Scaled Jacobian)"
+            "</div>"
+            "<div style='margin-top:6px; font-family:Consolas, Menlo, monospace; color:#eaeaea; line-height:1.35;'>"
+        )
+
+        if total is not None:
+            header_html += (
+                f"<div><span style='color:#888;'>{self.tr('Total elementos')}:</span> "
+                f"<span style='color:#ffd54f;'>{total}</span></div>"
+            )
+        if negativos is not None:
+            header_html += (
+                f"<div><span style='color:#888;'>{self.tr('Invertidos')}:</span> "
+                f"<span style='color:#ff6b6b;'>{negativos}</span></div>"
+            )
+        if promedio is not None:
+            header_html += (
+                f"<div><span style='color:#888;'>{self.tr('Promedio')}:</span> "
+                f"<span style='color:#4ecdc4;'>{float(promedio):.5f}</span></div>"
+            )
+        if peor is not None:
+            header_html += (
+                f"<div><span style='color:#888;'>{self.tr('Peor')}:</span> "
+                f"<span style='color:#ff9f43;'>{float(peor):.5f}</span></div>"
+            )
+        header_html += "</div>"
+
+        # Por tipo (alineado con columnas fijas en ch)
+        filas = []
+        label_tipo = {
+            "Hex": self.tr("Hexaedros"),
+            "Pri": self.tr("Prismas"),
+            "Pyr": self.tr("Pirámides"),
+            "Tet": self.tr("Tetraedros"),
+        }
+        count_lbl = self.tr("Total:")
+        avg_lbl = self.tr("Promedio:")
+        min_lbl = self.tr("Mínimo:")
+        max_lbl = self.tr("Máximo:")
+        for label in ["Hex", "Pri", "Pyr", "Tet"]:
+            if label in por_tipo:
+                d = por_tipo[label]
+                cnt = d.get("count", 0)
+                avg = f(d.get("avg", 0.0), 3)
+                mn = f(d.get("min", 0.0), 3)
+                mx = f(d.get("max", 0.0), 3)
+                fila = (
+                    "<div>"
+                    f"<span style='display:inline-block; width:4ch; color:#eaeaea;'><span style='color:#37e9c2;'>{label_tipo[label]}<br></span></span>"
+                    f"<span style='display:inline-block; width:12ch; color:#eaeaea;'>{count_lbl}<span style='color:#ffd54f;'>{cnt} </span><br></span>"
+                    f"<span style='display:inline-block; width:14ch; color:#eaeaea;'>{avg_lbl}<span style='color:#4ecdc4;'>{avg} </span><br></span>"
+                    f"<span style='display:inline-block; width:14ch; color:#eaeaea;'>{min_lbl}<span style='color:#ff6b6b;'>{mn} </span><br></span>"
+                    f"<span style='display:inline-block; width:14ch; color:#eaeaea;'>{max_lbl}<span style='color:#8bc34a;'>{mx} </span></span>"
+                    "</div>"
+                )
+                filas.append(fila)
+        
+        tipos_html = ""
+        if filas:
+            tipos_html = (
+                f"<div style='margin-top:10px; color:#aaa; font-family:Consolas, Menlo, monospace;'>{self.tr('Por tipo')}:</div>"
+                "<div style='margin-top:4px; font-family:Consolas, Menlo, monospace;'>"
+                + "".join(filas)
+                + "</div>"
+            )
+
+        # Tarjeta final (sin ruta de archivo)
+        html = (
+            "<div style='background-color:#2a2a2a; padding:12px; border-radius:6px; max-width:100%;'>"
+            f"{header_html}"
+            f"{tipos_html}"
+            "</div>"
+        )
+
+        self.metricas_3d_actuales = html
+        self.label_metricas_3d.setText(html)
+
+    #def limpiar_metricas_3d(self):
+    #    """Vuelve al placeholder traducible para Métricas 3D."""
+    #    self.metricas_3d_actuales = None
+    #    titulo_espera = self.tr("Esperando modelo 3D...")
+    #    subt_espera = self.tr("Carga un archivo 3D para ver las métricas.")
+    #    html_inicial = f"""
+    #    <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; font-family: monospace; color: #4ecdc4;'>
+    #        <b>🔄 {titulo_espera}</b><br>
+    #        {subt_espera}
+    #    </div>
+    #    """
+    #    self.label_metricas_3d.setText(html_inicial)
+
+
+    
+# ------------------- FUNCIONES DE TRADUCCION -------------------
 
     def retranslate_ui(self):
         """Actualizar todos los textos del panel (sin ifs por control)."""
@@ -709,6 +898,21 @@ class PanelDerecho(QScrollArea):
                     </div>
                     """
                     self.label_estadisticas.setText(html_inicial)
+
+        # NUEVO: traducir la sección Métricas 3D
+        if hasattr(self, "grupo_metricas_3d") and self.grupo_metricas_3d:
+            self.grupo_metricas_3d.setTitle(self.tr("Métricas 3D"))
+            if hasattr(self, "label_metricas_3d") and self.label_metricas_3d and not self.metricas_3d_actuales:
+                titulo_espera = self.tr("Esperando modelo 3D...")
+                subt_espera = self.tr("Carga un archivo 3D para ver las métricas.")
+                html_inicial = f"""
+                <div style='background-color: #2a2a2a; padding: 12px; border-radius: 6px; font-family: monospace; color: #4ecdc4;'>
+                    <b>🔄 {titulo_espera}</b><br>
+                    {subt_espera}
+                </div>
+                """
+                self.label_metricas_3d.setText(html_inicial)
+        # Textos de la sección de animación
 
         if hasattr(self, "grupo_animacion") and self.grupo_animacion:
             self.grupo_animacion.setTitle(self.tr("Control de Animación"))

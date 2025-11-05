@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import vtk
 
@@ -156,3 +157,57 @@ def generar_metricas_jeans(vtk_file: str, jeans_bin_path: str, output_dir: str):
             print(f"[JEANS] ⚠️ No se pudo generar métricas para modo {modo}")
 
     return True
+
+def parse_jeans_output(output: str) -> dict:
+    """
+    Parsea la salida de Jeans (-s o -j) y devuelve un diccionario estructurado.
+    """
+    data = {"histogram": [], "by_type": {}, "values": []}
+
+    # Patrón de pares TikZ
+    tikz_re = re.compile(r"\(([-\d\.]+),\s*([-\d\.]+)\)")
+    # Patrón por tipo de elemento
+    type_re = re.compile(
+        r"\[\s*([-\d\.]+),([-\d\.]+)\]\s+average:\s*([-\d\.]+)\s+\((\d+)\)"
+    )
+    # General
+    for line in output.splitlines():
+        line = line.strip()
+        if line.startswith("negative:"):
+            data["negative"] = int(line.split(":")[1].strip())
+        elif line.startswith("total:"):
+            data["total"] = int(line.split(":")[1].strip())
+        elif line.startswith("worst quality"):
+            data["worst_quality"] = float(line.split()[-1])
+        elif line.startswith("average quality"):
+            data["average_quality"] = float(line.split()[-1])
+
+        # Histogram (tikz format)
+        elif tikz_re.match(line):
+            m = tikz_re.match(line)
+            data["histogram"].append((float(m.group(1)), float(m.group(2))))
+
+        # Quality per element type
+        elif type_re.match(line):
+            tnames = ["Hex", "Pri", "Pyr", "Tet"]
+            if "by_type" not in data:
+                data["by_type"] = {}
+            matches = type_re.match(line)
+            idx = len(data["by_type"])
+            if idx < len(tnames):
+                data["by_type"][tnames[idx]] = {
+                    "min": float(matches.group(1)),
+                    "max": float(matches.group(2)),
+                    "avg": float(matches.group(3)),
+                    "count": int(matches.group(4)),
+                }
+
+        # Valores por elemento (flag -j)
+        elif re.fullmatch(r"[0-9eE\.\+\-]+", line):
+            try:
+                val = float(line)
+                data["values"].append(val)
+            except ValueError:
+                pass
+
+    return data
