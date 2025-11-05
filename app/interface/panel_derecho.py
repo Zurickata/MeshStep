@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                             QLabel, QGroupBox, QScrollArea,
-                            QSlider, QGridLayout)
+                            QSlider, QGridLayout, QMessageBox)
 from PyQt5.QtCore import Qt, QCoreApplication, QEvent
 
 import os
@@ -632,6 +632,11 @@ class PanelDerecho(QScrollArea):
 
     def toggle_puntos_criticos(self):
         """Mostrar/Ocultar el punto del ángulo mínimo global usando métricas."""
+        if self.isMesh3D:
+            msg = self.tr("La visualización de puntos críticos no está disponible para mallas 3D.")
+            QMessageBox.warning(self, "Error al mostrar puntos críticos", msg)
+            return  # No aplicar en mallas 3D
+
         if self.refinement_viewer and self.refinement_viewer.switcher:
             sw = self.refinement_viewer.switcher
             sw.toggle_load = not sw.toggle_load
