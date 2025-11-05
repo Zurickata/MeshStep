@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QListWidget,
                              QSplitter, QStyle, QTabWidget,
-                             QMenuBar, QAction, QLabel, QMessageBox, QToolButton, QFrame, QFileDialog)
+                             QMenuBar, QAction, QLabel, QMessageBox, QToolButton, QFrame, QFileDialog, QActionGroup)
 from PyQt5.QtCore import Qt, QEvent, QSize
 from PyQt5.QtGui import QPixmap
 from app.visualization.RefinementViewer import RefinementViewer
@@ -23,6 +23,9 @@ class MainWindow(QWidget):
         self.setWindowTitle("MeshStep")
         self.resize(1280, 720)
 
+        self.perfil_actual = "principiante" 
+        self.widgets_expertos = []
+
         self.ignorar_limite_hardware = False
 
         logo_label = QLabel()
@@ -36,6 +39,28 @@ class MainWindow(QWidget):
         self.view_menu = self.menubar.addMenu("")
         self.color_menu = self.menubar.addMenu("")
         self.reload_menu = self.menubar.addMenu("")
+
+        #Perfiles
+        self.perfil_menu = self.menubar.addMenu("") 
+        grupo_perfil = QActionGroup(self)
+        grupo_perfil.setExclusive(True)
+
+        grupo_perfil.setExclusive(True)
+
+        self.accion_principiante = QAction("", self, checkable=True)
+        self.accion_principiante.setChecked(True)
+        self.accion_principiante.triggered.connect(lambda: self.cambiar_perfil("principiante"))
+        self.perfil_menu.addAction(self.accion_principiante)
+        grupo_perfil.addAction(self.accion_principiante)
+
+        self.accion_experto = QAction("", self, checkable=True)
+        self.accion_experto.triggered.connect(lambda: self.cambiar_perfil("experto"))
+        self.perfil_menu.addAction(self.accion_experto)
+        grupo_perfil.addAction(self.accion_experto)
+
+        self.widgets_expertos.append(self.edit_menu.menuAction()) # Menú "Editar" (Opciones) es experto
+        self.widgets_expertos.append(self.color_menu.menuAction()) # Menú "Coloreos" es experto
+        self.widgets_expertos.append(self.reload_menu.menuAction()) # Menú "Reestablecer" es experto
 
         # Iconos estándar
         icon_cargar = self.style().standardIcon(QStyle.SP_DirOpenIcon)
@@ -77,6 +102,7 @@ class MainWindow(QWidget):
         self.boton_opciones.setIconSize(icon_size)
         self.boton_opciones.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.boton_opciones.clicked.connect(lambda: abrir_opciones_dialog(self))
+        self.widgets_expertos.append(self.boton_opciones) #Perfil: Widget experto
 
         self.boton_wireframe = QToolButton(self)
         self.boton_wireframe.setIconSize(icon_size)
@@ -92,16 +118,21 @@ class MainWindow(QWidget):
         self.boton_color_area.setIconSize(icon_size)
         self.boton_color_area.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.boton_color_area.clicked.connect(lambda: self.refinement_viewer.accion_area() if getattr(self, "refinement_viewer", None) else None)
+        self.widgets_expertos.append(self.boton_color_area) #Perfil: Widget experto
 
         self.boton_color_angulo_minimo = QToolButton(self)
         self.boton_color_angulo_minimo.setIconSize(icon_size)
         self.boton_color_angulo_minimo.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.boton_color_angulo_minimo.clicked.connect(lambda: self.refinement_viewer.accion_angulo_minimo() if getattr(self, "refinement_viewer", None) else None)
+        
+        self.widgets_expertos.append(self.boton_color_angulo_minimo) #Perfil: Widget experto
 
         self.boton_color_relacion_aspecto = QToolButton(self)
         self.boton_color_relacion_aspecto.setIconSize(icon_size)
         self.boton_color_relacion_aspecto.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.boton_color_relacion_aspecto.clicked.connect(lambda: self.refinement_viewer.accion_relacion_aspecto() if getattr(self, "refinement_viewer", None) else None)
+        
+        self.widgets_expertos.append(self.boton_color_relacion_aspecto) #Perfil: Widget experto
 
         # Labels compactos entre grupos
         self.vista_label = QLabel("")
@@ -111,28 +142,33 @@ class MainWindow(QWidget):
         self.colores_label = QLabel("")
         self.colores_label.setAlignment(Qt.AlignCenter)
         self.colores_label.setStyleSheet("padding:4px; font-weight:600;")
+        self.widgets_expertos.append(self.colores_label) #Perfil: Widget experto
 
 
         # Barra horizontal de botones con separadores
+        # Barra horizontal de botones con separadores
         barra_botones = QHBoxLayout()
         barra_botones.setSpacing(8)
+        
+        # --- WIDGETS DE LA BARRA ---
         barra_botones.addWidget(self.boton_cargar)
-        barra_botones.addWidget(self.boton_opciones)
-
+        barra_botones.addWidget(self.boton_opciones) 
         sep1 = QFrame(self); sep1.setFrameShape(QFrame.VLine); sep1.setFrameShadow(QFrame.Sunken); sep1.setFixedHeight(28)
         barra_botones.addWidget(sep1)
-
+        self.widgets_expertos.append(sep1) #Perfil: Widget experto
         barra_botones.addWidget(self.vista_label)
         barra_botones.addWidget(self.boton_wireframe)
         barra_botones.addWidget(self.boton_solido)
-
         sep2 = QFrame(self); sep2.setFrameShape(QFrame.VLine); sep2.setFrameShadow(QFrame.Sunken); sep2.setFixedHeight(28)
         barra_botones.addWidget(sep2)
-
+        self.widgets_expertos.append(sep2) #Perfil: Widget experto
         barra_botones.addWidget(self.colores_label)
         barra_botones.addWidget(self.boton_color_area)
         barra_botones.addWidget(self.boton_color_angulo_minimo)
         barra_botones.addWidget(self.boton_color_relacion_aspecto)
+        
+        # ---------------------------
+        
         barra_botones.addStretch(1)  # Para que los botones queden a la izquierda
 
         # Acciones del menú
@@ -142,6 +178,7 @@ class MainWindow(QWidget):
         self.action_cargar_vtk = QAction("", self)
         self.action_cargar_vtk.triggered.connect(lambda: abrir_dialogo_vtk_externo(self))
         self.file_menu.addAction(self.action_cargar_vtk)
+        self.widgets_expertos.append(self.action_cargar_vtk) #Perfil: Widget experto
 
         self.action_opciones = QAction("", self)
         self.action_opciones.triggered.connect(lambda: abrir_opciones_dialog(self))
@@ -154,6 +191,7 @@ class MainWindow(QWidget):
         self.action_exportar = QAction("", self)
         self.action_exportar.triggered.connect(lambda: self.exportar_historial())
         self.file_menu.addAction(self.action_exportar)
+        self.widgets_expertos.append(self.action_exportar) #Perfil: Widget experto
 
         self.action_visual = QAction("", self)
         #self.action_visual.triggered.connect(lambda: cambiar_visualizador(self))
@@ -192,16 +230,19 @@ class MainWindow(QWidget):
             lambda: self.panel_derecho.toggle_puntos_criticos() if getattr(self, "panel_derecho", None) else None
         )
         self.view_menu.addAction(self.action_puntos_criticos)
+        self.widgets_expertos.append(self.action_puntos_criticos)
 
         # Acción para mostrar/ocultar una malla de referencia VTK
         self.action_referencia = QAction("", self)
         self.action_referencia.triggered.connect(lambda: self.toggle_reference_action())
         self.view_menu.addAction(self.action_referencia)
+        self.widgets_expertos.append(self.action_referencia) #Perfil: Widget experto
 
         # Acción para togglear visibilidad del preview ya cargado (no carga archivos)
         self.action_toggle_preview = QAction("", self)
         self.action_toggle_preview.triggered.connect(lambda: self.toggle_preview_action())
         self.view_menu.addAction(self.action_toggle_preview)
+        self.widgets_expertos.append(self.action_toggle_preview) #Perfil: Widget experto
 
         #agrego resets
 
@@ -228,6 +269,9 @@ class MainWindow(QWidget):
         self.refinement_viewer = RefinementViewer(self)
         self.panel_derecho = PanelDerecho(parent=self)
         self.panel_pap = PanelPAP(parent=self)
+
+        self.widgets_expertos.append(self.panel_derecho) #Perfil: Widget experto
+        
 
         # Integrar los panels derecho en un contenedor para poder alternarlos
         self.refinement_viewer.panel_derecho = self.panel_derecho
@@ -259,14 +303,16 @@ class MainWindow(QWidget):
         splitter.addWidget(panel_izquierdo)
         splitter.addWidget(self.panel_central)
         # Añadimos ambos panels al splitter dentro de un contenedor derecho
-        right_container = QWidget()
+        self.right_container = QWidget() #right_container = QWidget()
         right_layout = QVBoxLayout()
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
         right_layout.addWidget(self.panel_derecho)
         right_layout.addWidget(self.panel_pap)
-        right_container.setLayout(right_layout)
-        splitter.addWidget(right_container)
+        self.right_container.setLayout(right_layout)
+        splitter.addWidget(self.right_container)
+
+
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
         splitter.setStretchFactor(2, 1)
@@ -280,6 +326,8 @@ class MainWindow(QWidget):
 
         self.switcher = None
         self.retranslateUi()
+
+        self.actualizar_visibilidad_ui()
 
     def retranslateUi(self):
         self.setWindowTitle(self.tr("MeshStep"))
@@ -323,6 +371,14 @@ class MainWindow(QWidget):
         self.action_exportar.setText(self.tr("Exportar historial de mallado"))
         self.tab_widget.setTabText(0, self.tr("Niveles de refinación"))
         self.tab_widget.setTabText(1, self.tr("Paso a paso"))
+
+        # --- INICIO: LÓGICA DE PERFILES (Traducciones) ---
+        self.perfil_menu.setTitle(self.tr("Perfil"))
+        self.accion_principiante.setText(self.tr("Principiante"))
+        self.accion_principiante.setToolTip(self.tr("Ocultar herramientas avanzadas"))
+        self.accion_experto.setText(self.tr("Experto"))
+        self.accion_experto.setToolTip(self.tr("Mostrar todas las herramientas"))
+        # --- FIN: LÓGICA DE PERFILES (Traducciones) ---
 
     def changeEvent(self, event):
         if event.type() == QEvent.LanguageChange:
@@ -427,6 +483,26 @@ class MainWindow(QWidget):
                 self.tr("Sin referencia cargada"),
                 self.tr("No hay una malla de referencia cargada. Usa 'Referencia' para cargar una.")
             )
+
+    #LÓGICA DE PERFILES
+
+    def cambiar_perfil(self, perfil):
+        """Actualiza el estado y llama a la función que actualiza la UI."""
+        if self.perfil_actual != perfil:
+            self.perfil_actual = perfil
+            print(f"Cambiando a perfil: {self.perfil_actual}")
+            self.actualizar_visibilidad_ui()
+
+    def actualizar_visibilidad_ui(self):
+        """Recorre la lista de widgets expertos y los muestra o oculta."""
+        
+        # Determina si deben ser visibles
+        es_experto = (self.perfil_actual == "experto")
+
+        # Itera sobre todos los widgets guardados
+        for widget in self.widgets_expertos:
+            widget.setVisible(es_experto)
+    #FIN: LÓGICA DE PERFILES 
 
     # Eventos de drag & drop
     def dragEnterEvent(self, event):
