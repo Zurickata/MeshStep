@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtCore import Qt, QTranslator, QTimer
 from PyQt5.QtGui import QFont, QIcon, QPixmap
 from app.interface.main_window import MainWindow
-import time
 
 # Habilita el escalado DPI automático
 os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
@@ -51,8 +50,8 @@ def main():
         splash.finish(window)
         window.show()
 
-    QTimer.singleShot(1800, start_app)
-    
+    QTimer.singleShot(1000, start_app)
+
     # window.vtk_widget.Start()
     sys.exit(app.exec_())
 

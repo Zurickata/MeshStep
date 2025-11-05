@@ -588,13 +588,9 @@ class VTKPlayer(QWidget):
         # Botones de control
         self.boton_siguiente = QPushButton(self.style().standardIcon(QStyle.SP_ArrowForward), "Siguiente paso (n)")
         self.boton_reiniciar = QPushButton("Reiniciar (r)")
-<<<<<<< Updated upstream
         self.boton_guardar = QPushButton("Guardar (g)")
-=======
-        self.boton_guardar = QPushButton("Guardar (s)")
         self.boton_plus10 = QPushButton("+10 pasos")
         self.boton_plus100 = QPushButton("+100 pasos")
->>>>>>> Stashed changes
 
         self.boton_plus10.clicked.connect(lambda: self.avanzar_varios(10))
         self.boton_plus100.clicked.connect(lambda: self.avanzar_varios(100))
@@ -605,14 +601,11 @@ class VTKPlayer(QWidget):
 
         botones_layout = QHBoxLayout()
         botones_layout.addWidget(self.boton_guardar)
-<<<<<<< Updated upstream
         botones_layout.addWidget(self.boton_reiniciar)
         botones_layout.addWidget(self.boton_siguiente)
-=======
         botones_layout.addWidget(self.boton_plus10)
         botones_layout.addWidget(self.boton_plus100)
 
->>>>>>> Stashed changes
 
         layout = QVBoxLayout()
         layout.addWidget(self.vtk_widget)
