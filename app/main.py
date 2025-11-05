@@ -1,10 +1,11 @@
 import sys
 import os
 import qdarkstyle
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import Qt, QTranslator, QLocale
-from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtWidgets import QApplication, QSplashScreen
+from PyQt5.QtCore import Qt, QTranslator, QTimer
+from PyQt5.QtGui import QFont, QIcon, QPixmap
 from app.interface.main_window import MainWindow
+import time
 
 # Habilita el escalado DPI automático
 os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
@@ -16,6 +17,14 @@ def main():
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
     app = QApplication(sys.argv)
+
+    # --- Splash Screen ---
+    splash_pix = QPixmap("./meshsteppng.svg")
+    splash = QSplashScreen(splash_pix, Qt.WindowStaysOnTopHint)
+    splash.setWindowFlag(Qt.FramelessWindowHint)  # sin bordes
+    splash.setWindowOpacity(0.95)
+    splash.showMessage("Cargando MeshStep...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
+    splash.show()
 
     app.setWindowIcon(QIcon("./meshsteppng.svg"))
 
@@ -38,7 +47,12 @@ def main():
     # Aplicar qdarkstyle DESPUÉS de que la ventana esté completamente inicializada
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     
-    window.show()
+    def start_app():
+        splash.finish(window)
+        window.show()
+
+    QTimer.singleShot(1800, start_app)
+    
     # window.vtk_widget.Start()
     sys.exit(app.exec_())
 
