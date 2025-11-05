@@ -3,7 +3,7 @@ import os
 import qdarkstyle
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt, QTranslator, QLocale
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QIcon
 from app.interface.main_window import MainWindow
 
 # Habilita el escalado DPI automático
@@ -16,6 +16,8 @@ def main():
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
     app = QApplication(sys.argv)
+
+    app.setWindowIcon(QIcon("./meshsteppng.svg"))
 
     app.translator = QTranslator()
     language_code = "es"
