@@ -115,17 +115,57 @@ def borrar_caras(ugrid, caras_a_borrar):
     return nuevo_grid
 
 def borrar_vertices(ugrid, vids_a_borrar):
-    # Borra TODAS las celdas que toquen cualquiera de esos vértices
+    """
+    Borra los vértices especificados y modifica las celdas adyacentes para mantener 
+    la malla cerrada. Para cada vértice:
+    1. Identifica las celdas que lo contienen
+    2. Modifica esas celdas para eliminar el vértice y crear nuevas caras
+    """
     ncells = ugrid.GetNumberOfCells()
-    cids = []
     vids_set = set(vids_a_borrar)
+    
+    # Crear nuevo grid
+    nuevo_grid = vtk.vtkUnstructuredGrid()
+    nuevo_grid.SetPoints(ugrid.GetPoints())
+    nuevas_celdas = vtk.vtkCellArray()
+    tipos = vtk.vtkUnsignedCharArray()
+    tipos.SetNumberOfComponents(1)
+    tipos.SetName("types")
+
+    # Para cada celda del original
     for cid in range(ncells):
         cell = ugrid.GetCell(cid)
-        for i in range(cell.GetNumberOfPoints()):
-            if cell.GetPointId(i) in vids_set:
-                cids.append(cid)
-                break
-    return borrar_caras(ugrid, cids)
+        pts_cell = cell.GetPointIds()
+        tipo_cell = ugrid.GetCellType(cid)
+        
+        # Ver si la celda contiene algún vértice a borrar
+        verts_a_borrar = []
+        verts_restantes = []
+        for i in range(pts_cell.GetNumberOfIds()):
+            vid = pts_cell.GetId(i)
+            if vid in vids_set:
+                verts_a_borrar.append(i)
+            else:
+                verts_restantes.append(vid)
+        
+        if not verts_a_borrar:
+            # Si la celda no tiene vértices a borrar, copiarla tal cual
+            nuevas_celdas.InsertNextCell(pts_cell.GetNumberOfIds())
+            for i in range(pts_cell.GetNumberOfIds()):
+                nuevas_celdas.InsertCellPoint(pts_cell.GetId(i))
+            tipos.InsertNextValue(tipo_cell)
+        else:
+            # Si la celda tiene vértices a borrar, crear triangulación sin ellos
+            # Por ahora solo manejamos el caso de un vértice por celda
+            if len(verts_restantes) >= 3:
+                # Crear una nueva cara con los vértices restantes
+                nuevas_celdas.InsertNextCell(len(verts_restantes))
+                for vid in verts_restantes:
+                    nuevas_celdas.InsertCellPoint(vid)
+                tipos.InsertNextValue(vtk.VTK_POLYGON)  # o VTK_TRIANGLE si son 3
+
+    nuevo_grid.SetCells(tipos, nuevas_celdas)
+    return nuevo_grid
 
 
 def change_model(name, outputs_dir=OUTPUTS_DIR):
@@ -548,8 +588,16 @@ class VTKPlayer(QWidget):
         # Botones de control
         self.boton_siguiente = QPushButton(self.style().standardIcon(QStyle.SP_ArrowForward), "Siguiente paso (n)")
         self.boton_reiniciar = QPushButton("Reiniciar (r)")
+<<<<<<< Updated upstream
         self.boton_guardar = QPushButton("Guardar (g)")
+=======
+        self.boton_guardar = QPushButton("Guardar (s)")
+        self.boton_plus10 = QPushButton("+10 pasos")
+        self.boton_plus100 = QPushButton("+100 pasos")
+>>>>>>> Stashed changes
 
+        self.boton_plus10.clicked.connect(lambda: self.avanzar_varios(10))
+        self.boton_plus100.clicked.connect(lambda: self.avanzar_varios(100))
         self.boton_siguiente.clicked.connect(self.siguiente_paso)
         self.boton_siguiente.setStyleSheet("background-color: #008000; color: white;")
         self.boton_reiniciar.clicked.connect(self.reiniciar)
@@ -557,8 +605,14 @@ class VTKPlayer(QWidget):
 
         botones_layout = QHBoxLayout()
         botones_layout.addWidget(self.boton_guardar)
+<<<<<<< Updated upstream
         botones_layout.addWidget(self.boton_reiniciar)
         botones_layout.addWidget(self.boton_siguiente)
+=======
+        botones_layout.addWidget(self.boton_plus10)
+        botones_layout.addWidget(self.boton_plus100)
+
+>>>>>>> Stashed changes
 
         layout = QVBoxLayout()
         layout.addWidget(self.vtk_widget)
@@ -734,6 +788,15 @@ class VTKPlayer(QWidget):
 
     def siguiente_paso(self):
         self._ejecutar_comando("n")
+    
+    def avanzar_varios(self, n):
+        for _ in range(n):
+            if self.estado["i"] >= len(self.comandos):
+                print("No quedan más comandos.")
+                QMessageBox.information(self, "Fin", "Ya no quedan más pasos para ejecutar.")
+                break
+            self.siguiente_paso()
+
 
     def reiniciar(self):
         self._ejecutar_comando("r")
