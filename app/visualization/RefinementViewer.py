@@ -134,24 +134,25 @@ class RefinementViewer(QWidget):
         self.timer_animacion.timeout.connect(self.avance_automatico)
 
         nav_layout = QHBoxLayout()
-        nav_layout.addWidget(self.boton_anterior)
-        nav_layout.addWidget(self.boton_siguiente)
         nav_layout.addWidget(self.boton_play)
         nav_layout.addWidget(self.boton_pausa)
         nav_layout.addWidget(self.boton_reinicio)
         nav_layout.addWidget(self.boton_overlay)
+        nav_layout.addWidget(self.boton_anterior)
+        nav_layout.addWidget(self.boton_siguiente)
 
         layout = QVBoxLayout()
         layout.addWidget(self.vtk_widget)
         layout.addLayout(nav_layout)
         self.setLayout(layout)
 
-        self.boton_anterior.clicked.connect(self.navegar_anterior)
-        self.boton_siguiente.clicked.connect(self.navegar_siguiente)
         self.boton_play.clicked.connect(self.iniciar_animacion)
         self.boton_pausa.clicked.connect(self.detener_animacion)
         self.boton_reinicio.clicked.connect(self.reiniciar_secuencia)
         self.boton_overlay.clicked.connect(self.toggle_overlay)
+        self.boton_anterior.clicked.connect(self.navegar_anterior)
+        self.boton_siguiente.clicked.connect(self.navegar_siguiente)
+        self.boton_siguiente.setStyleSheet("background-color: #008000; color: white;")
 
     # def set_panel_derecho(self, panel):
     #     self.panel_derecho = panel
