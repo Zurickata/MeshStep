@@ -251,13 +251,13 @@ def historial_patrones(vtkc, vtkr, vtks, output_path):
         # for pt in reversed(i):
             # f.write(f"del_pt {pt}\n")
         
-        f.write(f"change {vtks}\n")
+        # f.write(f"change {vtks}\n")
         
 
 def combinar_historial_octree(name,nivel_refinamiento, output_file):
     input_files = [
-        "movimientos1_new.txt",
         "movimientos2_new.txt",
+        "movimientos1_new.txt",
         "movimientos3_new.txt"
     ]
 
@@ -275,6 +275,8 @@ def combinar_historial_octree(name,nivel_refinamiento, output_file):
                 with open(fname) as infile:
                     outfile.write(infile.read())
                     outfile.write("\n")
+                    if fname == "movimientos1_new.txt":
+                        outfile.write(f"change {name}_shrink.vtk \n")
 
 def crear_historial_octree(name,nivel_refinamiento,tipo="completo", input_dir="."):
     sub3d.subdividir_completo(name, nivel_refinamiento, input_dir, f"{name}_quads.vtk")
