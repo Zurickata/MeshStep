@@ -330,7 +330,9 @@ class MainWindow(QWidget):
         self.retranslateUi()
 
         self.widgets_refinamiento = [
-            self.view_menu.menuAction(),
+            self.action_wireframe,
+            self.action_solido,
+            self.action_puntos_criticos,
             self.color_menu.menuAction(),
             self.vista_label,
             self.boton_wireframe,
