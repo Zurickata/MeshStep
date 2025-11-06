@@ -457,7 +457,7 @@ class PanelDerecho(QScrollArea):
 # ------------------- FUNCIONES ESTADISTICAS DETALLADAS -------------------
 
 
-    def _build_stats_html(self, metricas):
+    def build_stats_html(self, metricas):
         """Construye el HTML de estadísticas usando textos traducibles."""
         stats = metricas.get('estadisticas_generales', {}) or {}
         total_triangulos = stats.get('total_triangulos', 0)
@@ -564,7 +564,7 @@ class PanelDerecho(QScrollArea):
         except Exception:
             pass
 
-        stats_html = self._build_stats_html(metricas)
+        stats_html = self.build_stats_html(metricas)
         self.label_estadisticas.setText(stats_html)
 
         
@@ -790,22 +790,22 @@ class PanelDerecho(QScrollArea):
 
         if total is not None:
             header_html += (
-                f"<div><span style='color:#888;'>{self.tr('Total elementos')}:</span> "
+                f"<div><span style='color:#888;'>{self.tr("Total elementos")}:</span> "
                 f"<span style='color:#ffd54f;'>{total}</span></div>"
             )
         if negativos is not None:
             header_html += (
-                f"<div><span style='color:#888;'>{self.tr('Invertidos')}:</span> "
+                f"<div><span style='color:#888;'>{self.tr("Invertidos")}:</span> "
                 f"<span style='color:#ff6b6b;'>{negativos}</span></div>"
             )
         if promedio is not None:
             header_html += (
-                f"<div><span style='color:#888;'>{self.tr('Promedio')}:</span> "
+                f"<div><span style='color:#888;'>{self.tr("Promedio")}:</span> "
                 f"<span style='color:#4ecdc4;'>{float(promedio):.5f}</span></div>"
             )
         if peor is not None:
             header_html += (
-                f"<div><span style='color:#888;'>{self.tr('Peor')}:</span> "
+                f"<div><span style='color:#888;'>{self.tr("Peor")}:</span> "
                 f"<span style='color:#ff9f43;'>{float(peor):.5f}</span></div>"
             )
         header_html += "</div>"
