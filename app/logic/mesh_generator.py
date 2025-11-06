@@ -9,6 +9,7 @@ from core.wrapper import QuadtreeWrapper, OctreeWrapper
 from app.logic.scripts_historial.crear_historial import crear_historial
 from app.logic.scripts_historial.historial_octree import crear_historial_octree
 from app.logic.metricas_jeans import generar_metricas_jeans
+from pathlib import Path
 
 # --- CAMBIO: Definir Contexto ---
 CONTEXTO = "MeshGeneratorController"
@@ -210,7 +211,9 @@ class MeshGeneratorController(QDialog):
                         print(f"[JEANS] Iniciando generación de métricas para nivel {level}...")
 
                         # Ruta del binario Jeans
-                        jeans_bin = os.path.join(os.getcwd(), "core", "jeans", "build", "jens")
+                        project_root = Path(__file__).resolve().parents[2]  # sube desde app/logic/... hasta MeshStep/
+                        jeans_bin = project_root / "core" / "jeans" / "build" / "jens"
+                        jeans_bin = str(jeans_bin)
 
                         # Ruta del archivo VTK generado por el Octree
                         vtk_path = result_file  # viene del generate_mesh()
