@@ -1,7 +1,7 @@
 import os
 import vtk
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QStyle, QProgressDialog, QFileDialog
-from PyQt5.QtCore import Qt, QTimer, QSize, QThread
+from PyQt5.QtCore import Qt, QTimer, QSize, QThread, QEvent
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from app.visualization.FeriaVTK import ModelSwitcher, CustomInteractorStyle
 from app.visualization.coloreo_metricas import colorear_celdas, ColoreoWorker
@@ -111,12 +111,12 @@ class RefinementViewer(QWidget):
         # Botones de navegación
         icon_size = QSize(20, 20)
 
-        self.boton_anterior = QPushButton(self.style().standardIcon(QStyle.SP_ArrowBack), "Anterior")
-        self.boton_siguiente = QPushButton(self.style().standardIcon(QStyle.SP_ArrowForward), "Siguiente")
-        self.boton_play = QPushButton(self.style().standardIcon(QStyle.SP_MediaPlay), "Play")
-        self.boton_pausa = QPushButton(self.style().standardIcon(QStyle.SP_MediaPause), "Pausa")
-        self.boton_reinicio = QPushButton(self.style().standardIcon(QStyle.SP_MediaSkipBackward), "Reinicio")
-        self.boton_overlay = QPushButton(self.style().standardIcon(QStyle.SP_FileDialogInfoView), "Mostrar overlay")
+        self.boton_anterior = QPushButton(self.style().standardIcon(QStyle.SP_ArrowBack), self.tr("Anterior"))
+        self.boton_siguiente = QPushButton(self.style().standardIcon(QStyle.SP_ArrowForward), self.tr("Siguiente"))
+        self.boton_play = QPushButton(self.style().standardIcon(QStyle.SP_MediaPlay), self.tr("Play"))
+        self.boton_pausa = QPushButton(self.style().standardIcon(QStyle.SP_MediaPause), self.tr("Pausa"))
+        self.boton_reinicio = QPushButton(self.style().standardIcon(QStyle.SP_MediaSkipBackward), self.tr("Reinicio"))
+        self.boton_overlay = QPushButton(self.style().standardIcon(QStyle.SP_FileDialogInfoView), self.tr("Mostrar overlay"))
    
         self.boton_anterior.setIconSize(icon_size)
         self.boton_siguiente.setIconSize(icon_size)
@@ -156,6 +156,33 @@ class RefinementViewer(QWidget):
 
     # def set_panel_derecho(self, panel):
     #     self.panel_derecho = panel
+
+    def retranslateUi(self):
+        """Actualiza los textos traducibles de este widget.
+
+        Se llama desde changeEvent cuando cambia el idioma.
+        """
+        try:
+            self.boton_anterior.setText(self.tr("Anterior"))
+            self.boton_siguiente.setText(self.tr("Siguiente"))
+            self.boton_play.setText(self.tr("Play"))
+            self.boton_pausa.setText(self.tr("Pausa"))
+            self.boton_reinicio.setText(self.tr("Reinicio"))
+            # overlay depende del estado
+            if getattr(self, 'overlay_visible', False):
+                self.boton_overlay.setText(self.tr("Ocultar overlay"))
+            else:
+                self.boton_overlay.setText(self.tr("Mostrar overlay"))
+        except Exception:
+            # en caso de inicialización parcial, ignoramos
+            pass
+
+    def changeEvent(self, event):
+        """Responder a cambio de idioma."""
+        if event.type() == QEvent.LanguageChange:
+            self.retranslateUi()
+        else:
+            super().changeEvent(event)
 
     def set_switcher(self, switcher, poly_path=None):
         self.switcher = switcher
@@ -237,9 +264,9 @@ class RefinementViewer(QWidget):
     def seleccionar_y_cargar_referencia(self):
         filepath, _ = QFileDialog.getOpenFileName(
             self,
-            "Selecciona archivo de referencia VTK",
+            self.tr("Selecciona archivo de referencia VTK"),
             "",
-            "Archivos VTK (*.vtk)"
+            self.tr("Archivos VTK (*.vtk)")
         )
         if filepath:
             self.load_vtk_reference(filepath)
@@ -260,7 +287,7 @@ class RefinementViewer(QWidget):
             self.switcher.clear_extra_models()
             self.panel_derecho.reload_modelo()
         else:
-            QMessageBox.information(self, "Inicio", "Ya estás en el primer modelo.")
+            QMessageBox.information(self, self.tr("Inicio"), self.tr("Ya estás en el primer modelo."))
 
     def navegar_siguiente(self):
         if not self.switcher:
@@ -277,7 +304,7 @@ class RefinementViewer(QWidget):
             self.switcher.clear_extra_models()
             self.panel_derecho.reload_modelo()
         else:
-            QMessageBox.information(self, "Fin", "Ya estás en el último modelo.")
+            QMessageBox.information(self, self.tr("Fin"), self.tr("Ya estás en el último modelo."))
 
     def iniciar_animacion(self):
         if self.switcher and self.switcher.file_dict:
@@ -321,7 +348,7 @@ class RefinementViewer(QWidget):
         if self.overlay_actor:
             self.overlay_visible = not self.overlay_visible
             self.overlay_actor.SetVisibility(self.overlay_visible)
-            self.boton_overlay.setText("Ocultar overlay" if self.overlay_visible else "Mostrar overlay")
+            self.boton_overlay.setText(self.tr("Ocultar overlay") if self.overlay_visible else self.tr("Mostrar overlay"))
             self.renderer.GetRenderWindow().Render()
 
     def update_overlay_poly(self, poly_path):
@@ -332,7 +359,7 @@ class RefinementViewer(QWidget):
             self.overlay_actor = None
         self._load_overlay_poly()
         self.overlay_visible = False
-        self.boton_overlay.setText("Mostrar overlay")
+        self.boton_overlay.setText(self.tr("Mostrar overlay"))
         self.renderer.GetRenderWindow().Render()
 
     # def accion_area(self):
@@ -435,8 +462,8 @@ class RefinementViewer(QWidget):
         self._coloreo_cancelado = False
         self._coloreo_finalizo = False
 
-        self.progress = QProgressDialog("Calculando color de celdas...", "Cancelar", 0, 0, self)
-        self.progress.setWindowTitle("Aplicando métrica")
+        self.progress = QProgressDialog(self.tr("Calculando color de celdas..."), self.tr("Cancelar"), 0, 0, self)
+        self.progress.setWindowTitle(self.tr("Aplicando métrica"))
         self.progress.setWindowModality(Qt.WindowModal)
         self.progress.setAutoClose(False)
         self.progress.canceled.connect(self._cancelar_coloreo)
@@ -498,7 +525,7 @@ class RefinementViewer(QWidget):
             self.switcher.load_model(output_path)
             self.renderer.GetRenderWindow().Render()
         else:
-            QMessageBox.critical(self, "Error en coloreo", f"No se pudo generar el archivo:\n{message}")
+            QMessageBox.critical(self, self.tr("Error en coloreo"), self.tr("No se pudo generar el archivo:\n{message}").format(message=message))
 
     def accion_area(self):
         self._iniciar_coloreo("area")

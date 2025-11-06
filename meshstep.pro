@@ -6,6 +6,7 @@ SOURCES += app/interface/options_dialog.py
 SOURCES += app/interface/manual_dialog.py
 SOURCES += app/logic/mesh_generator.py
 SOURCES += app/visualization/RefinementViewer.py
+SOURCES += app/visualization/vtkplayer.py
 SOURCES += app/logic/main_window_logic.py
 SOURCES += app/interface/panel_derecho.py
 

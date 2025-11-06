@@ -4,7 +4,7 @@ import os
 import sys
 import math
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QFileDialog, QProgressDialog, QStyle
-from PyQt5.QtCore import QStandardPaths, pyqtSignal, Qt, QTimer
+from PyQt5.QtCore import QStandardPaths, pyqtSignal, Qt, QTimer, QCoreApplication, QEvent
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 OUTPUTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../outputs")
@@ -221,10 +221,19 @@ def guardar_ugrid(ugrid, filename=None, parent=None, precision=8, puntos_por_lin
         if os.path.isabs(filename) or os.path.dirname(filename):
             need_dialog = False
 
+    def _tr(text):
+        # Prefer parent translation if available, fallback to QCoreApplication
+        try:
+            if parent is not None and hasattr(parent, 'tr'):
+                return parent.tr(text)
+        except Exception:
+            pass
+        return QCoreApplication.translate("VTKPlayer", text)
+
     if need_dialog:
         default_dir = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
         suggested = os.path.join(default_dir, default_name)
-        file_path, _ = QFileDialog.getSaveFileName(parent, "Guardar VTK", suggested, "VTK files (*.vtk);;Todos los archivos (*)")
+        file_path, _ = QFileDialog.getSaveFileName(parent, _tr("Guardar VTK"), suggested, _tr("VTK files (*.vtk);;Todos los archivos (*)"))
         if not file_path:
             print("[INFO] Guardado cancelado por el usuario.")
             return False, "cancelled"
@@ -264,17 +273,17 @@ def guardar_ugrid(ugrid, filename=None, parent=None, precision=8, puntos_por_lin
         with open(filename, "w") as f:
             f.writelines(out)
 
-        msg = f"Archivo guardado en: {filename}"
+        msg = _tr("Archivo guardado en: {filename}").format(filename=filename)
         print(f"[INFO] {msg}")
         if parent:
-            QMessageBox.information(parent, "Guardado", msg)
+            QMessageBox.information(parent, _tr("Guardado"), msg)
         return True, filename
 
     except Exception as e:
         err = f"Error al guardar VTK: {e}"
         print(f"[ERROR] {err}")
         if parent:
-            QMessageBox.critical(parent, "Error al guardar", err)
+            QMessageBox.critical(parent, _tr("Error al guardar"), err)
         return False, str(e)
 
 # ------------------------------
@@ -586,11 +595,11 @@ class VTKPlayer(QWidget):
         self._custom_style = None
 
         # Botones de control
-        self.boton_siguiente = QPushButton(self.style().standardIcon(QStyle.SP_ArrowForward), "Siguiente paso (n)")
-        self.boton_reiniciar = QPushButton("Reiniciar (r)")
-        self.boton_guardar = QPushButton("Guardar (g)")
-        self.boton_plus10 = QPushButton("+10 pasos")
-        self.boton_plus100 = QPushButton("+100 pasos")
+        self.boton_siguiente = QPushButton(self.style().standardIcon(QStyle.SP_ArrowForward), self.tr("Siguiente paso (n)"))
+        self.boton_reiniciar = QPushButton(self.tr("Reiniciar (r)"))
+        self.boton_guardar = QPushButton(self.tr("Guardar (g)"))
+        self.boton_plus10 = QPushButton(self.tr("+10 pasos"))
+        self.boton_plus100 = QPushButton(self.tr("+100 pasos"))
 
         self.boton_plus10.clicked.connect(lambda: self.avanzar_varios(10))
         self.boton_plus100.clicked.connect(lambda: self.avanzar_varios(100))
@@ -618,6 +627,23 @@ class VTKPlayer(QWidget):
         self.ugrid = None
         self.script_file = None
         self.vtk_file = None
+
+    def retranslateUi(self):
+        """Actualizar textos traducibles del widget VTKPlayer."""
+        try:
+            self.boton_siguiente.setText(self.tr("Siguiente paso (n)"))
+            self.boton_reiniciar.setText(self.tr("Reiniciar (r)"))
+            self.boton_guardar.setText(self.tr("Guardar (g)"))
+            self.boton_plus10.setText(self.tr("+10 pasos"))
+            self.boton_plus100.setText(self.tr("+100 pasos"))
+        except Exception:
+            pass
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.LanguageChange:
+            self.retranslateUi()
+        else:
+            super().changeEvent(event)
 
     # Helpers públicos para consultar estado
     def current_step(self) -> int:
@@ -667,16 +693,16 @@ class VTKPlayer(QWidget):
             if mesh_generator and not mesh_generator.historial_generandose:
                 # Ya no se está generando y el archivo no existe → error
                 progress.close()
-                QMessageBox.critical(self, "Error", "No existe historial disponible para este modelo.")
+                QMessageBox.critical(self, self.tr("Error"), self.tr("No existe historial disponible para este modelo."))
                 return True
             return False
         
         # Si el historial se está generando → mostrar spinner
         if mesh_generator and getattr(mesh_generator, "historial_generandose", False):
             print("[VTKPlayer] Historial aún generándose, mostrando spinner...")
-            progress = QProgressDialog("Generando historial...", None, 0, 0, self)
+            progress = QProgressDialog(self.tr("Generando historial..."), None, 0, 0, self)
             progress.setWindowModality(Qt.WindowModal)
-            progress.setWindowTitle("Creando historial")
+            progress.setWindowTitle(self.tr("Creando historial"))
             progress.setAutoClose(False)
             progress.setAutoReset(False)
             progress.setMinimumWidth(400)
@@ -721,7 +747,7 @@ class VTKPlayer(QWidget):
                         except TypeError:
                             pass
                     progress.close()
-                    QMessageBox.critical(self, "Error", "No existe historial disponible.")
+                    QMessageBox.critical(self, self.tr("Error"), self.tr("No existe historial disponible."))
                     return
 
                 # (si no ocurre ninguna de las dos condiciones, sigue esperando)
@@ -735,7 +761,7 @@ class VTKPlayer(QWidget):
         if os.path.exists(alt_path_script):
             self._run_script_core(alt_path_vtk, alt_path_script)
         else:
-            QMessageBox.critical(self, "Error", "No existe historial para este modelo.")
+            QMessageBox.critical(self, self.tr("Error"), self.tr("No existe historial para este modelo."))
 
     def _run_script_core(self, alt_path_vtk, alt_path_script):
         """Versión interna de run_script() que realmente carga los archivos."""
@@ -786,7 +812,7 @@ class VTKPlayer(QWidget):
         for _ in range(n):
             if self.estado["i"] >= len(self.comandos):
                 print("No quedan más comandos.")
-                QMessageBox.information(self, "Fin", "Ya no quedan más pasos para ejecutar.")
+                QMessageBox.information(self, self.tr("Fin"), self.tr("Ya no quedan más pasos para ejecutar."))
                 break
             self.siguiente_paso()
 
@@ -822,7 +848,7 @@ class VTKPlayer(QWidget):
                     pass
             else:
                 print("No quedan más comandos.")
-                QMessageBox.information(self, "Fin", "Ya estás en el último paso.")
+                QMessageBox.information(self, self.tr("Fin"), self.tr("Ya estás en el último paso."))
         elif comando == "r":
             print("Reiniciando modelo y script...")
             self.ugrid = cargar_ugrid(self.vtk_file)
